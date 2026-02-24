@@ -11,7 +11,8 @@ class PrinterService extends GetxService {
   static const _printerMacKey = 'printer_mac';
   static const _printerNameKey = 'printer_name';
 
-  final BlueThermalPrinter _printer = BlueThermalPrinter.instance;
+  // Hanya diinisialisasi di Android — plugin tidak support platform lain
+  BlueThermalPrinter? _printer;
 
   final isConnected = false.obs;
   final connectedDeviceName = ''.obs;
@@ -23,7 +24,9 @@ class PrinterService extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    if (Platform.isAndroid) _loadSavedPrinter();
+    if (!Platform.isAndroid) return;
+    _printer = BlueThermalPrinter.instance;
+    _loadSavedPrinter();
   }
 
   Future<void> _loadSavedPrinter() async {
@@ -65,7 +68,7 @@ class PrinterService extends GetxService {
         );
         return;
       }
-      final bonded = await _printer.getBondedDevices();
+      final bonded = await _printer!.getBondedDevices();
       devices.assignAll(bonded);
       if (devices.isEmpty) {
         Get.snackbar(
@@ -92,7 +95,7 @@ class PrinterService extends GetxService {
     if (!Platform.isAndroid) return false;
     isLoading.value = true;
     try {
-      await _printer.connect(device);
+      await _printer!.connect(device);
       isConnected.value = true;
       connectedDeviceName.value = device.name ?? 'Unknown';
 
@@ -131,7 +134,7 @@ class PrinterService extends GetxService {
   Future<void> disconnect() async {
     if (!Platform.isAndroid) return;
     try {
-      await _printer.disconnect();
+      await _printer!.disconnect();
     } catch (_) {}
     isConnected.value = false;
     connectedDeviceName.value = '';
@@ -140,7 +143,7 @@ class PrinterService extends GetxService {
   Future<void> checkConnection() async {
     if (!Platform.isAndroid) return;
     try {
-      final connected = await _printer.isConnected ?? false;
+      final connected = await _printer!.isConnected ?? false;
       isConnected.value = connected;
       if (!connected) connectedDeviceName.value = '';
     } catch (_) {
@@ -174,19 +177,19 @@ class PrinterService extends GetxService {
     isLoading.value = true;
     try {
       // ── Header ──
-      await _printer.printCustom('================================', 1, 1);
-      await _printer.printCustom('KASIR PINTAR', 3, 1);
-      await _printer.printCustom('================================', 1, 1);
-      await _printer.printCustom(transaction.invoiceNumber, 1, 1);
-      await _printer.printCustom(
+      await _printer!.printCustom('================================', 1, 1);
+      await _printer!.printCustom('KASIR PINTAR', 3, 1);
+      await _printer!.printCustom('================================', 1, 1);
+      await _printer!.printCustom(transaction.invoiceNumber, 1, 1);
+      await _printer!.printCustom(
           CurrencyHelper.formatDateTime(transaction.createdAt), 1, 1);
-      await _printer.printCustom('Kasir: ${transaction.cashierName}', 1, 1);
-      await _printer.printCustom('--------------------------------', 1, 1);
+      await _printer!.printCustom('Kasir: ${transaction.cashierName}', 1, 1);
+      await _printer!.printCustom('--------------------------------', 1, 1);
 
       // ── Items ──
       for (final item in transaction.items) {
-        await _printer.printCustom(item.product.name, 1, 0);
-        await _printer.printLeftRight(
+        await _printer!.printCustom(item.product.name, 1, 0);
+        await _printer!.printLeftRight(
           '  ${item.quantity} x ${CurrencyHelper.formatRupiah(item.product.price)}',
           CurrencyHelper.formatRupiah(item.subtotal),
           1,
@@ -194,26 +197,26 @@ class PrinterService extends GetxService {
       }
 
       // ── Totals ──
-      await _printer.printCustom('--------------------------------', 1, 1);
-      await _printer.printLeftRight(
+      await _printer!.printCustom('--------------------------------', 1, 1);
+      await _printer!.printLeftRight(
           'Subtotal', CurrencyHelper.formatRupiah(transaction.subtotal), 1);
       if (transaction.discount > 0) {
-        await _printer.printLeftRight(
+        await _printer!.printLeftRight(
           'Diskon',
           '- ${CurrencyHelper.formatRupiah(transaction.discount)}',
           1,
         );
       }
-      await _printer.printCustom('================================', 1, 1);
-      await _printer.printLeftRight(
+      await _printer!.printCustom('================================', 1, 1);
+      await _printer!.printLeftRight(
           'TOTAL', CurrencyHelper.formatRupiah(transaction.total), 2);
-      await _printer.printCustom('================================', 1, 1);
-      await _printer.printLeftRight(
+      await _printer!.printCustom('================================', 1, 1);
+      await _printer!.printLeftRight(
           'Metode', transaction.paymentMethod, 1);
-      await _printer.printLeftRight(
+      await _printer!.printLeftRight(
           'Dibayar', CurrencyHelper.formatRupiah(transaction.paymentAmount), 1);
       if (transaction.change > 0) {
-        await _printer.printLeftRight(
+        await _printer!.printLeftRight(
           'Kembalian',
           CurrencyHelper.formatRupiah(transaction.change),
           1,
@@ -221,12 +224,12 @@ class PrinterService extends GetxService {
       }
 
       // ── Footer ──
-      await _printer.printCustom('--------------------------------', 1, 1);
-      await _printer.printCustom('Terima kasih!', 2, 1);
-      await _printer.printCustom('Silakan kunjungi kami kembali.', 1, 1);
-      await _printer.printNewLine();
-      await _printer.printNewLine();
-      await _printer.paperCut();
+      await _printer!.printCustom('--------------------------------', 1, 1);
+      await _printer!.printCustom('Terima kasih!', 2, 1);
+      await _printer!.printCustom('Silakan kunjungi kami kembali.', 1, 1);
+      await _printer!.printNewLine();
+      await _printer!.printNewLine();
+      await _printer!.paperCut();
 
       Get.snackbar(
         'Cetak Berhasil',
@@ -263,16 +266,16 @@ class PrinterService extends GetxService {
     }
     isLoading.value = true;
     try {
-      await _printer.printCustom('================================', 1, 1);
-      await _printer.printCustom('TEST PRINT', 3, 1);
-      await _printer.printCustom('KASIR PINTAR', 2, 1);
-      await _printer.printCustom('================================', 1, 1);
-      await _printer.printCustom('Printer berfungsi dengan baik!', 1, 1);
-      await _printer.printCustom('Siap untuk mencetak struk.', 1, 1);
-      await _printer.printCustom('================================', 1, 1);
-      await _printer.printNewLine();
-      await _printer.printNewLine();
-      await _printer.paperCut();
+      await _printer!.printCustom('================================', 1, 1);
+      await _printer!.printCustom('TEST PRINT', 3, 1);
+      await _printer!.printCustom('KASIR PINTAR', 2, 1);
+      await _printer!.printCustom('================================', 1, 1);
+      await _printer!.printCustom('Printer berfungsi dengan baik!', 1, 1);
+      await _printer!.printCustom('Siap untuk mencetak struk.', 1, 1);
+      await _printer!.printCustom('================================', 1, 1);
+      await _printer!.printNewLine();
+      await _printer!.printNewLine();
+      await _printer!.paperCut();
 
       Get.snackbar(
         'Test Berhasil',
