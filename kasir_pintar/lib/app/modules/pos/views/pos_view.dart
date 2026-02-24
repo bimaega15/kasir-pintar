@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/pos_controller.dart';
+import '../../order/controllers/order_controller.dart';
+import '../../../data/models/order_model.dart';
 import '../../../utils/constants/app_colors.dart';
 import 'widgets/product_card.dart';
 import 'widgets/cart_panel.dart';
 
-class PosView extends GetView<PosController> {
+class PosView extends GetView<OrderController> {
   const PosView({super.key});
 
   @override
@@ -13,7 +14,19 @@ class PosView extends GetView<PosController> {
     final isWide = MediaQuery.of(context).size.width > 700;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kasir'),
+        title: Obx(() {
+          if (controller.orderType.value == OrderType.takeAway) {
+            return const Text('Kasir · Take Away');
+          }
+          final table = controller.selectedTable.value;
+          if (table != null) {
+            return Text(
+                'Kasir · Meja ${table.number} (${controller.guestCount.value} tamu)');
+          }
+          return const Text('Kasir');
+        }),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         actions: [
           Obx(() => controller.cart.isNotEmpty
               ? Stack(
@@ -40,7 +53,7 @@ class PosView extends GetView<PosController> {
                               fontWeight: FontWeight.bold),
                         ),
                       ),
-                    )
+                    ),
                   ],
                 )
               : const SizedBox()),
@@ -50,19 +63,15 @@ class PosView extends GetView<PosController> {
     );
   }
 
-  // ── Wide layout (split panel) ─────────────────────────────────────────────
-
   Widget _buildWideLayout() {
     return Row(
       children: [
         Expanded(flex: 3, child: _buildProductPanel()),
         const SizedBox(width: 1),
-        SizedBox(width: 320, child: const CartPanel()),
+        const SizedBox(width: 320, child: CartPanel()),
       ],
     );
   }
-
-  // ── Narrow layout (products only, cart via bottom sheet) ──────────────────
 
   Widget _buildNarrowLayout() {
     return _buildProductPanel();
@@ -92,9 +101,7 @@ class PosView extends GetView<PosController> {
           suffixIcon: Obx(() => controller.searchQuery.value.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.clear, color: Colors.white70),
-                  onPressed: () {
-                    controller.searchController.clear();
-                  },
+                  onPressed: controller.searchController.clear,
                 )
               : const SizedBox()),
           filled: true,
@@ -132,8 +139,7 @@ class PosView extends GetView<PosController> {
                   color: selected ? AppColors.primary : AppColors.background,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color:
-                        selected ? AppColors.primary : AppColors.divider,
+                    color: selected ? AppColors.primary : AppColors.divider,
                   ),
                 ),
                 child: Text(

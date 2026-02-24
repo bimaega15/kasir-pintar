@@ -8,4 +8,14 @@ abstract class AppRoutes {
   static const transactionDetail = '/history/detail';
   static const receipt = '/receipt';
   static const printerSettings = '/printer-settings';
+  // v2 — restaurant flow
+  static const orderType = '/order/type';
+  static const tableSelect = '/order/table-select';
+  static const orderConfirm = '/order/confirm';
+  static const activeOrders = '/orders/active';
+  static const kitchen = '/kitchen';
+  static const tables = '/tables';
+  static const addEditTable = '/tables/form';
+  static const payment = '/payment';
+  static const appSettings = '/settings';
 }

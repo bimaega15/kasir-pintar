@@ -82,6 +82,11 @@ class HomeView extends GetView<HomeController> {
       ),
       actions: [
         IconButton(
+          icon: const Icon(Icons.settings_rounded, color: Colors.white),
+          tooltip: 'Pengaturan',
+          onPressed: () => Get.toNamed(AppRoutes.appSettings),
+        ),
+        IconButton(
           icon: const Icon(Icons.refresh, color: Colors.white),
           tooltip: 'Refresh',
           onPressed: controller.loadStats,
@@ -112,16 +117,16 @@ class HomeView extends GetView<HomeController> {
               color: AppColors.accent,
             ),
             _buildStatCard(
+              label: 'Pesanan Aktif',
+              value: '${controller.activeOrderCount.value} Pesanan',
+              icon: Icons.restaurant_rounded,
+              color: Colors.orange.shade600,
+            ),
+            _buildStatCard(
               label: 'Total Produk',
               value: '${controller.totalProducts.value} Produk',
               icon: Icons.inventory_2_rounded,
               color: AppColors.primaryLight,
-            ),
-            _buildStatCard(
-              label: 'Total Transaksi',
-              value: '${controller.totalTransactions.value} Transaksi',
-              icon: Icons.bar_chart_rounded,
-              color: const Color(0xFF7B1FA2),
             ),
           ],
         ));
@@ -139,7 +144,10 @@ class HomeView extends GetView<HomeController> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [
-          BoxShadow(color: AppColors.cardShadow, blurRadius: 6, offset: Offset(0, 2))
+          BoxShadow(
+              color: AppColors.cardShadow,
+              blurRadius: 6,
+              offset: Offset(0, 2))
         ],
       ),
       child: Column(
@@ -167,7 +175,8 @@ class HomeView extends GetView<HomeController> {
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            style: const TextStyle(
+                fontSize: 11, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -176,18 +185,38 @@ class HomeView extends GetView<HomeController> {
 
   Widget _buildMenuGrid() {
     return GridView.count(
-      crossAxisCount: 2,
+      crossAxisCount: 3,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.4,
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
+      childAspectRatio: 1.0,
       children: [
         _buildMenuCard(
           label: 'Kasir',
           icon: Icons.point_of_sale_rounded,
           color: AppColors.primary,
-          onTap: () => Get.toNamed(AppRoutes.pos),
+          onTap: () => Get.toNamed(AppRoutes.orderType),
+        ),
+        _buildMenuCard(
+          label: 'Meja',
+          icon: Icons.table_restaurant_rounded,
+          color: Colors.teal.shade600,
+          onTap: () => Get.toNamed(AppRoutes.tables),
+        ),
+        _buildMenuCard(
+          label: 'Dapur',
+          icon: Icons.soup_kitchen_rounded,
+          color: Colors.deepOrange.shade600,
+          onTap: () => Get.toNamed(AppRoutes.kitchen),
+          badge: controller.activeOrderCount,
+        ),
+        _buildMenuCard(
+          label: 'Aktif',
+          icon: Icons.receipt_long_rounded,
+          color: Colors.purple.shade600,
+          onTap: () => Get.toNamed(AppRoutes.activeOrders),
+          badge: controller.activeOrderCount,
         ),
         _buildMenuCard(
           label: 'Produk',
@@ -216,6 +245,7 @@ class HomeView extends GetView<HomeController> {
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
+    RxInt? badge,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -224,30 +254,60 @@ class HomeView extends GetView<HomeController> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
           boxShadow: const [
-            BoxShadow(color: AppColors.cardShadow, blurRadius: 6, offset: Offset(0, 2))
+            BoxShadow(
+                color: AppColors.cardShadow,
+                blurRadius: 6,
+                offset: Offset(0, 2))
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
           children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(14),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: Colors.white, size: 24),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
               ),
-              child: Icon(icon, color: Colors.white, size: 26),
             ),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-                color: AppColors.textPrimary,
+            if (badge != null)
+              Positioned(
+                top: 6,
+                right: 6,
+                child: Obx(() => badge.value > 0
+                    ? Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: AppColors.error,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '${badge.value}',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      )
+                    : const SizedBox()),
               ),
-            ),
           ],
         ),
       ),
@@ -263,16 +323,16 @@ class HomeView extends GetView<HomeController> {
         ),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const Icon(Icons.info_outline_rounded, color: Colors.white, size: 36),
-          const SizedBox(width: 16),
-          const Expanded(
+          Icon(Icons.info_outline_rounded, color: Colors.white, size: 36),
+          SizedBox(width: 16),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Kasir Pintar v1.0',
+                  'Kasir Pintar v2.0',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -281,7 +341,7 @@ class HomeView extends GetView<HomeController> {
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'Kelola produk & transaksi dengan mudah.',
+                  'Restoran & retail POS dengan dapur & multi-payment.',
                   style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],

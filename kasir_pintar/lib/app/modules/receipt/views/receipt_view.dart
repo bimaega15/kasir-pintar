@@ -1,14 +1,47 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../data/models/transaction_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../services/printer_service.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 
-class ReceiptView extends StatelessWidget {
+class ReceiptView extends StatefulWidget {
   const ReceiptView({super.key});
+
+  @override
+  State<ReceiptView> createState() => _ReceiptViewState();
+}
+
+class _ReceiptViewState extends State<ReceiptView> {
+  final _screenshotController = ScreenshotController();
+  bool _isSharing = false;
+
+  Future<void> _shareReceipt(TransactionModel transaction) async {
+    setState(() => _isSharing = true);
+    try {
+      final image = await _screenshotController.capture(pixelRatio: 2.0);
+      if (image == null) return;
+      final dir = await getTemporaryDirectory();
+      final file = File(
+          '${dir.path}/struk_${transaction.invoiceNumber.replaceAll('/', '_')}.png');
+      await file.writeAsBytes(image);
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text:
+            'Struk ${transaction.invoiceNumber} - ${CurrencyHelper.formatRupiah(transaction.total)}',
+      );
+    } catch (e) {
+      Get.snackbar('Error', 'Gagal berbagi struk: $e',
+          snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      if (mounted) setState(() => _isSharing = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,149 +110,191 @@ class ReceiptView extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
 
-                  // Receipt card
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: const [
-                        BoxShadow(
-                            color: AppColors.cardShadow,
-                            blurRadius: 8,
-                            offset: Offset(0, 2))
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        // Header struk
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 16, horizontal: 20),
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(14)),
-                          ),
-                          child: Column(
-                            children: [
-                              const Text(
-                                '🏪 KASIR PINTAR',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  letterSpacing: 1,
+                  // Receipt card (wrapped for screenshot)
+                  Screenshot(
+                    controller: _screenshotController,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: const [
+                          BoxShadow(
+                              color: AppColors.cardShadow,
+                              blurRadius: 8,
+                              offset: Offset(0, 2))
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // Header struk
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 16, horizontal: 20),
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(14)),
+                            ),
+                            child: Column(
+                              children: [
+                                const Text(
+                                  '🏪 KASIR PINTAR',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    letterSpacing: 1,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                transaction.invoiceNumber,
-                                style: const TextStyle(
-                                    color: Colors.white70, fontSize: 12),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Items
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              ...transaction.items.map((item) => Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 5),
-                                    child: Row(
-                                      children: [
-                                        Text(item.product.emoji,
-                                            style: const TextStyle(
-                                                fontSize: 18)),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                item.product.name,
-                                                style: const TextStyle(
-                                                    fontSize: 13,
-                                                    fontWeight:
-                                                        FontWeight.w500),
-                                              ),
-                                              Text(
-                                                '${item.quantity} x ${CurrencyHelper.formatRupiah(item.product.price)}',
-                                                style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: AppColors
-                                                        .textSecondary),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Text(
-                                          CurrencyHelper.formatRupiah(
-                                              item.subtotal),
-                                          style: const TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600),
-                                        ),
-                                      ],
+                                const SizedBox(height: 4),
+                                Text(
+                                  transaction.invoiceNumber,
+                                  style: const TextStyle(
+                                      color: Colors.white70, fontSize: 12),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      transaction.orderType == 'take_away'
+                                          ? Icons.takeout_dining_rounded
+                                          : Icons.restaurant_rounded,
+                                      color: Colors.white70,
+                                      size: 14,
                                     ),
-                                  )),
-                              const Divider(height: 20),
-                              _receiptRow('Subtotal',
-                                  CurrencyHelper.formatRupiah(transaction.subtotal)),
-                              if (transaction.discount > 0)
-                                _receiptRow(
-                                  'Diskon',
-                                  '- ${CurrencyHelper.formatRupiah(transaction.discount)}',
-                                  valueColor: AppColors.error,
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      transaction.orderTypeLabel +
+                                          (transaction.tableNumber != null
+                                              ? ' · Meja ${transaction.tableNumber}'
+                                              : ''),
+                                      style: const TextStyle(
+                                          color: Colors.white70, fontSize: 12),
+                                    ),
+                                  ],
                                 ),
-                              const Divider(height: 12),
-                              _receiptRow(
-                                'TOTAL',
-                                CurrencyHelper.formatRupiah(transaction.total),
-                                isBold: true,
-                                valueColor: AppColors.primary,
-                                fontSize: 16,
-                              ),
-                              const SizedBox(height: 8),
-                              _receiptRow('Metode Bayar', transaction.paymentMethod),
-                              _receiptRow(
-                                  'Dibayar',
-                                  CurrencyHelper.formatRupiah(
-                                      transaction.paymentAmount)),
-                              if (transaction.change > 0)
-                                _receiptRow(
-                                  'Kembalian',
-                                  CurrencyHelper.formatRupiah(transaction.change),
-                                  valueColor: AppColors.success,
-                                  isBold: true,
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
 
-                        // Footer
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: const BoxDecoration(
-                            color: AppColors.background,
-                            borderRadius: BorderRadius.vertical(
-                                bottom: Radius.circular(14)),
+                          // Items
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                ...transaction.items.map((item) => Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 5),
+                                      child: Row(
+                                        children: [
+                                          Text(item.product.emoji,
+                                              style: const TextStyle(
+                                                  fontSize: 18)),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  item.product.name,
+                                                  style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w500),
+                                                ),
+                                                Text(
+                                                  '${item.quantity} x ${CurrencyHelper.formatRupiah(item.product.price)}',
+                                                  style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color: AppColors
+                                                          .textSecondary),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Text(
+                                            CurrencyHelper.formatRupiah(
+                                                item.subtotal),
+                                            style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                        ],
+                                      ),
+                                    )),
+                                const Divider(height: 20),
+                                _receiptRow(
+                                    'Subtotal',
+                                    CurrencyHelper.formatRupiah(
+                                        transaction.subtotal)),
+                                if (transaction.discount > 0)
+                                  _receiptRow(
+                                    'Diskon',
+                                    '- ${CurrencyHelper.formatRupiah(transaction.discount)}',
+                                    valueColor: AppColors.error,
+                                  ),
+                                if (transaction.taxAmount > 0)
+                                  _receiptRow(
+                                    'Pajak',
+                                    CurrencyHelper.formatRupiah(
+                                        transaction.taxAmount),
+                                  ),
+                                if (transaction.serviceChargeAmount > 0)
+                                  _receiptRow(
+                                    'Service Charge',
+                                    CurrencyHelper.formatRupiah(
+                                        transaction.serviceChargeAmount),
+                                  ),
+                                const Divider(height: 12),
+                                _receiptRow(
+                                  'TOTAL',
+                                  CurrencyHelper.formatRupiah(
+                                      transaction.total),
+                                  isBold: true,
+                                  valueColor: AppColors.primary,
+                                  fontSize: 16,
+                                ),
+                                const SizedBox(height: 8),
+                                _receiptRow('Metode Bayar',
+                                    transaction.paymentMethod),
+                                _receiptRow(
+                                    'Dibayar',
+                                    CurrencyHelper.formatRupiah(
+                                        transaction.paymentAmount)),
+                                if (transaction.change > 0)
+                                  _receiptRow(
+                                    'Kembalian',
+                                    CurrencyHelper.formatRupiah(
+                                        transaction.change),
+                                    valueColor: AppColors.success,
+                                    isBold: true,
+                                  ),
+                              ],
+                            ),
                           ),
-                          child: const Text(
-                            'Terima kasih telah berbelanja!\nSilakan kunjungi kami kembali.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12),
+
+                          // Footer
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: const BoxDecoration(
+                              color: AppColors.background,
+                              borderRadius: BorderRadius.vertical(
+                                  bottom: Radius.circular(14)),
+                            ),
+                            child: const Text(
+                              'Terima kasih telah berbelanja!\nSilakan kunjungi kami kembali.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 12),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -232,7 +307,7 @@ class ReceiptView extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             child: Column(
               children: [
-                if (Platform.isAndroid)
+                if (Platform.isAndroid) ...[
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: SizedBox(
@@ -252,6 +327,32 @@ class ReceiptView extends StatelessWidget {
                       ),
                     ),
                   ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _isSharing
+                            ? null
+                            : () => _shareReceipt(transaction),
+                        icon: _isSharing
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.share_rounded),
+                        label: Text(
+                            _isSharing ? 'Menyiapkan...' : 'Bagikan Struk'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          backgroundColor: const Color(0xFF25D366),
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
                 Row(
                   children: [
                     Expanded(
@@ -268,9 +369,9 @@ class ReceiptView extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () => Get.offNamed(AppRoutes.pos),
+                        onPressed: () => Get.offAllNamed(AppRoutes.home),
                         icon: const Icon(Icons.add_shopping_cart_rounded),
-                        label: const Text('Transaksi Baru'),
+                        label: const Text('Pesanan Baru'),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 13),
                         ),
