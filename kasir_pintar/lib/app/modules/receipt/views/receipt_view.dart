@@ -28,7 +28,8 @@ class _ReceiptViewState extends State<ReceiptView> {
       if (image == null) return;
       final dir = await getTemporaryDirectory();
       final file = File(
-          '${dir.path}/struk_${transaction.invoiceNumber.replaceAll('/', '_')}.png');
+        '${dir.path}/struk_${transaction.invoiceNumber.replaceAll('/', '_')}.png',
+      );
       await file.writeAsBytes(image);
       await Share.shareXFiles(
         [XFile(file.path)],
@@ -36,8 +37,11 @@ class _ReceiptViewState extends State<ReceiptView> {
             'Struk ${transaction.invoiceNumber} - ${CurrencyHelper.formatRupiah(transaction.total)}',
       );
     } catch (e) {
-      Get.snackbar('Error', 'Gagal berbagi struk: $e',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Error',
+        'Gagal berbagi struk: $e',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } finally {
       if (mounted) setState(() => _isSharing = false);
     }
@@ -73,9 +77,10 @@ class _ReceiptViewState extends State<ReceiptView> {
                       borderRadius: BorderRadius.circular(14),
                       boxShadow: const [
                         BoxShadow(
-                            color: AppColors.cardShadow,
-                            blurRadius: 8,
-                            offset: Offset(0, 2))
+                          color: AppColors.cardShadow,
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
                       ],
                     ),
                     child: Column(
@@ -87,8 +92,11 @@ class _ReceiptViewState extends State<ReceiptView> {
                             color: AppColors.success.withValues(alpha: 0.12),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.check_circle_rounded,
-                              color: AppColors.success, size: 44),
+                          child: const Icon(
+                            Icons.check_circle_rounded,
+                            color: AppColors.success,
+                            size: 44,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         const Text(
@@ -103,7 +111,9 @@ class _ReceiptViewState extends State<ReceiptView> {
                         Text(
                           CurrencyHelper.formatDateTime(transaction.createdAt),
                           style: const TextStyle(
-                              color: AppColors.textSecondary, fontSize: 13),
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                          ),
                         ),
                       ],
                     ),
@@ -119,9 +129,10 @@ class _ReceiptViewState extends State<ReceiptView> {
                         borderRadius: BorderRadius.circular(14),
                         boxShadow: const [
                           BoxShadow(
-                              color: AppColors.cardShadow,
-                              blurRadius: 8,
-                              offset: Offset(0, 2))
+                            color: AppColors.cardShadow,
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
                         ],
                       ),
                       child: Column(
@@ -130,11 +141,14 @@ class _ReceiptViewState extends State<ReceiptView> {
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
-                                vertical: 16, horizontal: 20),
+                              vertical: 16,
+                              horizontal: 20,
+                            ),
                             decoration: const BoxDecoration(
                               color: AppColors.primary,
                               borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(14)),
+                                top: Radius.circular(14),
+                              ),
                             ),
                             child: Column(
                               children: [
@@ -151,7 +165,9 @@ class _ReceiptViewState extends State<ReceiptView> {
                                 Text(
                                   transaction.invoiceNumber,
                                   style: const TextStyle(
-                                      color: Colors.white70, fontSize: 12),
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
                                 ),
                                 const SizedBox(height: 4),
                                 Row(
@@ -171,7 +187,9 @@ class _ReceiptViewState extends State<ReceiptView> {
                                               ? ' · Meja ${transaction.tableNumber}'
                                               : ''),
                                       style: const TextStyle(
-                                          color: Colors.white70, fontSize: 12),
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -184,52 +202,61 @@ class _ReceiptViewState extends State<ReceiptView> {
                             padding: const EdgeInsets.all(16),
                             child: Column(
                               children: [
-                                ...transaction.items.map((item) => Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 5),
-                                      child: Row(
-                                        children: [
-                                          Text(item.product.emoji,
-                                              style: const TextStyle(
-                                                  fontSize: 18)),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  item.product.name,
-                                                  style: const TextStyle(
-                                                      fontSize: 13,
-                                                      fontWeight:
-                                                          FontWeight.w500),
+                                ...transaction.items.map(
+                                  (item) => Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 5,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          item.product.emoji,
+                                          style: const TextStyle(fontSize: 18),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                item.product.name,
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w500,
                                                 ),
-                                                Text(
-                                                  '${item.quantity} x ${CurrencyHelper.formatRupiah(item.product.price)}',
-                                                  style: const TextStyle(
-                                                      fontSize: 12,
-                                                      color: AppColors
-                                                          .textSecondary),
+                                              ),
+                                              Text(
+                                                '${item.quantity} x ${CurrencyHelper.formatRupiah(item.product.price)}',
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color:
+                                                      AppColors.textSecondary,
                                                 ),
-                                              ],
-                                            ),
+                                              ),
+                                            ],
                                           ),
-                                          Text(
-                                            CurrencyHelper.formatRupiah(
-                                                item.subtotal),
-                                            style: const TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600),
+                                        ),
+                                        Text(
+                                          CurrencyHelper.formatRupiah(
+                                            item.subtotal,
                                           ),
-                                        ],
-                                      ),
-                                    )),
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                                 const Divider(height: 20),
                                 _receiptRow(
-                                    'Subtotal',
-                                    CurrencyHelper.formatRupiah(
-                                        transaction.subtotal)),
+                                  'Subtotal',
+                                  CurrencyHelper.formatRupiah(
+                                    transaction.subtotal,
+                                  ),
+                                ),
                                 if (transaction.discount > 0)
                                   _receiptRow(
                                     'Diskon',
@@ -240,35 +267,43 @@ class _ReceiptViewState extends State<ReceiptView> {
                                   _receiptRow(
                                     'Pajak',
                                     CurrencyHelper.formatRupiah(
-                                        transaction.taxAmount),
+                                      transaction.taxAmount,
+                                    ),
                                   ),
                                 if (transaction.serviceChargeAmount > 0)
                                   _receiptRow(
                                     'Service Charge',
                                     CurrencyHelper.formatRupiah(
-                                        transaction.serviceChargeAmount),
+                                      transaction.serviceChargeAmount,
+                                    ),
                                   ),
                                 const Divider(height: 12),
                                 _receiptRow(
                                   'TOTAL',
                                   CurrencyHelper.formatRupiah(
-                                      transaction.total),
+                                    transaction.total,
+                                  ),
                                   isBold: true,
                                   valueColor: AppColors.primary,
                                   fontSize: 16,
                                 ),
                                 const SizedBox(height: 8),
-                                _receiptRow('Metode Bayar',
-                                    transaction.paymentMethod),
                                 _receiptRow(
-                                    'Dibayar',
-                                    CurrencyHelper.formatRupiah(
-                                        transaction.paymentAmount)),
+                                  'Metode Bayar',
+                                  transaction.paymentMethod,
+                                ),
+                                _receiptRow(
+                                  'Dibayar',
+                                  CurrencyHelper.formatRupiah(
+                                    transaction.paymentAmount,
+                                  ),
+                                ),
                                 if (transaction.change > 0)
                                   _receiptRow(
                                     'Kembalian',
                                     CurrencyHelper.formatRupiah(
-                                        transaction.change),
+                                      transaction.change,
+                                    ),
                                     valueColor: AppColors.success,
                                     isBold: true,
                                   ),
@@ -283,14 +318,16 @@ class _ReceiptViewState extends State<ReceiptView> {
                             decoration: const BoxDecoration(
                               color: AppColors.background,
                               borderRadius: BorderRadius.vertical(
-                                  bottom: Radius.circular(14)),
+                                bottom: Radius.circular(14),
+                              ),
                             ),
                             child: const Text(
                               'Terima kasih telah berbelanja!\nSilakan kunjungi kami kembali.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 12),
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ],
@@ -307,7 +344,8 @@ class _ReceiptViewState extends State<ReceiptView> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             child: Column(
               children: [
-                if (Platform.isAndroid) ...[
+                // Cetak Struk (Android only)
+                if (Platform.isAndroid)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: SizedBox(
@@ -327,32 +365,36 @@ class _ReceiptViewState extends State<ReceiptView> {
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _isSharing
-                            ? null
-                            : () => _shareReceipt(transaction),
-                        icon: _isSharing
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white))
-                            : const Icon(Icons.share_rounded),
-                        label: Text(
-                            _isSharing ? 'Menyiapkan...' : 'Bagikan Struk'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          backgroundColor: const Color(0xFF25D366),
-                          foregroundColor: Colors.white,
-                        ),
+                // Bagikan Struk (all platforms)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _isSharing
+                          ? null
+                          : () => _shareReceipt(transaction),
+                      icon: _isSharing
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.share_rounded),
+                      label: Text(
+                        _isSharing ? 'Menyiapkan...' : 'Bagikan Struk',
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        backgroundColor: AppColors.accent,
+                        foregroundColor: Colors.white,
                       ),
                     ),
                   ),
-                ],
+                ),
                 Row(
                   children: [
                     Expanded(
@@ -399,18 +441,21 @@ class _ReceiptViewState extends State<ReceiptView> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: fontSize,
-                  color: isBold
-                      ? AppColors.textPrimary
-                      : AppColors.textSecondary)),
-          Text(value,
-              style: TextStyle(
-                fontSize: fontSize,
-                fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-                color: valueColor ?? AppColors.textPrimary,
-              )),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: fontSize,
+              color: isBold ? AppColors.textPrimary : AppColors.textSecondary,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+              color: valueColor ?? AppColors.textPrimary,
+            ),
+          ),
         ],
       ),
     );

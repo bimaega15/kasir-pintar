@@ -6,10 +6,12 @@ import 'package:permission_handler/permission_handler.dart';
 import '../data/models/transaction_model.dart';
 import '../data/providers/storage_provider.dart';
 import '../utils/helpers/currency_helper.dart';
+import '../utils/helpers/thermal_receipt_helper.dart';
 
 class PrinterService extends GetxService {
   static const _printerMacKey = 'printer_mac';
   static const _printerNameKey = 'printer_name';
+  static const _paperWidthKey = 'printer_paper_width';
 
   // Hanya diinisialisasi di Android — plugin tidak support platform lain
   BlueThermalPrinter? _printer;
@@ -21,12 +23,17 @@ class PrinterService extends GetxService {
   final isLoading = false.obs;
   final devices = <BluetoothDevice>[].obs;
 
+  // Paper width setting
+  PaperWidth _paperWidth = PaperWidth.mm80;
+  PaperWidth get paperWidth => _paperWidth;
+
   @override
   void onInit() {
     super.onInit();
     if (!Platform.isAndroid) return;
     _printer = BlueThermalPrinter.instance;
     _loadSavedPrinter();
+    _loadPaperWidth();
   }
 
   Future<void> _loadSavedPrinter() async {
@@ -36,6 +43,29 @@ class PrinterService extends GetxService {
       final name = await db.getSetting(_printerNameKey);
       if (mac != null) savedMac.value = mac;
       if (name != null) savedName.value = name;
+    } catch (_) {}
+  }
+
+  Future<void> _loadPaperWidth() async {
+    try {
+      final db = Get.find<DatabaseProvider>();
+      final saved = await db.getSetting(_paperWidthKey);
+      if (saved != null) {
+        _paperWidth = PaperWidth.values.firstWhere(
+          (e) => e.name == saved,
+          orElse: () => PaperWidth.mm80,
+        );
+      }
+    } catch (_) {
+      _paperWidth = PaperWidth.mm80;
+    }
+  }
+
+  Future<void> setPaperWidth(PaperWidth width) async {
+    _paperWidth = width;
+    try {
+      final db = Get.find<DatabaseProvider>();
+      await db.setSetting(_paperWidthKey, width.name);
     } catch (_) {}
   }
 
@@ -176,59 +206,159 @@ class PrinterService extends GetxService {
 
     isLoading.value = true;
     try {
+      final formatter = ThermalReceiptFormatter(paperWidth: _paperWidth);
+
       // ── Header ──
-      await _printer!.printCustom('================================', 1, 1);
-      await _printer!.printCustom('KASIR PINTAR', 3, 1);
-      await _printer!.printCustom('================================', 1, 1);
-      await _printer!.printCustom(transaction.invoiceNumber, 1, 1);
+      await _printer!.printCustom(formatter.line(char: '='), 1, 1);
+      await _printer!.printCustom(formatter.center('🏪 KASIR PINTAR'), 2, 1);
+      await _printer!.printCustom(formatter.line(char: '='), 1, 1);
+
+      // Invoice & DateTime
       await _printer!.printCustom(
-          CurrencyHelper.formatDateTime(transaction.createdAt), 1, 1);
-      await _printer!.printCustom('Kasir: ${transaction.cashierName}', 1, 1);
-      await _printer!.printCustom('--------------------------------', 1, 1);
+        formatter.center(transaction.invoiceNumber),
+        1,
+        1,
+      );
+      await _printer!.printCustom(
+        formatter.center(CurrencyHelper.formatDateTime(transaction.createdAt)),
+        1,
+        1,
+      );
+
+      // Order type & table
+      final orderLabel =
+          transaction.orderTypeLabel +
+          (transaction.tableNumber != null
+              ? ' - Meja ${transaction.tableNumber}'
+              : '');
+      await _printer!.printCustom(formatter.center(orderLabel), 1, 1);
+
+      if (transaction.cashierName.isNotEmpty) {
+        await _printer!.printCustom('Kasir: ${transaction.cashierName}', 1, 0);
+      }
+
+      await _printer!.printCustom(formatter.line(char: '-'), 1, 1);
 
       // ── Items ──
       for (final item in transaction.items) {
-        await _printer!.printCustom(item.product.name, 1, 0);
-        await _printer!.printLeftRight(
-          '  ${item.quantity} x ${CurrencyHelper.formatRupiah(item.product.price)}',
+        // Item name
+        final name = item.product.emoji + ' ' + item.product.name;
+        final itemLines = formatter.wrapText(name);
+        for (final line in itemLines) {
+          await _printer!.printCustom(line, 1, 0);
+        }
+
+        // Quantity x Price = Subtotal
+        final qtyPrice = formatter.leftRight(
+          '  ${item.quantity}x ${CurrencyHelper.formatRupiah(item.product.price)}',
           CurrencyHelper.formatRupiah(item.subtotal),
-          1,
         );
+        await _printer!.printCustom(qtyPrice, 1, 0);
       }
 
       // ── Totals ──
-      await _printer!.printCustom('--------------------------------', 1, 1);
-      await _printer!.printLeftRight(
-          'Subtotal', CurrencyHelper.formatRupiah(transaction.subtotal), 1);
+      await _printer!.printCustom(formatter.line(char: '-'), 1, 1);
+
+      // Subtotal
+      await _printer!.printCustom(
+        formatter.leftRight(
+          'Subtotal',
+          CurrencyHelper.formatRupiah(transaction.subtotal),
+        ),
+        1,
+        0,
+      );
+
+      // Discount
       if (transaction.discount > 0) {
-        await _printer!.printLeftRight(
-          'Diskon',
-          '- ${CurrencyHelper.formatRupiah(transaction.discount)}',
+        await _printer!.printCustom(
+          formatter.leftRight(
+            'Diskon',
+            '- ${CurrencyHelper.formatRupiah(transaction.discount)}',
+          ),
           1,
+          0,
         );
       }
-      await _printer!.printCustom('================================', 1, 1);
-      await _printer!.printLeftRight(
-          'TOTAL', CurrencyHelper.formatRupiah(transaction.total), 2);
-      await _printer!.printCustom('================================', 1, 1);
-      await _printer!.printLeftRight(
-          'Metode', transaction.paymentMethod, 1);
-      await _printer!.printLeftRight(
-          'Dibayar', CurrencyHelper.formatRupiah(transaction.paymentAmount), 1);
-      if (transaction.change > 0) {
-        await _printer!.printLeftRight(
-          'Kembalian',
-          CurrencyHelper.formatRupiah(transaction.change),
+
+      // Tax
+      if (transaction.taxAmount > 0) {
+        await _printer!.printCustom(
+          formatter.leftRight(
+            'Pajak',
+            CurrencyHelper.formatRupiah(transaction.taxAmount),
+          ),
           1,
+          0,
+        );
+      }
+
+      // Service Charge
+      if (transaction.serviceChargeAmount > 0) {
+        await _printer!.printCustom(
+          formatter.leftRight(
+            'Service Charge',
+            CurrencyHelper.formatRupiah(transaction.serviceChargeAmount),
+          ),
+          1,
+          0,
+        );
+      }
+
+      // Total separator & amount
+      await _printer!.printCustom(formatter.line(char: '='), 1, 1);
+      await _printer!.printCustom(
+        formatter.leftRight(
+          'TOTAL',
+          CurrencyHelper.formatRupiah(transaction.total),
+        ),
+        2,
+        0,
+      );
+      await _printer!.printCustom(formatter.line(char: '='), 1, 1);
+
+      // Payment details
+      await _printer!.printCustom(
+        formatter.leftRight('Metode', transaction.paymentMethod),
+        1,
+        0,
+      );
+
+      await _printer!.printCustom(
+        formatter.leftRight(
+          'Dibayar',
+          CurrencyHelper.formatRupiah(transaction.paymentAmount),
+        ),
+        1,
+        0,
+      );
+
+      // Change
+      if (transaction.change > 0) {
+        await _printer!.printCustom(
+          formatter.leftRight(
+            'Kembalian',
+            CurrencyHelper.formatRupiah(transaction.change),
+          ),
+          1,
+          0,
         );
       }
 
       // ── Footer ──
-      await _printer!.printCustom('--------------------------------', 1, 1);
-      await _printer!.printCustom('Terima kasih!', 2, 1);
-      await _printer!.printCustom('Silakan kunjungi kami kembali.', 1, 1);
+      await _printer!.printCustom(formatter.line(char: '-'), 1, 1);
+      await _printer!.printCustom(formatter.center('Terima kasih!'), 2, 1);
+      await _printer!.printCustom(
+        formatter.center('Silakan kunjungi kami kembali.'),
+        1,
+        1,
+      );
+
+      // Additional spacing
       await _printer!.printNewLine();
       await _printer!.printNewLine();
+
+      // Cut paper
       await _printer!.paperCut();
 
       Get.snackbar(

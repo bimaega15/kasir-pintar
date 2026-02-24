@@ -1,6 +1,7 @@
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:get/get.dart';
 import '../../../services/printer_service.dart';
+import '../../../utils/helpers/thermal_receipt_helper.dart';
 
 class PrinterController extends GetxController {
   final _service = Get.find<PrinterService>();
@@ -11,6 +12,9 @@ class PrinterController extends GetxController {
   RxList<BluetoothDevice> get devices => _service.devices;
   RxString get savedMac => _service.savedMac;
   RxString get savedName => _service.savedName;
+
+  // Paper width setting
+  late final selectedPaperWidth = Rx<PaperWidth>(_service.paperWidth);
 
   @override
   void onInit() {
@@ -26,4 +30,9 @@ class PrinterController extends GetxController {
   Future<void> disconnect() => _service.disconnect();
 
   Future<void> testPrint() => _service.testPrint();
+
+  Future<void> setPaperWidth(PaperWidth width) async {
+    selectedPaperWidth.value = width;
+    await _service.setPaperWidth(width);
+  }
 }

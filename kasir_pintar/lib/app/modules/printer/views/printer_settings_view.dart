@@ -3,6 +3,7 @@ import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../utils/constants/app_colors.dart';
+import '../../../utils/helpers/thermal_receipt_helper.dart';
 import '../controllers/printer_controller.dart';
 
 class PrinterSettingsView extends GetView<PrinterController> {
@@ -23,8 +24,9 @@ class PrinterSettingsView extends GetView<PrinterController> {
               children: [
                 _buildStatusCard(),
                 _buildActionsBar(),
+                _buildPaperWidthSettings(),
                 const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -50,7 +52,11 @@ class PrinterSettingsView extends GetView<PrinterController> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.print_disabled_rounded, size: 72, color: AppColors.textSecondary),
+            Icon(
+              Icons.print_disabled_rounded,
+              size: 72,
+              color: AppColors.textSecondary,
+            ),
             SizedBox(height: 16),
             Text(
               'Printer Bluetooth hanya didukung di Android',
@@ -73,7 +79,11 @@ class PrinterSettingsView extends GetView<PrinterController> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
           boxShadow: const [
-            BoxShadow(color: AppColors.cardShadow, blurRadius: 6, offset: Offset(0, 2))
+            BoxShadow(
+              color: AppColors.cardShadow,
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
           ],
         ),
         child: Row(
@@ -101,7 +111,9 @@ class PrinterSettingsView extends GetView<PrinterController> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
-                      color: connected ? AppColors.success : AppColors.textSecondary,
+                      color: connected
+                          ? AppColors.success
+                          : AppColors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -109,9 +121,12 @@ class PrinterSettingsView extends GetView<PrinterController> {
                     connected
                         ? controller.connectedDeviceName.value
                         : controller.savedName.value.isNotEmpty
-                            ? 'Terakhir: ${controller.savedName.value}'
-                            : 'Pilih printer dari daftar di bawah',
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        ? 'Terakhir: ${controller.savedName.value}'
+                        : 'Pilih printer dari daftar di bawah',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -134,36 +149,46 @@ class PrinterSettingsView extends GetView<PrinterController> {
       child: Row(
         children: [
           Expanded(
-            child: Obx(() => OutlinedButton.icon(
-                  onPressed: controller.isLoading.value ? null : controller.scanDevices,
-                  icon: controller.isLoading.value
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.bluetooth_searching_rounded),
-                  label: Text(controller.isLoading.value ? 'Memindai...' : 'Pindai Ulang'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    side: const BorderSide(color: AppColors.primary),
-                    foregroundColor: AppColors.primary,
-                  ),
-                )),
+            child: Obx(
+              () => OutlinedButton.icon(
+                onPressed: controller.isLoading.value
+                    ? null
+                    : controller.scanDevices,
+                icon: controller.isLoading.value
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.bluetooth_searching_rounded),
+                label: Text(
+                  controller.isLoading.value ? 'Memindai...' : 'Pindai Ulang',
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: const BorderSide(color: AppColors.primary),
+                  foregroundColor: AppColors.primary,
+                ),
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Obx(() => ElevatedButton.icon(
-                  onPressed: controller.isConnected.value ? controller.testPrint : null,
-                  icon: const Icon(Icons.receipt_long_rounded),
-                  label: const Text('Test Cetak'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    backgroundColor: AppColors.success,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: Colors.grey.shade200,
-                  ),
-                )),
+            child: Obx(
+              () => ElevatedButton.icon(
+                onPressed: controller.isConnected.value
+                    ? controller.testPrint
+                    : null,
+                icon: const Icon(Icons.receipt_long_rounded),
+                label: const Text('Test Cetak'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  backgroundColor: AppColors.success,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.grey.shade200,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -180,13 +205,19 @@ class PrinterSettingsView extends GetView<PrinterController> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.bluetooth_disabled_rounded,
-                    size: 56, color: Colors.grey.shade300),
+                Icon(
+                  Icons.bluetooth_disabled_rounded,
+                  size: 56,
+                  color: Colors.grey.shade300,
+                ),
                 const SizedBox(height: 12),
                 const Text(
                   'Belum ada perangkat ditemukan.\nPastikan printer sudah dipasangkan di pengaturan Bluetooth Android, lalu tekan "Pindai Ulang".',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),
@@ -203,7 +234,8 @@ class PrinterSettingsView extends GetView<PrinterController> {
 
   Widget _buildDeviceTile(BluetoothDevice device) {
     return Obx(() {
-      final isActive = controller.isConnected.value &&
+      final isActive =
+          controller.isConnected.value &&
           controller.connectedDeviceName.value == (device.name ?? '');
       final isSaved = controller.savedMac.value == (device.address ?? '');
 
@@ -217,7 +249,11 @@ class PrinterSettingsView extends GetView<PrinterController> {
             width: 1.5,
           ),
           boxShadow: const [
-            BoxShadow(color: AppColors.cardShadow, blurRadius: 4, offset: Offset(0, 2))
+            BoxShadow(
+              color: AppColors.cardShadow,
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
           ],
         ),
         child: ListTile(
@@ -238,12 +274,18 @@ class PrinterSettingsView extends GetView<PrinterController> {
             children: [
               Text(
                 device.name ?? 'Unknown Device',
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
               ),
               if (isSaved) ...[
                 const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.accent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
@@ -253,23 +295,96 @@ class PrinterSettingsView extends GetView<PrinterController> {
                     style: TextStyle(fontSize: 10, color: AppColors.accent),
                   ),
                 ),
-              ]
+              ],
             ],
           ),
           subtitle: Text(
             device.address ?? '',
-            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+            ),
           ),
           trailing: isActive
               ? const Icon(Icons.check_circle_rounded, color: AppColors.success)
-              : Obx(() => TextButton(
+              : Obx(
+                  () => TextButton(
                     onPressed: controller.isLoading.value
                         ? null
                         : () => controller.connect(device),
                     child: const Text('Hubungkan'),
-                  )),
+                  ),
+                ),
         ),
       );
     });
+  }
+
+  Widget _buildPaperWidthSettings() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.cardShadow,
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Ukuran Kertas Thermal',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Obx(
+              () => Row(
+                children: PaperWidth.values
+                    .map(
+                      (width) => Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: ChoiceChip(
+                            label: Text(
+                              width.name == 'mm80' ? '80mm' : '58mm',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            selected:
+                                controller.selectedPaperWidth.value == width,
+                            onSelected: (selected) {
+                              if (selected) controller.setPaperWidth(width);
+                            },
+                            selectedColor: AppColors.primary.withValues(
+                              alpha: 0.3,
+                            ),
+                            side: BorderSide(
+                              color:
+                                  controller.selectedPaperWidth.value == width
+                                  ? AppColors.primary
+                                  : Colors.grey.shade300,
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
