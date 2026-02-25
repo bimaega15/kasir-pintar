@@ -22,6 +22,8 @@ class OrderController extends GetxController {
   final orderType = OrderType.dineIn.obs;
   final selectedTable = Rx<TableModel?>(null);
   final guestCount = 1.obs;
+  final customerName = ''.obs;
+  final customerNameController = TextEditingController();
   final cart = <OrderItemModel>[].obs;
   final discount = 0.0.obs;
   final discountController = TextEditingController();
@@ -46,13 +48,16 @@ class OrderController extends GetxController {
     loadProducts();
     loadTables();
     loadSettings();
-    searchController.addListener(() => searchQuery.value = searchController.text);
+    searchController.addListener(
+      () => searchQuery.value = searchController.text,
+    );
   }
 
   @override
   void onClose() {
     searchController.dispose();
     discountController.dispose();
+    customerNameController.dispose();
     super.onClose();
   }
 
@@ -107,13 +112,15 @@ class OrderController extends GetxController {
         );
       }
     } else {
-      cart.add(OrderItemModel(
-        productId: product.id,
-        productName: product.name,
-        productPrice: product.price,
-        productEmoji: product.emoji,
-        quantity: 1,
-      ));
+      cart.add(
+        OrderItemModel(
+          productId: product.id,
+          productName: product.name,
+          productPrice: product.price,
+          productEmoji: product.emoji,
+          quantity: 1,
+        ),
+      );
     }
   }
 
@@ -159,6 +166,8 @@ class OrderController extends GetxController {
     discount.value = 0;
     selectedTable.value = null;
     guestCount.value = 1;
+    customerNameController.clear();
+    customerName.value = '';
     searchController.clear();
     selectedCategory.value = 'all';
   }
@@ -175,8 +184,7 @@ class OrderController extends GetxController {
   double get serviceChargeAmount =>
       (serviceChargePercent.value / 100) * discountedSubtotal;
 
-  double get total =>
-      discountedSubtotal + taxAmount + serviceChargeAmount;
+  double get total => discountedSubtotal + taxAmount + serviceChargeAmount;
 
   int get totalItems => cart.fold(0, (s, i) => s + i.quantity);
 
@@ -190,8 +198,11 @@ class OrderController extends GetxController {
 
   Future<void> sendToKitchen() async {
     if (cart.isEmpty) {
-      Get.snackbar('Keranjang Kosong', 'Tambahkan produk terlebih dahulu',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Keranjang Kosong',
+        'Tambahkan produk terlebih dahulu',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       return;
     }
 
@@ -203,6 +214,7 @@ class OrderController extends GetxController {
       tableId: selectedTable.value?.id,
       tableNumber: selectedTable.value?.number,
       guestCount: guestCount.value,
+      customerName: customerName.value,
       items: List.from(cart),
       subtotal: subtotal,
       discount: discount.value,

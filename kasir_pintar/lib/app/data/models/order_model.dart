@@ -13,6 +13,7 @@ class OrderModel {
   String? tableId;
   int? tableNumber;
   int guestCount;
+  String customerName;
   List<OrderItemModel> items;
   KitchenStatus kitchenStatus;
   double subtotal;
@@ -35,6 +36,7 @@ class OrderModel {
     this.tableId,
     this.tableNumber,
     this.guestCount = 1,
+    this.customerName = '',
     List<OrderItemModel>? items,
     this.kitchenStatus = KitchenStatus.pending,
     required this.subtotal,
@@ -49,10 +51,10 @@ class OrderModel {
     DateTime? createdAt,
     this.kitchenSentAt,
     this.readyAt,
-  })  : id = id ?? const Uuid().v4(),
-        items = items ?? [],
-        payments = payments ?? [],
-        createdAt = createdAt ?? DateTime.now();
+  }) : id = id ?? const Uuid().v4(),
+       items = items ?? [],
+       payments = payments ?? [],
+       createdAt = createdAt ?? DateTime.now();
 
   double get totalPaid => payments.fold(0.0, (s, p) => s + p.amount);
   double get change => totalPaid - total;

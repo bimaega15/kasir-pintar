@@ -39,17 +39,19 @@ class OrderRepository {
 
     // Convert OrderItemModel → CartItemModel (product snapshot)
     final cartItems = order.items
-        .map((oi) => CartItemModel(
-              product: ProductModel(
-                id: oi.productId,
-                name: oi.productName,
-                categoryId: 'other',
-                price: oi.productPrice,
-                emoji: oi.productEmoji,
-              ),
-              quantity: oi.quantity,
-              note: oi.note,
-            ))
+        .map(
+          (oi) => CartItemModel(
+            product: ProductModel(
+              id: oi.productId,
+              name: oi.productName,
+              categoryId: 'other',
+              price: oi.productPrice,
+              emoji: oi.productEmoji,
+            ),
+            quantity: oi.quantity,
+            note: oi.note,
+          ),
+        )
         .toList();
 
     final transaction = TransactionModel(
@@ -62,6 +64,7 @@ class OrderRepository {
       change: change,
       paymentMethod: paymentMethod,
       cashierName: order.cashierName,
+      customerName: order.customerName,
       orderType: OrderModel.orderTypeToString(order.orderType),
       tableNumber: order.tableNumber,
       taxAmount: order.taxAmount,

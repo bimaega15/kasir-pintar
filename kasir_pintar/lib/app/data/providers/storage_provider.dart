@@ -12,7 +12,7 @@ import '../models/transaction_model.dart';
 /// Provider SQLite — mendukung offline penuh tanpa jaringan.
 class DatabaseProvider extends GetxService {
   static const _dbName = 'kasir_pintar.db';
-  static const _dbVersion = 2;
+  static const _dbVersion = 3;
 
   late Database _db;
 
@@ -64,7 +64,8 @@ class DatabaseProvider extends GetxService {
         order_type            TEXT NOT NULL DEFAULT 'dine_in',
         table_number          INTEGER,
         tax_amount            REAL NOT NULL DEFAULT 0,
-        service_charge_amount REAL NOT NULL DEFAULT 0
+        service_charge_amount REAL NOT NULL DEFAULT 0,
+        customer_name         TEXT NOT NULL DEFAULT ''
       )
     ''');
 
@@ -118,7 +119,8 @@ class DatabaseProvider extends GetxService {
         cashier_name           TEXT NOT NULL DEFAULT 'Kasir',
         created_at             TEXT NOT NULL,
         kitchen_sent_at        TEXT,
-        ready_at               TEXT
+        ready_at               TEXT,
+        customer_name          TEXT NOT NULL DEFAULT ''
       )
     ''');
 
@@ -150,16 +152,28 @@ class DatabaseProvider extends GetxService {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 3) {
+      final batch = db.batch();
+      batch.execute(
+        "ALTER TABLE transactions ADD COLUMN customer_name TEXT NOT NULL DEFAULT ''",
+      );
+      batch.execute(
+        "ALTER TABLE orders ADD COLUMN customer_name TEXT NOT NULL DEFAULT ''",
+      );
+      await batch.commit(noResult: true);
+    }
     if (oldVersion < 2) {
       final batch = db.batch();
       batch.execute(
-          "ALTER TABLE transactions ADD COLUMN order_type TEXT NOT NULL DEFAULT 'dine_in'");
+        "ALTER TABLE transactions ADD COLUMN order_type TEXT NOT NULL DEFAULT 'dine_in'",
+      );
+      batch.execute('ALTER TABLE transactions ADD COLUMN table_number INTEGER');
       batch.execute(
-          'ALTER TABLE transactions ADD COLUMN table_number INTEGER');
+        'ALTER TABLE transactions ADD COLUMN tax_amount REAL NOT NULL DEFAULT 0',
+      );
       batch.execute(
-          'ALTER TABLE transactions ADD COLUMN tax_amount REAL NOT NULL DEFAULT 0');
-      batch.execute(
-          'ALTER TABLE transactions ADD COLUMN service_charge_amount REAL NOT NULL DEFAULT 0');
+        'ALTER TABLE transactions ADD COLUMN service_charge_amount REAL NOT NULL DEFAULT 0',
+      );
       batch.execute('''
         CREATE TABLE IF NOT EXISTS tables (
           id TEXT PRIMARY KEY, number INTEGER NOT NULL,
@@ -202,8 +216,10 @@ class DatabaseProvider extends GetxService {
   // ── Seeding ───────────────────────────────────────────────────────────────
 
   Future<void> _seedIfNeeded() async {
-    final productCount = Sqflite.firstIntValue(
-          await _db.rawQuery('SELECT COUNT(*) FROM products')) ??
+    final productCount =
+        Sqflite.firstIntValue(
+          await _db.rawQuery('SELECT COUNT(*) FROM products'),
+        ) ??
         0;
     if (productCount == 0) {
       final batch = _db.batch();
@@ -213,8 +229,10 @@ class DatabaseProvider extends GetxService {
       await batch.commit(noResult: true);
     }
 
-    final tableCount = Sqflite.firstIntValue(
-          await _db.rawQuery('SELECT COUNT(*) FROM tables')) ??
+    final tableCount =
+        Sqflite.firstIntValue(
+          await _db.rawQuery('SELECT COUNT(*) FROM tables'),
+        ) ??
         0;
     if (tableCount == 0) {
       final batch = _db.batch();
@@ -250,26 +268,26 @@ class DatabaseProvider extends GetxService {
   }
 
   ProductModel _productFromMap(Map<String, Object?> m) => ProductModel(
-        id: m['id'] as String,
-        name: m['name'] as String,
-        categoryId: m['category_id'] as String,
-        price: (m['price'] as num).toDouble(),
-        stock: m['stock'] as int,
-        description: m['description'] as String? ?? '',
-        emoji: m['emoji'] as String? ?? '📦',
-        createdAt: DateTime.parse(m['created_at'] as String),
-      );
+    id: m['id'] as String,
+    name: m['name'] as String,
+    categoryId: m['category_id'] as String,
+    price: (m['price'] as num).toDouble(),
+    stock: m['stock'] as int,
+    description: m['description'] as String? ?? '',
+    emoji: m['emoji'] as String? ?? '📦',
+    createdAt: DateTime.parse(m['created_at'] as String),
+  );
 
   Map<String, Object?> _productToMap(ProductModel p) => {
-        'id': p.id,
-        'name': p.name,
-        'category_id': p.categoryId,
-        'price': p.price,
-        'stock': p.stock,
-        'description': p.description,
-        'emoji': p.emoji,
-        'created_at': p.createdAt.toIso8601String(),
-      };
+    'id': p.id,
+    'name': p.name,
+    'category_id': p.categoryId,
+    'price': p.price,
+    'stock': p.stock,
+    'description': p.description,
+    'emoji': p.emoji,
+    'created_at': p.createdAt.toIso8601String(),
+  };
 
   // ── Tables ────────────────────────────────────────────────────────────────
 
@@ -314,21 +332,20 @@ class DatabaseProvider extends GetxService {
   }
 
   TableModel _tableFromMap(Map<String, Object?> m) => TableModel(
-        id: m['id'] as String,
-        number: m['number'] as int,
-        capacity: m['capacity'] as int? ?? 4,
-        status: TableModel.statusFromString(
-            m['status'] as String? ?? 'available'),
-        currentOrderId: m['current_order_id'] as String?,
-      );
+    id: m['id'] as String,
+    number: m['number'] as int,
+    capacity: m['capacity'] as int? ?? 4,
+    status: TableModel.statusFromString(m['status'] as String? ?? 'available'),
+    currentOrderId: m['current_order_id'] as String?,
+  );
 
   Map<String, Object?> _tableToMap(TableModel t) => {
-        'id': t.id,
-        'number': t.number,
-        'capacity': t.capacity,
-        'status': TableModel.statusToString(t.status),
-        'current_order_id': t.currentOrderId,
-      };
+    'id': t.id,
+    'number': t.number,
+    'capacity': t.capacity,
+    'status': TableModel.statusToString(t.status),
+    'current_order_id': t.currentOrderId,
+  };
 
   // ── Orders ────────────────────────────────────────────────────────────────
 
@@ -381,7 +398,9 @@ class DatabaseProvider extends GetxService {
   }
 
   Future<void> updateOrderKitchenStatus(
-      String orderId, KitchenStatus status) async {
+    String orderId,
+    KitchenStatus status,
+  ) async {
     final extra = <String, Object?>{};
     if (status == KitchenStatus.inProgress) {
       extra['kitchen_sent_at'] = DateTime.now().toIso8601String();
@@ -397,7 +416,9 @@ class DatabaseProvider extends GetxService {
   }
 
   Future<void> insertOrderPayments(
-      String orderId, List<PaymentEntry> payments) async {
+    String orderId,
+    List<PaymentEntry> payments,
+  ) async {
     final batch = _db.batch();
     for (final p in payments) {
       batch.insert('order_payments', {
@@ -412,14 +433,18 @@ class DatabaseProvider extends GetxService {
   Future<void> deleteOrder(String id) async {
     await _db.transaction((txn) async {
       await txn.delete('order_items', where: 'order_id = ?', whereArgs: [id]);
-      await txn
-          .delete('order_payments', where: 'order_id = ?', whereArgs: [id]);
+      await txn.delete(
+        'order_payments',
+        where: 'order_id = ?',
+        whereArgs: [id],
+      );
       await txn.delete('orders', where: 'id = ?', whereArgs: [id]);
     });
   }
 
   Future<List<OrderModel>> _assembleOrders(
-      List<Map<String, Object?>> orderMaps) async {
+    List<Map<String, Object?>> orderMaps,
+  ) async {
     final ids = orderMaps.map((m) => m['id'] as String).toList();
     final placeholders = List.filled(ids.length, '?').join(', ');
 
@@ -435,23 +460,31 @@ class DatabaseProvider extends GetxService {
     final itemsByOrder = <String, List<OrderItemModel>>{};
     for (final m in itemMaps) {
       final oid = m['order_id'] as String;
-      itemsByOrder.putIfAbsent(oid, () => []).add(OrderItemModel(
-            productId: m['product_id'] as String,
-            productName: m['product_name'] as String,
-            productPrice: (m['product_price'] as num).toDouble(),
-            productEmoji: m['product_emoji'] as String? ?? '📦',
-            quantity: m['quantity'] as int,
-            note: m['note'] as String? ?? '',
-          ));
+      itemsByOrder
+          .putIfAbsent(oid, () => [])
+          .add(
+            OrderItemModel(
+              productId: m['product_id'] as String,
+              productName: m['product_name'] as String,
+              productPrice: (m['product_price'] as num).toDouble(),
+              productEmoji: m['product_emoji'] as String? ?? '📦',
+              quantity: m['quantity'] as int,
+              note: m['note'] as String? ?? '',
+            ),
+          );
     }
 
     final paymentsByOrder = <String, List<PaymentEntry>>{};
     for (final m in paymentMaps) {
       final oid = m['order_id'] as String;
-      paymentsByOrder.putIfAbsent(oid, () => []).add(PaymentEntry(
-            method: m['method'] as String,
-            amount: (m['amount'] as num).toDouble(),
-          ));
+      paymentsByOrder
+          .putIfAbsent(oid, () => [])
+          .add(
+            PaymentEntry(
+              method: m['method'] as String,
+              amount: (m['amount'] as num).toDouble(),
+            ),
+          );
     }
 
     return orderMaps.map((m) {
@@ -460,12 +493,14 @@ class DatabaseProvider extends GetxService {
         id: oid,
         invoiceNumber: m['invoice_number'] as String,
         orderType: OrderModel.orderTypeFromString(
-            m['order_type'] as String? ?? 'dine_in'),
+          m['order_type'] as String? ?? 'dine_in',
+        ),
         tableId: m['table_id'] as String?,
         tableNumber: m['table_number'] as int?,
         guestCount: m['guest_count'] as int? ?? 1,
         kitchenStatus: OrderModel.kitchenStatusFromString(
-            m['kitchen_status'] as String? ?? 'pending'),
+          m['kitchen_status'] as String? ?? 'pending',
+        ),
         subtotal: (m['subtotal'] as num).toDouble(),
         discount: (m['discount'] as num?)?.toDouble() ?? 0,
         taxPercent: (m['tax_percent'] as num?)?.toDouble() ?? 0,
@@ -490,25 +525,26 @@ class DatabaseProvider extends GetxService {
   }
 
   Map<String, Object?> _orderToMap(OrderModel o) => {
-        'id': o.id,
-        'invoice_number': o.invoiceNumber,
-        'order_type': OrderModel.orderTypeToString(o.orderType),
-        'table_id': o.tableId,
-        'table_number': o.tableNumber,
-        'guest_count': o.guestCount,
-        'kitchen_status': OrderModel.kitchenStatusToString(o.kitchenStatus),
-        'subtotal': o.subtotal,
-        'discount': o.discount,
-        'tax_percent': o.taxPercent,
-        'tax_amount': o.taxAmount,
-        'service_charge_percent': o.serviceChargePercent,
-        'service_charge_amount': o.serviceChargeAmount,
-        'total': o.total,
-        'cashier_name': o.cashierName,
-        'created_at': o.createdAt.toIso8601String(),
-        'kitchen_sent_at': o.kitchenSentAt?.toIso8601String(),
-        'ready_at': o.readyAt?.toIso8601String(),
-      };
+    'id': o.id,
+    'invoice_number': o.invoiceNumber,
+    'order_type': OrderModel.orderTypeToString(o.orderType),
+    'table_id': o.tableId,
+    'table_number': o.tableNumber,
+    'guest_count': o.guestCount,
+    'kitchen_status': OrderModel.kitchenStatusToString(o.kitchenStatus),
+    'subtotal': o.subtotal,
+    'discount': o.discount,
+    'tax_percent': o.taxPercent,
+    'tax_amount': o.taxAmount,
+    'service_charge_percent': o.serviceChargePercent,
+    'service_charge_amount': o.serviceChargeAmount,
+    'total': o.total,
+    'cashier_name': o.cashierName,
+    'created_at': o.createdAt.toIso8601String(),
+    'kitchen_sent_at': o.kitchenSentAt?.toIso8601String(),
+    'ready_at': o.readyAt?.toIso8601String(),
+    'customer_name': o.customerName,
+  };
 
   // ── Transactions ──────────────────────────────────────────────────────────
 
@@ -560,6 +596,7 @@ class DatabaseProvider extends GetxService {
         taxAmount: (m['tax_amount'] as num?)?.toDouble() ?? 0,
         serviceChargeAmount:
             (m['service_charge_amount'] as num?)?.toDouble() ?? 0,
+        customerName: m['customer_name'] as String? ?? '',
       );
     }).toList();
   }
@@ -588,6 +625,7 @@ class DatabaseProvider extends GetxService {
         'table_number': transaction.tableNumber,
         'tax_amount': transaction.taxAmount,
         'service_charge_amount': transaction.serviceChargeAmount,
+        'customer_name': transaction.customerName,
       });
 
       for (final item in transaction.items) {
@@ -632,11 +670,10 @@ class DatabaseProvider extends GetxService {
   }
 
   Future<void> setSetting(String key, String value) async {
-    await _db.insert(
-      'settings',
-      {'key': key, 'value': value},
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await _db.insert('settings', {
+      'key': key,
+      'value': value,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   // ── Invoice Number ────────────────────────────────────────────────────────
@@ -654,11 +691,10 @@ class DatabaseProvider extends GetxService {
     }
     counter++;
 
-    await _db.insert(
-      'settings',
-      {'key': 'invoice_counter', 'value': counter.toString()},
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await _db.insert('settings', {
+      'key': 'invoice_counter',
+      'value': counter.toString(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
 
     final now = DateTime.now();
     final date =

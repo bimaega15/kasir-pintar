@@ -18,11 +18,12 @@ class TableSelectView extends GetView<OrderController> {
         foregroundColor: Colors.white,
       ),
       body: Obx(() {
-        final available =
-            controller.tables.where((t) => t.status == TableStatus.available).toList();
+        final available = controller.tables
+            .where((t) => t.status == TableStatus.available)
+            .toList();
         return Column(
           children: [
-            // Guest count selector
+            // Customer name input
             Container(
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(16),
@@ -31,18 +32,63 @@ class TableSelectView extends GetView<OrderController> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: const [
                   BoxShadow(
-                      color: AppColors.cardShadow,
-                      blurRadius: 6,
-                      offset: Offset(0, 2))
+                    color: AppColors.cardShadow,
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: controller.customerNameController,
+                decoration: InputDecoration(
+                  labelText: 'Nama Pemesan',
+                  hintText: 'Masukkan nama pemesan',
+                  prefixIcon: const Icon(
+                    Icons.person_rounded,
+                    color: AppColors.primary,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 2,
+                    ),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+                onChanged: (value) => controller.customerName.value = value,
+              ),
+            ),
+
+            // Guest count selector
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(
+                    color: AppColors.cardShadow,
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
                 ],
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.people_rounded,
-                      color: AppColors.primary),
+                  const Icon(Icons.people_rounded, color: AppColors.primary),
                   const SizedBox(width: 12),
-                  const Text('Jumlah Tamu',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Jumlah Tamu',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   const Spacer(),
                   IconButton(
                     onPressed: () {
@@ -53,11 +99,15 @@ class TableSelectView extends GetView<OrderController> {
                     icon: const Icon(Icons.remove_circle_outline),
                     color: AppColors.primary,
                   ),
-                  Obx(() => Text(
-                        '${controller.guestCount.value}',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      )),
+                  Obx(
+                    () => Text(
+                      '${controller.guestCount.value}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                   IconButton(
                     onPressed: () => controller.guestCount.value++,
                     icon: const Icon(Icons.add_circle_outline),
@@ -74,7 +124,9 @@ class TableSelectView extends GetView<OrderController> {
                   Text(
                     '${available.length} meja tersedia',
                     style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 13),
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                    ),
                   ),
                   const Spacer(),
                   TextButton.icon(
@@ -92,11 +144,16 @@ class TableSelectView extends GetView<OrderController> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.table_restaurant_rounded,
-                          size: 64, color: AppColors.textSecondary),
+                      Icon(
+                        Icons.table_restaurant_rounded,
+                        size: 64,
+                        color: AppColors.textSecondary,
+                      ),
                       SizedBox(height: 12),
-                      Text('Semua meja sedang terisi',
-                          style: TextStyle(color: AppColors.textSecondary)),
+                      Text(
+                        'Semua meja sedang terisi',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
                     ],
                   ),
                 ),
@@ -105,8 +162,7 @@ class TableSelectView extends GetView<OrderController> {
               Expanded(
                 child: GridView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  gridDelegate:
-                      const SliverGridDelegateWithMaxCrossAxisExtent(
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 160,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
@@ -124,8 +180,7 @@ class TableSelectView extends GetView<OrderController> {
 
   Widget _buildTableTile(TableModel table) {
     return Obx(() {
-      final isSelected =
-          controller.selectedTable.value?.id == table.id;
+      final isSelected = controller.selectedTable.value?.id == table.id;
       return GestureDetector(
         onTap: () {
           controller.selectedTable.value = table;
@@ -137,9 +192,7 @@ class TableSelectView extends GetView<OrderController> {
             color: isSelected ? AppColors.primary : Colors.white,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isSelected
-                  ? AppColors.primary
-                  : Colors.green.shade200,
+              color: isSelected ? AppColors.primary : Colors.green.shade200,
               width: 2,
             ),
             boxShadow: [
@@ -149,7 +202,7 @@ class TableSelectView extends GetView<OrderController> {
                     : AppColors.cardShadow,
                 blurRadius: 6,
                 offset: const Offset(0, 2),
-              )
+              ),
             ],
           ),
           child: Column(
@@ -173,9 +226,7 @@ class TableSelectView extends GetView<OrderController> {
                 '${table.capacity} kursi',
                 style: TextStyle(
                   fontSize: 11,
-                  color: isSelected
-                      ? Colors.white70
-                      : AppColors.textSecondary,
+                  color: isSelected ? Colors.white70 : AppColors.textSecondary,
                 ),
               ),
             ],

@@ -15,8 +15,9 @@ class TransactionModel {
   final String paymentMethod;
   final DateTime createdAt;
   final String cashierName;
+  final String customerName;
   // v2 fields
-  final String orderType;           // 'dine_in' | 'take_away'
+  final String orderType; // 'dine_in' | 'take_away'
   final int? tableNumber;
   final double taxAmount;
   final double serviceChargeAmount;
@@ -33,12 +34,13 @@ class TransactionModel {
     this.paymentMethod = 'Tunai',
     DateTime? createdAt,
     this.cashierName = 'Kasir',
+    this.customerName = '',
     this.orderType = 'dine_in',
     this.tableNumber,
     this.taxAmount = 0,
     this.serviceChargeAmount = 0,
-  })  : id = id ?? _uuid.v4(),
-        createdAt = createdAt ?? DateTime.now();
+  }) : id = id ?? _uuid.v4(),
+       createdAt = createdAt ?? DateTime.now();
 
   int get totalItems => items.fold(0, (sum, item) => sum + item.quantity);
 

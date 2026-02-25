@@ -16,28 +16,30 @@ class OrderConfirmView extends GetView<OrderController> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
-      body: Obx(() => Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      // Order info
-                      _infoCard(),
-                      const SizedBox(height: 12),
-                      // Items
-                      _itemsCard(),
-                      const SizedBox(height: 12),
-                      // Summary
-                      _summaryCard(),
-                    ],
-                  ),
+      body: Obx(
+        () => Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    // Order info
+                    _infoCard(),
+                    const SizedBox(height: 12),
+                    // Items
+                    _itemsCard(),
+                    const SizedBox(height: 12),
+                    // Summary
+                    _summaryCard(),
+                  ],
                 ),
               ),
-              _bottomButtons(),
-            ],
-          )),
+            ),
+            _bottomButtons(),
+          ],
+        ),
+      ),
     );
   }
 
@@ -45,41 +47,90 @@ class OrderConfirmView extends GetView<OrderController> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: _cardDecoration(),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              controller.orderType.value.name == 'dineIn'
-                  ? Icons.restaurant_rounded
-                  : Icons.takeout_dining_rounded,
-              color: AppColors.primary,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  controller.orderType.value.name == 'dineIn'
-                      ? 'Dine In'
-                      : 'Take Away',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 15),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                if (controller.selectedTable.value != null)
-                  Text(
-                    'Meja ${controller.selectedTable.value!.number} · ${controller.guestCount.value} Tamu',
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 13),
-                  ),
-              ],
-            ),
+                child: Icon(
+                  controller.orderType.value.name == 'dineIn'
+                      ? Icons.restaurant_rounded
+                      : Icons.takeout_dining_rounded,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      controller.orderType.value.name == 'dineIn'
+                          ? 'Dine In'
+                          : 'Take Away',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                    if (controller.selectedTable.value != null)
+                      Text(
+                        'Meja ${controller.selectedTable.value!.number} · ${controller.guestCount.value} Tamu',
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          // Customer name
+          Row(
+            children: [
+              const Icon(
+                Icons.person_rounded,
+                size: 18,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Nama Pemesan',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    Text(
+                      controller.customerName.value.isEmpty
+                          ? '(Belum diisi)'
+                          : controller.customerName.value,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: controller.customerName.value.isEmpty
+                            ? AppColors.textSecondary
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -95,60 +146,68 @@ class OrderConfirmView extends GetView<OrderController> {
         children: [
           Row(
             children: [
-              const Text('Daftar Pesanan',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 15)),
+              const Text(
+                'Daftar Pesanan',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
               const Spacer(),
               Text(
                 '${controller.totalItems} item',
                 style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 13),
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                ),
               ),
             ],
           ),
           const Divider(height: 20),
-          ...controller.cart.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  children: [
-                    Text(item.productEmoji,
-                        style: const TextStyle(fontSize: 20)),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(item.productName,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w500)),
-                          if (item.note.isNotEmpty)
-                            Text('📝 ${item.note}',
-                                style: const TextStyle(
-                                    fontSize: 11,
-                                    color: AppColors.textSecondary,
-                                    fontStyle: FontStyle.italic)),
-                        ],
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+          ...controller.cart.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  Text(item.productEmoji, style: const TextStyle(fontSize: 20)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${item.quantity}x',
-                          style: const TextStyle(
+                          item.productName,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        if (item.note.isNotEmpty)
+                          Text(
+                            '📝 ${item.note}',
+                            style: const TextStyle(
+                              fontSize: 11,
                               color: AppColors.textSecondary,
-                              fontSize: 12),
-                        ),
-                        Text(
-                          CurrencyHelper.formatRupiah(item.subtotal),
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600),
-                        ),
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
                       ],
                     ),
-                  ],
-                ),
-              )),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${item.quantity}x',
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                      Text(
+                        CurrencyHelper.formatRupiah(item.subtotal),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -160,8 +219,7 @@ class OrderConfirmView extends GetView<OrderController> {
       decoration: _cardDecoration(),
       child: Column(
         children: [
-          _row('Subtotal',
-              CurrencyHelper.formatRupiah(controller.subtotal)),
+          _row('Subtotal', CurrencyHelper.formatRupiah(controller.subtotal)),
           if (controller.discount.value > 0)
             _row(
               'Diskon',
@@ -191,25 +249,33 @@ class OrderConfirmView extends GetView<OrderController> {
     );
   }
 
-  Widget _row(String label, String value,
-      {bool isBold = false, Color? valueColor, double fontSize = 13}) {
+  Widget _row(
+    String label,
+    String value, {
+    bool isBold = false,
+    Color? valueColor,
+    double fontSize = 13,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: fontSize,
-                  color: isBold
-                      ? AppColors.textPrimary
-                      : AppColors.textSecondary)),
-          Text(value,
-              style: TextStyle(
-                fontSize: fontSize,
-                fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-                color: valueColor ?? AppColors.textPrimary,
-              )),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: fontSize,
+              color: isBold ? AppColors.textPrimary : AppColors.textSecondary,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+              color: valueColor ?? AppColors.textPrimary,
+            ),
+          ),
         ],
       ),
     );
@@ -223,7 +289,9 @@ class OrderConfirmView extends GetView<OrderController> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: controller.isCartEmpty ? null : controller.sendToKitchen,
+              onPressed: controller.isCartEmpty
+                  ? null
+                  : controller.sendToKitchen,
               icon: const Icon(Icons.send_rounded),
               label: const Text('Kirim ke Dapur'),
               style: ElevatedButton.styleFrom(
@@ -252,13 +320,14 @@ class OrderConfirmView extends GetView<OrderController> {
   }
 
   BoxDecoration _cardDecoration() => BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: const [
-          BoxShadow(
-              color: AppColors.cardShadow,
-              blurRadius: 6,
-              offset: Offset(0, 2))
-        ],
-      );
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(14),
+    boxShadow: const [
+      BoxShadow(
+        color: AppColors.cardShadow,
+        blurRadius: 6,
+        offset: Offset(0, 2),
+      ),
+    ],
+  );
 }

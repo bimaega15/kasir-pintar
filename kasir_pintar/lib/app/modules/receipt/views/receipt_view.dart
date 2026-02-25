@@ -193,6 +193,15 @@ class _ReceiptViewState extends State<ReceiptView> {
                                     ),
                                   ],
                                 ),
+                                const SizedBox(height: 8),
+                                if (transaction.customerName.isNotEmpty)
+                                  Text(
+                                    '👤 ${transaction.customerName}',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
