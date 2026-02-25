@@ -4,7 +4,10 @@ import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../data/models/payment_entry_model.dart';
+import '../../../data/models/split_transaction_model.dart';
 import '../../../data/models/transaction_model.dart';
+import '../../../data/repositories/transaction_repository.dart';
 import '../../../routes/app_routes.dart';
 import '../../../services/printer_service.dart';
 import '../../../utils/constants/app_colors.dart';
@@ -20,6 +23,17 @@ class ReceiptView extends StatefulWidget {
 class _ReceiptViewState extends State<ReceiptView> {
   final _screenshotController = ScreenshotController();
   bool _isSharing = false;
+  late Future<List<PaymentEntry>> _paymentsFuture;
+  late Future<List<SplitTransactionModel>> _splitsFuture;
+  final _txRepo = Get.find<TransactionRepository>();
+
+  @override
+  void initState() {
+    super.initState();
+    final transaction = Get.arguments as TransactionModel;
+    _paymentsFuture = _txRepo.getPayments(transaction.id);
+    _splitsFuture = _txRepo.getSplits(transaction.id);
+  }
 
   Future<void> _shareReceipt(TransactionModel transaction) async {
     setState(() => _isSharing = true);
@@ -316,6 +330,49 @@ class _ReceiptViewState extends State<ReceiptView> {
                                     valueColor: AppColors.success,
                                     isBold: true,
                                   ),
+                                // Split payment breakdown
+                                FutureBuilder<List<PaymentEntry>>(
+                                  future: _paymentsFuture,
+                                  builder: (context, snapshot) {
+                                    if (!snapshot.hasData ||
+                                        snapshot.data!.isEmpty ||
+                                        snapshot.data!.length <= 1) {
+                                      return const SizedBox();
+                                    }
+                                    final payments = snapshot.data!;
+                                    return Column(
+                                      children: [
+                                        const SizedBox(height: 8),
+                                        const Divider(height: 12),
+                                        const Padding(
+                                          padding: EdgeInsets.only(top: 4),
+                                          child: Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: Text(
+                                              'Rincian Pembayaran',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 12,
+                                                color:
+                                                    AppColors.textSecondary,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        ...List.generate(
+                                          payments.length,
+                                          (i) => _receiptRow(
+                                            '${payments[i].method} (${i + 1})',
+                                            CurrencyHelper.formatRupiah(
+                                              payments[i].amount,
+                                            ),
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
                               ],
                             ),
                           ),

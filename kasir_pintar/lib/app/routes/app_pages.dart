@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../data/models/void_log_model.dart';
 import '../modules/splash/bindings/splash_binding.dart';
 import '../modules/splash/views/splash_view.dart';
 import '../modules/home/bindings/home_binding.dart';
@@ -30,6 +31,12 @@ import '../modules/payment/bindings/payment_binding.dart';
 import '../modules/payment/views/payment_view.dart';
 import '../modules/settings/bindings/settings_binding.dart';
 import '../modules/settings/views/settings_view.dart';
+import '../modules/shift/bindings/shift_binding.dart';
+import '../modules/shift/views/open_shift_view.dart';
+import '../modules/shift/views/close_shift_view.dart';
+import '../modules/shift/views/shift_report_view.dart';
+import '../modules/void_log/views/void_log_view.dart';
+import '../modules/void_log/views/void_log_detail_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -137,6 +144,39 @@ class AppPages {
       name: AppRoutes.appSettings,
       page: () => const SettingsView(),
       binding: SettingsBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    // ── v3: Shift Kasir ───────────────────────────────────────────────────────
+    GetPage(
+      name: AppRoutes.openShift,
+      page: () => const OpenShiftView(),
+      binding: ShiftBinding(),
+      transition: Transition.downToUp,
+    ),
+    GetPage(
+      name: AppRoutes.closeShift,
+      page: () => const CloseShiftView(),
+      binding: ShiftBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.shiftReport,
+      page: () => const ShiftReportView(),
+      binding: ShiftBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    // ── v3: Void Log ──────────────────────────────────────────────────────────
+    GetPage(
+      name: AppRoutes.voidLog,
+      page: () => const VoidLogView(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.voidLogDetail,
+      page: () {
+        final log = Get.arguments as VoidLogModel;
+        return VoidLogDetailView(log: log);
+      },
       transition: Transition.rightToLeft,
     ),
   ];

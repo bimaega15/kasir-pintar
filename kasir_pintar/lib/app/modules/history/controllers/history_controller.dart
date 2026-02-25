@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/transaction_model.dart';
+import '../../../data/models/void_log_model.dart';
+import '../../../data/providers/storage_provider.dart';
 import '../../../data/repositories/transaction_repository.dart';
 
 class HistoryController extends GetxController {
   final _transactionRepo = Get.find<TransactionRepository>();
+  final _db = Get.find<DatabaseProvider>();
 
   final transactions = <TransactionModel>[].obs;
   final searchQuery = ''.obs;
@@ -48,4 +51,30 @@ class HistoryController extends GetxController {
 
   double get totalRevenue =>
       transactions.fold(0.0, (sum, t) => sum + t.total);
+
+  Future<void> voidTransaction(TransactionModel tx, String reason) async {
+    try {
+      final log = VoidLogModel(
+        orderId: tx.id,
+        invoiceNumber: tx.invoiceNumber,
+        orderTotal: tx.total,
+        reason: reason,
+        voidedBy: 'Kasir',
+        voidedAt: DateTime.now(),
+      );
+      await _db.insertVoidLog(log);
+      await _transactionRepo.delete(tx.id);
+      await loadTransactions();
+      Get.snackbar(
+        'Transaksi Dibatalkan',
+        '${tx.invoiceNumber} berhasil dibatalkan',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFFFEBEE),
+        colorText: const Color(0xFFC62828),
+      );
+    } catch (e) {
+      Get.snackbar('Error', 'Gagal membatalkan transaksi: $e',
+          snackPosition: SnackPosition.BOTTOM);
+    }
+  }
 }

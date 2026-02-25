@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/order_model.dart';
 import '../../../data/models/payment_entry_model.dart';
+import '../../../data/models/split_transaction_model.dart';
+import '../../../data/providers/storage_provider.dart';
 import '../../../data/repositories/order_repository.dart';
 import '../../../data/repositories/table_repository.dart';
 import '../../../routes/app_routes.dart';
@@ -10,6 +12,7 @@ import '../../../utils/helpers/currency_helper.dart';
 class PaymentController extends GetxController {
   final _orderRepo = Get.find<OrderRepository>();
   final _tableRepo = Get.find<TableRepository>();
+  final _dbProvider = Get.find<DatabaseProvider>();
 
   late OrderModel order;
 
@@ -24,14 +27,28 @@ class PaymentController extends GetxController {
     'E-Wallet',
   ];
 
-  // Text controllers for each entry amount field (managed separately)
   final List<TextEditingController> amountControllers = [];
+
+  // ── Split Bill (INDEPENDENT) ────────────────────────────────────────────────
+  final isSplitMode = false.obs;
+  final splitCount = 2.obs;
+  final splitIndex = 0.obs;
+  // NEW: Store completed split transactions (independent tracking)
+  final completedSplits = <SplitTransactionModel>[].obs;
+  // Fixed due amount per split (NOT changing between splits)
+  late double currentSplitDueAmount;
+
+  double get amountPerSplit {
+    if (splitCount.value <= 0) return order.total;
+    return (order.total / splitCount.value).ceilToDouble();
+  }
+
+  double get currentSplitAmount => currentSplitDueAmount;
 
   @override
   void onInit() {
     super.onInit();
     order = Get.arguments as OrderModel;
-    // Start with one cash entry equal to the full amount
     _addEntryInternal('Tunai', order.total);
   }
 
@@ -50,8 +67,16 @@ class PaymentController extends GetxController {
     amountControllers.add(ctrl);
   }
 
+  void _clearEntries() {
+    for (final c in amountControllers) {
+      c.dispose();
+    }
+    amountControllers.clear();
+    entries.clear();
+  }
+
   void addEntry() {
-    _addEntryInternal('Tunai', 0);
+    if (entries.length < 3) _addEntryInternal('Tunai', 0);
   }
 
   void removeEntry(int index) {
@@ -78,6 +103,131 @@ class PaymentController extends GetxController {
   double get change => (totalPaid - order.total).clamp(0.0, double.infinity);
   bool get isPaid => totalPaid >= order.total;
 
+  // Split mode aware checks
+  bool get isSplitAmountPaid => totalPaid >= currentSplitAmount;
+  double get splitRemaining =>
+      (currentSplitAmount - totalPaid).clamp(0.0, double.infinity);
+  double get splitChange => (totalPaid - currentSplitAmount).clamp(0.0, double.infinity);
+
+  // ── Split Bill methods ─────────────────────────────────────────────────────
+
+  void enterSplitMode(int count) {
+    isSplitMode.value = true;
+    splitCount.value = count;
+    splitIndex.value = 0;
+    completedSplits.clear();
+
+    // FIXED: Calculate and lock due amount for ALL splits
+    currentSplitDueAmount = amountPerSplit;
+
+    _clearEntries();
+    _addEntryInternal('Tunai', currentSplitDueAmount);
+  }
+
+  Future<void> processSplitPayment() async {
+    if (!isSplitAmountPaid) {
+      Get.snackbar(
+        'Pembayaran Kurang',
+        'Total dibayar belum mencukupi bagian ini. Tagihan: ${CurrencyHelper.formatRupiah(currentSplitAmount)}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade900,
+      );
+      return;
+    }
+
+    // INDEPENDENT: Calculate change for THIS split ONLY
+    final totalPaidThisSplit = totalPaid;
+    final changeThisSplit = totalPaidThisSplit - currentSplitDueAmount;
+
+    // Determine primary payment method for this split
+    final primaryMethod = entries.length == 1 ? entries.first.method : 'Multi-Payment';
+
+    // Create split transaction record (INDEPENDENT)
+    final splitTx = SplitTransactionModel(
+      transactionId: order.id, // Will be updated to real transaction ID later
+      splitNumber: splitIndex.value + 1,
+      totalSplitAmount: currentSplitDueAmount,
+      amountPaid: totalPaidThisSplit,
+      changeAmount: changeThisSplit,
+      paymentMethod: primaryMethod,
+      notes: 'Split ${splitIndex.value + 1} of ${splitCount.value}',
+    );
+
+    // Store this split (INDEPENDENT, not accumulated)
+    completedSplits.add(splitTx);
+
+    final isLast = splitIndex.value == splitCount.value - 1;
+
+    if (isLast) {
+      await _finalizeOrder();
+    } else {
+      // Show confirmation and prepare for NEXT INDEPENDENT split
+      Get.dialog(AlertDialog(
+        title: Text('Bagian ${splitIndex.value + 1} Lunas'),
+        content: Text(
+          'Tagihan: ${CurrencyHelper.formatRupiah(currentSplitDueAmount)}\n'
+          'Dibayar: ${CurrencyHelper.formatRupiah(totalPaidThisSplit)}\n'
+          'Kembalian: ${CurrencyHelper.formatRupiah(changeThisSplit)}\n\n'
+          'Serahkan struk ke pelanggan ${splitIndex.value + 1}.',
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Get.back();
+              splitIndex.value++;
+              _clearEntries();
+              // IMPORTANT: Next split gets SAME fixed due amount
+              _addEntryInternal('Tunai', currentSplitDueAmount);
+            },
+            child: const Text('Lanjut ke Bagian Berikutnya'),
+          ),
+        ],
+      ));
+    }
+  }
+
+  Future<void> _finalizeOrder() async {
+    isProcessing.value = true;
+    try {
+      // INDEPENDENT: Aggregate payment methods from ALL completed splits
+      final consolidatedPayments = <String, double>{};
+      for (final split in completedSplits) {
+        consolidatedPayments[split.paymentMethod] =
+            (consolidatedPayments[split.paymentMethod] ?? 0) + split.amountPaid;
+      }
+
+      final consolidatedEntries = consolidatedPayments.entries
+          .map((e) => PaymentEntry(method: e.key, amount: e.value))
+          .toList();
+
+      // Convert to transaction with split info
+      final transaction = await _orderRepo.convertToTransaction(
+        order,
+        consolidatedEntries,
+        splitTransactions: completedSplits,
+      );
+
+      // Save each split transaction to database
+      for (final split in completedSplits) {
+        await _dbProvider.insertSplitTransaction(
+          split.copyWith(transactionId: transaction.id),
+        );
+      }
+
+      await _orderRepo.delete(order.id);
+      if (order.tableId != null) {
+        await _tableRepo.setAvailable(order.tableId!);
+      }
+      Get.offAllNamed(AppRoutes.receipt, arguments: transaction);
+    } catch (e) {
+      Get.snackbar('Error', 'Gagal memproses pembayaran: $e',
+          snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      isProcessing.value = false;
+    }
+  }
+
   Future<void> processPayment() async {
     if (!isPaid) {
       Get.snackbar(
@@ -92,22 +242,16 @@ class PaymentController extends GetxController {
 
     isProcessing.value = true;
     try {
-      final transaction = await _orderRepo.convertToTransaction(
-          order, List.from(entries));
+      final transaction =
+          await _orderRepo.convertToTransaction(order, List.from(entries));
       await _orderRepo.delete(order.id);
-
-      // Free the table
       if (order.tableId != null) {
         await _tableRepo.setAvailable(order.tableId!);
       }
-
       Get.offAllNamed(AppRoutes.receipt, arguments: transaction);
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Gagal memproses pembayaran: $e',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Error', 'Gagal memproses pembayaran: $e',
+          snackPosition: SnackPosition.BOTTOM);
     } finally {
       isProcessing.value = false;
     }

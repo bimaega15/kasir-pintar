@@ -135,28 +135,43 @@ class PaymentView extends GetView<PaymentController> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Payment entries
-                  Row(
-                    children: [
-                      const Text(
-                        'Metode Pembayaran',
-                        style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary),
-                      ),
-                      const Spacer(),
-                      Obx(() => controller.entries.length < 3
-                          ? TextButton.icon(
-                              onPressed: controller.addEntry,
-                              icon: const Icon(Icons.add, size: 16),
-                              label: const Text('Tambah'),
+                  // Split bill progress or Bagi Tagihan button
+                  Obx(() => controller.isSplitMode.value
+                      ? _buildSplitProgress()
+                      : Row(
+                          children: [
+                            const Text(
+                              'Metode Pembayaran',
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary),
+                            ),
+                            const Spacer(),
+                            TextButton.icon(
+                              onPressed: _showSplitCountDialog,
+                              icon: const Icon(Icons.call_split_rounded,
+                                  size: 16),
+                              label: const Text('Bagi Tagihan'),
                               style: TextButton.styleFrom(
-                                  foregroundColor: AppColors.primary),
-                            )
-                          : const SizedBox()),
-                    ],
-                  ),
+                                  foregroundColor: AppColors.accent),
+                            ),
+                          ],
+                        )),
+                  // Add payment method button (non-split mode)
+                  Obx(() => !controller.isSplitMode.value &&
+                          controller.entries.length < 3
+                      ? Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: controller.addEntry,
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text('Tambah Metode'),
+                            style: TextButton.styleFrom(
+                                foregroundColor: AppColors.primary),
+                          ),
+                        )
+                      : const SizedBox()),
                   const SizedBox(height: 8),
                   Obx(() => Column(
                         children: List.generate(
@@ -168,9 +183,11 @@ class PaymentView extends GetView<PaymentController> {
                   // Remaining / Change indicator
                   const SizedBox(height: 8),
                   Obx(() {
-                    final remaining = controller.remaining;
-                    final change = controller.change;
-                    final isPaid = controller.isPaid;
+                    // Use split-aware calculations if in split mode
+                    final isSplit = controller.isSplitMode.value;
+                    final remaining = isSplit ? controller.splitRemaining : controller.remaining;
+                    final change = isSplit ? controller.splitChange : controller.change;
+                    final isPaid = isSplit ? controller.isSplitAmountPaid : controller.isPaid;
 
                     return Container(
                       padding: const EdgeInsets.all(14),
@@ -225,7 +242,9 @@ class PaymentView extends GetView<PaymentController> {
                   child: ElevatedButton.icon(
                     onPressed: controller.isProcessing.value
                         ? null
-                        : controller.processPayment,
+                        : controller.isSplitMode.value
+                            ? controller.processSplitPayment
+                            : controller.processPayment,
                     icon: controller.isProcessing.value
                         ? const SizedBox(
                             width: 18,
@@ -247,6 +266,89 @@ class PaymentView extends GetView<PaymentController> {
                 )),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSplitProgress() {
+    return Obx(() => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.accent.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border:
+                Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.call_split_rounded,
+                  color: AppColors.accent, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Bagian ${controller.splitIndex.value + 1} dari ${controller.splitCount.value}  ·  '
+                  'Tagihan: ${CurrencyHelper.formatRupiah(controller.currentSplitAmount)}',
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.accent),
+                ),
+              ),
+            ],
+          ),
+        ));
+  }
+
+  void _showSplitCountDialog() {
+    int count = 2;
+    Get.dialog(
+      StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('Bagi Tagihan'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Jumlah orang yang membayar terpisah:'),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline),
+                    onPressed: () {
+                      if (count > 2) setState(() => count--);
+                    },
+                  ),
+                  Text('$count orang',
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.bold)),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: () {
+                      if (count < 8) setState(() => count++);
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '≈ ${CurrencyHelper.formatRupiah((controller.order.total / count).ceilToDouble())} / orang',
+                style: const TextStyle(
+                    color: AppColors.textSecondary, fontSize: 13),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: Get.back, child: const Text('Batal')),
+            ElevatedButton(
+              onPressed: () {
+                Get.back();
+                controller.enterSplitMode(count);
+              },
+              child: const Text('Mulai'),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,15 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../data/models/payment_entry_model.dart';
 import '../../../data/models/transaction_model.dart';
+import '../../../data/repositories/transaction_repository.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 
-class TransactionDetailView extends StatelessWidget {
+class TransactionDetailView extends StatefulWidget {
   const TransactionDetailView({super.key});
 
   @override
+  State<TransactionDetailView> createState() => _TransactionDetailViewState();
+}
+
+class _TransactionDetailViewState extends State<TransactionDetailView> {
+  late TransactionModel transaction;
+  late Future<List<PaymentEntry>> _paymentsFuture;
+  final _txRepo = Get.find<TransactionRepository>();
+
+  @override
+  void initState() {
+    super.initState();
+    transaction = Get.arguments as TransactionModel;
+    _paymentsFuture = _txRepo.getPayments(transaction.id);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final transaction = Get.arguments as TransactionModel;
     return Scaffold(
       appBar: AppBar(title: Text(transaction.invoiceNumber)),
       body: SingleChildScrollView(
@@ -169,6 +186,65 @@ class TransactionDetailView extends StatelessWidget {
             if (t.change > 0)
               _row('Kembalian', CurrencyHelper.formatRupiah(t.change),
                   valueColor: AppColors.success),
+            // Split payment breakdown
+            FutureBuilder<List<PaymentEntry>>(
+              future: _paymentsFuture,
+              builder: (context, snapshot) {
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const SizedBox();
+                }
+                final payments = snapshot.data!;
+                // Only show breakdown if more than one payment method
+                if (payments.length <= 1) {
+                  return const SizedBox();
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Divider(),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          'Rincian Pembayaran',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      ...List.generate(
+                        payments.length,
+                        (i) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${payments[i].method} (${i + 1})',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              Text(
+                                CurrencyHelper.formatRupiah(payments[i].amount),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),

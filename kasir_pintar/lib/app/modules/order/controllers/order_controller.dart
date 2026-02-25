@@ -35,6 +35,9 @@ class OrderController extends GetxController {
   final searchQuery = ''.obs;
   final searchController = TextEditingController();
 
+  // ── Discount mode: 'Rp' or '%' ───────────────────────────────────────────
+  final discountMode = 'Rp'.obs;
+
   // ── Tax & service charge (from settings) ─────────────────────────────────
   final taxPercent = 0.0.obs;
   final serviceChargePercent = 0.0.obs;
@@ -164,6 +167,7 @@ class OrderController extends GetxController {
     cart.clear();
     discountController.clear();
     discount.value = 0;
+    discountMode.value = 'Rp';
     selectedTable.value = null;
     guestCount.value = 1;
     customerNameController.clear();
@@ -192,6 +196,107 @@ class OrderController extends GetxController {
 
   void updateDiscount(String value) {
     discount.value = CurrencyHelper.parseRupiah(value);
+  }
+
+  void applyPercentDiscount(double percent) {
+    final flat = subtotal * (percent / 100);
+    discount.value = flat.clamp(0, subtotal);
+    discountController.text = flat.toStringAsFixed(0);
+  }
+
+  void updateDiscountFromInput(String value) {
+    if (discountMode.value == '%') {
+      final pct = double.tryParse(value) ?? 0;
+      discount.value = (subtotal * pct / 100).clamp(0, subtotal);
+    } else {
+      discount.value = CurrencyHelper.parseRupiah(value).clamp(0, subtotal);
+    }
+  }
+
+  void showTakeAwayCustomerSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          left: 20,
+          right: 20,
+          top: 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Detail Pesanan Take Away',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: customerNameController,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Nama Pemesan (opsional)',
+                prefixIcon: Icon(Icons.person_rounded),
+                hintText: 'Contoh: Budi',
+              ),
+              onChanged: (v) => customerName.value = v,
+            ),
+            const SizedBox(height: 16),
+            Obx(() => Row(
+                  children: [
+                    const Text('Jumlah Pax:',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 12),
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline),
+                      onPressed: () {
+                        if (guestCount.value > 1) guestCount.value--;
+                      },
+                    ),
+                    Text('${guestCount.value}',
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline),
+                      onPressed: () => guestCount.value++,
+                    ),
+                  ],
+                )),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Get.toNamed(AppRoutes.pos);
+                    },
+                    child: const Text('Lewati'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      customerName.value = customerNameController.text;
+                      Navigator.pop(ctx);
+                      Get.toNamed(AppRoutes.pos);
+                    },
+                    child: const Text('Lanjut'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
   }
 
   // ── Send to kitchen ───────────────────────────────────────────────────────

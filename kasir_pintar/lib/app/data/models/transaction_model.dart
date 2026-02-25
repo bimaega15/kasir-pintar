@@ -1,5 +1,6 @@
 import 'package:uuid/uuid.dart';
 import 'cart_item_model.dart';
+import 'payment_entry_model.dart';
 
 const _uuid = Uuid();
 
@@ -21,6 +22,10 @@ class TransactionModel {
   final int? tableNumber;
   final double taxAmount;
   final double serviceChargeAmount;
+  final List<PaymentEntry> paymentEntries;
+  // Split payment tracking
+  final bool isSplitPayment;
+  final int? splitTotalCount;
 
   TransactionModel({
     String? id,
@@ -39,6 +44,9 @@ class TransactionModel {
     this.tableNumber,
     this.taxAmount = 0,
     this.serviceChargeAmount = 0,
+    this.paymentEntries = const [],
+    this.isSplitPayment = false,
+    this.splitTotalCount,
   }) : id = id ?? _uuid.v4(),
        createdAt = createdAt ?? DateTime.now();
 

@@ -30,6 +30,9 @@ class OrderConfirmView extends GetView<OrderController> {
                     // Items
                     _itemsCard(),
                     const SizedBox(height: 12),
+                    // Discount input
+                    _discountCard(),
+                    const SizedBox(height: 12),
                     // Summary
                     _summaryCard(),
                   ],
@@ -211,6 +214,107 @@ class OrderConfirmView extends GetView<OrderController> {
         ],
       ),
     );
+  }
+
+  Widget _discountCard() {
+    return Obx(() {
+      final sub = controller.subtotal;
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: _cardDecoration(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text(
+                  'Diskon',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+                const Spacer(),
+                // Mode toggle
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'Rp', label: Text('Rp')),
+                    ButtonSegment(value: '%', label: Text('%')),
+                  ],
+                  selected: {controller.discountMode.value},
+                  onSelectionChanged: (s) {
+                    controller.discountMode.value = s.first;
+                    controller.discountController.clear();
+                    controller.discount.value = 0;
+                  },
+                  style: ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                    textStyle: WidgetStateProperty.all(
+                        const TextStyle(fontSize: 12)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Quick percent buttons
+            if (controller.discountMode.value == '%')
+              Row(
+                children: [10.0, 15.0, 20.0].map((pct) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: OutlinedButton(
+                      onPressed: () => controller.applyPercentDiscount(pct),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4),
+                        side:
+                            const BorderSide(color: AppColors.primary),
+                        foregroundColor: AppColors.primary,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      child: Text('${pct.toStringAsFixed(0)}%',
+                          style: const TextStyle(fontSize: 12)),
+                    ),
+                  );
+                }).toList(),
+              ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: controller.discountController,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                hintText: '0',
+                prefixText:
+                    controller.discountMode.value == 'Rp' ? 'Rp ' : null,
+                suffixText:
+                    controller.discountMode.value == '%' ? '%' : null,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 10),
+                errorText: controller.discount.value > sub
+                    ? 'Diskon melebihi subtotal'
+                    : null,
+              ),
+              onChanged: controller.updateDiscountFromInput,
+            ),
+            if (controller.discount.value > 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    '- ${CurrencyHelper.formatRupiah(controller.discount.value)}',
+                    style: const TextStyle(
+                      color: AppColors.error,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      );
+    });
   }
 
   Widget _summaryCard() {

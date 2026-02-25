@@ -4,6 +4,7 @@ import '../controllers/home_controller.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
+import '../../shift/controllers/shift_controller.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -19,6 +20,7 @@ class HomeView extends GetView<HomeController> {
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
+                _buildShiftBanner(),
                 _buildStatsGrid(),
                 const SizedBox(height: 24),
                 const Text(
@@ -93,6 +95,86 @@ class HomeView extends GetView<HomeController> {
         ),
       ],
     );
+  }
+
+  Widget _buildShiftBanner() {
+    final shiftCtrl = Get.find<ShiftController>();
+    return Obx(() {
+      final shift = shiftCtrl.activeShift.value;
+      if (shift != null) {
+        // Active shift — green info strip
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.success.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+            border:
+                Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.lock_open_rounded,
+                  color: AppColors.success, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Shift aktif: ${shift.cashierName} · ${CurrencyHelper.formatTime(shift.openedAt)}',
+                  style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.success,
+                      fontWeight: FontWeight.w600),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => Get.toNamed(AppRoutes.closeShift),
+                child: const Text('Tutup Shift',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.success,
+                        decoration: TextDecoration.underline,
+                        fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+      } else {
+        // No active shift — warning strip
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.warning.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(10),
+            border:
+                Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded,
+                  color: AppColors.warning, size: 18),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Belum ada shift aktif. Buka shift sebelum berjualan.',
+                  style: TextStyle(
+                      fontSize: 12, color: AppColors.warning),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => Get.toNamed(AppRoutes.openShift),
+                child: const Text('Buka',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.warning,
+                        decoration: TextDecoration.underline,
+                        fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+      }
+    });
   }
 
   Widget _buildStatsGrid() {
@@ -196,7 +278,14 @@ class HomeView extends GetView<HomeController> {
           label: 'Kasir',
           icon: Icons.point_of_sale_rounded,
           color: AppColors.primary,
-          onTap: () => Get.toNamed(AppRoutes.orderType),
+          onTap: () {
+            final shiftCtrl = Get.find<ShiftController>();
+            if (shiftCtrl.activeShift.value == null) {
+              Get.toNamed(AppRoutes.openShift);
+            } else {
+              Get.toNamed(AppRoutes.orderType);
+            }
+          },
         ),
         _buildMenuCard(
           label: 'Meja',
@@ -235,6 +324,25 @@ class HomeView extends GetView<HomeController> {
           icon: Icons.print_rounded,
           color: const Color(0xFF1565C0),
           onTap: () => Get.toNamed(AppRoutes.printerSettings),
+        ),
+        _buildMenuCard(
+          label: 'Shift',
+          icon: Icons.schedule_rounded,
+          color: AppColors.success,
+          onTap: () {
+            final shiftCtrl = Get.find<ShiftController>();
+            if (shiftCtrl.activeShift.value != null) {
+              Get.toNamed(AppRoutes.closeShift);
+            } else {
+              Get.toNamed(AppRoutes.shiftReport);
+            }
+          },
+        ),
+        _buildMenuCard(
+          label: 'Log Batal',
+          icon: Icons.cancel_rounded,
+          color: AppColors.error,
+          onTap: () => Get.toNamed(AppRoutes.voidLog),
         ),
       ],
     );

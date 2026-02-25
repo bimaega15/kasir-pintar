@@ -18,4 +18,10 @@ abstract class AppRoutes {
   static const addEditTable = '/tables/form';
   static const payment = '/payment';
   static const appSettings = '/settings';
+  // v3 — shift + void log
+  static const openShift = '/shift/open';
+  static const closeShift = '/shift/close';
+  static const shiftReport = '/shift/report';
+  static const voidLog = '/void-log';
+  static const voidLogDetail = '/void-log/detail';
 }

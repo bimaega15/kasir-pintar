@@ -4,7 +4,7 @@ import 'payment_entry_model.dart';
 
 enum OrderType { dineIn, takeAway }
 
-enum KitchenStatus { pending, inProgress, ready, paid }
+enum KitchenStatus { pending, inProgress, ready, paid, onHold }
 
 class OrderModel {
   final String id;
@@ -73,6 +73,8 @@ class OrderModel {
         return 'Siap';
       case KitchenStatus.paid:
         return 'Lunas';
+      case KitchenStatus.onHold:
+        return 'Ditahan';
     }
   }
 
@@ -90,6 +92,8 @@ class OrderModel {
         return KitchenStatus.ready;
       case 'paid':
         return KitchenStatus.paid;
+      case 'on_hold':
+        return KitchenStatus.onHold;
       default:
         return KitchenStatus.pending;
     }
@@ -103,6 +107,8 @@ class OrderModel {
         return 'ready';
       case KitchenStatus.paid:
         return 'paid';
+      case KitchenStatus.onHold:
+        return 'on_hold';
       case KitchenStatus.pending:
         return 'pending';
     }

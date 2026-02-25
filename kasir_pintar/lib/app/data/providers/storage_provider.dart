@@ -6,13 +6,16 @@ import '../models/order_item_model.dart';
 import '../models/order_model.dart';
 import '../models/payment_entry_model.dart';
 import '../models/product_model.dart';
+import '../models/shift_model.dart';
+import '../models/split_transaction_model.dart';
 import '../models/table_model.dart';
 import '../models/transaction_model.dart';
+import '../models/void_log_model.dart';
 
 /// Provider SQLite — mendukung offline penuh tanpa jaringan.
 class DatabaseProvider extends GetxService {
   static const _dbName = 'kasir_pintar.db';
-  static const _dbVersion = 3;
+  static const _dbVersion = 6;
 
   late Database _db;
 
@@ -65,7 +68,8 @@ class DatabaseProvider extends GetxService {
         table_number          INTEGER,
         tax_amount            REAL NOT NULL DEFAULT 0,
         service_charge_amount REAL NOT NULL DEFAULT 0,
-        customer_name         TEXT NOT NULL DEFAULT ''
+        customer_name         TEXT NOT NULL DEFAULT '',
+        shift_id              TEXT
       )
     ''');
 
@@ -79,6 +83,16 @@ class DatabaseProvider extends GetxService {
         product_emoji  TEXT    NOT NULL DEFAULT '📦',
         quantity       INTEGER NOT NULL,
         note           TEXT    NOT NULL DEFAULT '',
+        FOREIGN KEY (transaction_id) REFERENCES transactions(id)
+      )
+    ''');
+
+    batch.execute('''
+      CREATE TABLE transaction_payments (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        transaction_id TEXT    NOT NULL,
+        method         TEXT    NOT NULL,
+        amount         REAL    NOT NULL,
         FOREIGN KEY (transaction_id) REFERENCES transactions(id)
       )
     ''');
@@ -148,10 +162,110 @@ class DatabaseProvider extends GetxService {
       )
     ''');
 
+    batch.execute('''
+      CREATE TABLE shifts (
+        id               TEXT    PRIMARY KEY,
+        cashier_name     TEXT    NOT NULL,
+        opening_balance  REAL    NOT NULL DEFAULT 0,
+        closing_balance  REAL,
+        expected_cash    REAL,
+        difference       REAL,
+        notes            TEXT    NOT NULL DEFAULT '',
+        opened_at        TEXT    NOT NULL,
+        closed_at        TEXT
+      )
+    ''');
+
+    batch.execute('''
+      CREATE TABLE void_logs (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id         TEXT    NOT NULL,
+        invoice_number   TEXT    NOT NULL,
+        order_total      REAL    NOT NULL,
+        reason           TEXT    NOT NULL,
+        voided_by        TEXT    NOT NULL DEFAULT 'Kasir',
+        voided_at        TEXT    NOT NULL
+      )
+    ''');
+
+    batch.execute('''
+      CREATE TABLE split_transactions (
+        id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+        transaction_id      TEXT    NOT NULL,
+        split_number        INTEGER NOT NULL,
+        total_split_amount  REAL    NOT NULL,
+        amount_paid         REAL    NOT NULL,
+        change_amount       REAL    NOT NULL,
+        payment_method      TEXT    NOT NULL,
+        notes               TEXT    NOT NULL DEFAULT '',
+        created_at          TEXT    NOT NULL,
+        FOREIGN KEY (transaction_id) REFERENCES transactions(id),
+        UNIQUE(transaction_id, split_number)
+      )
+    ''');
+
     await batch.commit(noResult: true);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 6) {
+      final batch = db.batch();
+      batch.execute('''
+        CREATE TABLE IF NOT EXISTS split_transactions (
+          id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+          transaction_id      TEXT    NOT NULL,
+          split_number        INTEGER NOT NULL,
+          total_split_amount  REAL    NOT NULL,
+          amount_paid         REAL    NOT NULL,
+          change_amount       REAL    NOT NULL,
+          payment_method      TEXT    NOT NULL,
+          notes               TEXT    NOT NULL DEFAULT '',
+          created_at          TEXT    NOT NULL,
+          FOREIGN KEY (transaction_id) REFERENCES transactions(id),
+          UNIQUE(transaction_id, split_number)
+        )
+      ''');
+      await batch.commit(noResult: true);
+    }
+    if (oldVersion < 5) {
+      final batch = db.batch();
+      batch.execute('''
+        CREATE TABLE IF NOT EXISTS transaction_payments (
+          id             INTEGER PRIMARY KEY AUTOINCREMENT,
+          transaction_id TEXT    NOT NULL,
+          method         TEXT    NOT NULL,
+          amount         REAL    NOT NULL,
+          FOREIGN KEY (transaction_id) REFERENCES transactions(id)
+        )
+      ''');
+      await batch.commit(noResult: true);
+    }
+    if (oldVersion < 4) {
+      final batch = db.batch();
+      batch.execute('''
+        CREATE TABLE IF NOT EXISTS shifts (
+          id TEXT PRIMARY KEY, cashier_name TEXT NOT NULL,
+          opening_balance REAL NOT NULL DEFAULT 0, closing_balance REAL,
+          expected_cash REAL, difference REAL,
+          notes TEXT NOT NULL DEFAULT '', opened_at TEXT NOT NULL, closed_at TEXT
+        )
+      ''');
+      batch.execute('''
+        CREATE TABLE IF NOT EXISTS void_logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT NOT NULL,
+          invoice_number TEXT NOT NULL, order_total REAL NOT NULL,
+          reason TEXT NOT NULL, voided_by TEXT NOT NULL DEFAULT 'Kasir',
+          voided_at TEXT NOT NULL
+        )
+      ''');
+      await batch.commit(noResult: true);
+      // ALTER TABLE may fail if column already exists — safe to ignore
+      try {
+        await db.execute(
+          'ALTER TABLE transactions ADD COLUMN shift_id TEXT',
+        );
+      } catch (_) {}
+    }
     if (oldVersion < 3) {
       final batch = db.batch();
       batch.execute(
@@ -608,7 +722,8 @@ class DatabaseProvider extends GetxService {
     return getTransactions(datePrefix: prefix);
   }
 
-  Future<void> insertTransaction(TransactionModel transaction) async {
+  Future<void> insertTransaction(TransactionModel transaction,
+      [List paymentEntries = const []]) async {
     await _db.transaction((txn) async {
       await txn.insert('transactions', {
         'id': transaction.id,
@@ -639,6 +754,15 @@ class DatabaseProvider extends GetxService {
           'note': item.note,
         });
       }
+
+      // Save individual payment entries
+      for (final payment in paymentEntries) {
+        await txn.insert('transaction_payments', {
+          'transaction_id': transaction.id,
+          'method': payment.method,
+          'amount': payment.amount,
+        });
+      }
     });
   }
 
@@ -655,6 +779,37 @@ class DatabaseProvider extends GetxService {
       quantity: m['quantity'] as int,
       note: m['note'] as String? ?? '',
     );
+  }
+
+  Future<List<PaymentEntry>> getTransactionPayments(String transactionId) async {
+    final result = await _db.query(
+      'transaction_payments',
+      where: 'transaction_id = ?',
+      whereArgs: [transactionId],
+    );
+    return result
+        .map((m) => PaymentEntry(
+              method: m['method'] as String,
+              amount: (m['amount'] as num).toDouble(),
+            ))
+        .toList();
+  }
+
+  // ── Split Transactions ────────────────────────────────────────────────────
+
+  Future<int> insertSplitTransaction(SplitTransactionModel split) async {
+    return await _db.insert('split_transactions', split.toMap());
+  }
+
+  Future<List<SplitTransactionModel>> getSplitTransactionsByTransactionId(
+      String transactionId) async {
+    final result = await _db.query(
+      'split_transactions',
+      where: 'transaction_id = ?',
+      whereArgs: [transactionId],
+      orderBy: 'split_number ASC',
+    );
+    return result.map((m) => SplitTransactionModel.fromMap(m)).toList();
   }
 
   // ── Settings ──────────────────────────────────────────────────────────────
@@ -674,6 +829,77 @@ class DatabaseProvider extends GetxService {
       'key': key,
       'value': value,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  // ── Invoice Number ────────────────────────────────────────────────────────
+
+  // ── Shifts ────────────────────────────────────────────────────────────────
+
+  Future<void> insertShift(ShiftModel shift) async {
+    await _db.insert('shifts', shift.toMap());
+  }
+
+  Future<ShiftModel?> getActiveShift() async {
+    final maps = await _db.query(
+      'shifts',
+      where: 'closed_at IS NULL',
+      orderBy: 'opened_at DESC',
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return ShiftModel.fromMap(maps.first);
+  }
+
+  Future<void> updateShiftClose(
+    String id,
+    double closingBalance,
+    double expectedCash,
+    String notes,
+  ) async {
+    final difference = closingBalance - expectedCash;
+    await _db.update(
+      'shifts',
+      {
+        'closing_balance': closingBalance,
+        'expected_cash': expectedCash,
+        'difference': difference,
+        'notes': notes,
+        'closed_at': DateTime.now().toIso8601String(),
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<List<ShiftModel>> getShifts() async {
+    final maps = await _db.query('shifts', orderBy: 'opened_at DESC');
+    return maps.map(ShiftModel.fromMap).toList();
+  }
+
+  Future<double> getTunaiRevenueSince(DateTime since) async {
+    final result = await _db.rawQuery(
+      "SELECT COALESCE(SUM(payment_amount), 0) as total FROM transactions "
+      "WHERE payment_method = 'Tunai' AND created_at >= ?",
+      [since.toIso8601String()],
+    );
+    return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+  }
+
+  // ── Void Logs ─────────────────────────────────────────────────────────────
+
+  Future<void> insertVoidLog(VoidLogModel log) async {
+    await _db.insert('void_logs', log.toMap());
+  }
+
+  Future<List<VoidLogModel>> getVoidLogs() async {
+    final maps = await _db.query('void_logs', orderBy: 'voided_at DESC');
+    return maps.map(VoidLogModel.fromMap).toList();
+  }
+
+  Future<void> deleteTransaction(String id) async {
+    await _db.delete('transaction_items',
+        where: 'transaction_id = ?', whereArgs: [id]);
+    await _db.delete('transactions', where: 'id = ?', whereArgs: [id]);
   }
 
   // ── Invoice Number ────────────────────────────────────────────────────────

@@ -66,7 +66,7 @@ class OrderTypeView extends GetView<OrderController> {
               onTap: () {
                 controller.orderType.value = OrderType.takeAway;
                 controller.selectedTable.value = null;
-                Get.toNamed(AppRoutes.pos);
+                controller.showTakeAwayCustomerSheet(context);
               },
             ),
           ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/history_controller.dart';
+import '../../../data/models/transaction_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
@@ -127,8 +128,96 @@ class HistoryView extends GetView<HistoryController> {
     );
   }
 
-  Widget _buildTransactionTile(transaction) {
-    return ListTile(
+  void _showVoidDialog(BuildContext context, TransactionModel tx) {
+    const reasons = [
+      'Salah input item',
+      'Pelanggan batal',
+      'Barang habis',
+      'Lainnya',
+    ];
+    String selected = reasons.first;
+    final otherCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('Batalkan Transaksi'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                tx.invoiceNumber,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: AppColors.primary),
+              ),
+              Text(
+                CurrencyHelper.formatRupiah(tx.total),
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 16),
+              const Text('Alasan pembatalan:',
+                  style: TextStyle(fontSize: 13)),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                initialValue: selected,
+                decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: OutlineInputBorder(),
+                ),
+                items: reasons
+                    .map((r) =>
+                        DropdownMenuItem(value: r, child: Text(r)))
+                    .toList(),
+                onChanged: (v) => setState(() => selected = v!),
+              ),
+              if (selected == 'Lainnya') ...[
+                const SizedBox(height: 10),
+                TextField(
+                  controller: otherCtrl,
+                  decoration: const InputDecoration(
+                    hintText: 'Tulis alasan...',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Tutup'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                final reason = selected == 'Lainnya'
+                    ? otherCtrl.text.trim()
+                    : selected;
+                if (reason.isEmpty) return;
+                Navigator.of(ctx).pop();
+                controller.voidTransaction(tx, reason);
+              },
+              child: const Text('Batalkan'),
+            ),
+          ],
+        ),
+      ),
+    ).then((_) => otherCtrl.dispose());
+  }
+
+  Widget _buildTransactionTile(TransactionModel transaction) {
+    return GestureDetector(
+      onLongPress: () =>
+          _showVoidDialog(Get.context!, transaction),
+      child: ListTile(
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       onTap: () =>
@@ -182,6 +271,7 @@ class HistoryView extends GetView<HistoryController> {
           ),
         ],
       ),
-    );
+    ),  // ListTile
+    );  // GestureDetector
   }
 }

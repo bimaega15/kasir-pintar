@@ -3,11 +3,15 @@ import '../../../data/repositories/order_repository.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/transaction_repository.dart';
 import '../../../utils/helpers/currency_helper.dart';
+import '../../shift/controllers/shift_controller.dart';
 
 class HomeController extends GetxController {
   final _productRepo = Get.find<ProductRepository>();
   final _transactionRepo = Get.find<TransactionRepository>();
   final _orderRepo = Get.find<OrderRepository>();
+
+  ShiftController get shiftCtrl => Get.find<ShiftController>();
+  bool get hasActiveShift => shiftCtrl.activeShift.value != null;
 
   final totalProducts = 0.obs;
   final totalTransactionsToday = 0.obs;

@@ -231,6 +231,17 @@ class KitchenView extends GetView<KitchenController> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
+                    if (order.kitchenStatus == KitchenStatus.onHold)
+                      Chip(
+                        label: const Text('DITAHAN'),
+                        backgroundColor: Colors.amber.shade100,
+                        labelStyle: TextStyle(
+                            color: Colors.amber.shade800,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12),
+                        avatar: Icon(Icons.pause_rounded,
+                            size: 14, color: Colors.amber.shade800),
+                      ),
                     if (order.kitchenStatus == KitchenStatus.pending)
                       ElevatedButton.icon(
                         onPressed: () => controller.updateStatus(

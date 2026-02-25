@@ -34,7 +34,11 @@ class KitchenController extends GetxController {
   }
 
   List<OrderModel> get pendingOrders =>
-      orders.where((o) => o.kitchenStatus == KitchenStatus.pending).toList();
+      orders
+          .where((o) =>
+              o.kitchenStatus == KitchenStatus.pending ||
+              o.kitchenStatus == KitchenStatus.onHold)
+          .toList();
 
   List<OrderModel> get inProgressOrders =>
       orders.where((o) => o.kitchenStatus == KitchenStatus.inProgress).toList();
