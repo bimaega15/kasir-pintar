@@ -2,8 +2,12 @@ import 'package:get/get.dart';
 import '../data/models/void_log_model.dart';
 import '../modules/splash/bindings/splash_binding.dart';
 import '../modules/splash/views/splash_view.dart';
+import '../modules/main_navigation/bindings/main_navigation_binding.dart';
+import '../modules/main_navigation/views/main_navigation_view.dart';
 import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/views/home_view.dart';
+import '../modules/master/bindings/master_binding.dart';
+import '../modules/report/bindings/report_binding.dart';
 import '../modules/pos/bindings/pos_binding.dart';
 import '../modules/pos/views/pos_view.dart';
 import '../modules/products/bindings/products_binding.dart';
@@ -45,6 +49,18 @@ class AppPages {
       name: AppRoutes.splash,
       page: () => const SplashView(),
       binding: SplashBinding(),
+    ),
+    // Main Navigation Container
+    GetPage(
+      name: AppRoutes.main,
+      page: () => const MainNavigationView(),
+      binding: MainNavigationBinding(),
+      bindings: [
+        HomeBinding(),
+        SettingsBinding(),
+        MasterBinding(),
+        ReportBinding(),
+      ],
     ),
     GetPage(
       name: AppRoutes.home,

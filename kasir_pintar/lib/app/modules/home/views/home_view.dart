@@ -5,6 +5,7 @@ import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 import '../../shift/controllers/shift_controller.dart';
+import '../../main_navigation/controllers/main_navigation_controller.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -23,16 +24,7 @@ class HomeView extends GetView<HomeController> {
                 _buildShiftBanner(),
                 _buildStatsGrid(),
                 const SizedBox(height: 24),
-                const Text(
-                  'Menu Utama',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _buildMenuGrid(),
+                _buildQuickAccessSection(),
                 const SizedBox(height: 24),
                 _buildInfoCard(),
               ]),
@@ -43,11 +35,114 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
+  Widget _buildQuickAccessSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Akses Cepat',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 2.2,
+          children: [
+            _buildQuickAccessCard(
+              icon: Icons.point_of_sale_rounded,
+              label: 'Kasir',
+              onTap: () {
+                Get.find<MainNavigationController>().changeIndex(4);
+              },
+            ),
+            _buildQuickAccessCard(
+              icon: Icons.inventory_2_rounded,
+              label: 'Master Data',
+              onTap: () {
+                Get.find<MainNavigationController>().changeIndex(1);
+              },
+            ),
+            _buildQuickAccessCard(
+              icon: Icons.assessment_rounded,
+              label: 'Laporan',
+              onTap: () {
+                Get.find<MainNavigationController>().changeIndex(2);
+              },
+            ),
+            _buildQuickAccessCard(
+              icon: Icons.settings_rounded,
+              label: 'Pengaturan',
+              onTap: () {
+                Get.find<MainNavigationController>().changeIndex(3);
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickAccessCard({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: 12),
+            Icon(icon, color: AppColors.primary, size: 24),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 12,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(width: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildAppBar() {
+    final shiftCtrl = Get.find<ShiftController>();
     return SliverAppBar(
       expandedHeight: 140,
       pinned: true,
       backgroundColor: AppColors.primary,
+      elevation: 0,
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: const BoxDecoration(
@@ -57,43 +152,144 @@ class HomeView extends GetView<HomeController> {
               colors: [AppColors.primaryDark, AppColors.primaryLight],
             ),
           ),
-          padding: const EdgeInsets.fromLTRB(20, 60, 20, 16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              Obx(() => Text(
-                    controller.greeting.value,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
+              // Decorative circles background
+              Positioned(
+                top: -50,
+                right: -50,
+                child: Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -30,
+                left: -30,
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.03),
+                  ),
+                ),
+              ),
+              // Content
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Greeting with Refresh Button
+                    Obx(() => Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    controller.greeting.value,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Kasir Pintar',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Refresh Button
+                            GestureDetector(
+                              onTap: controller.loadStats,
+                              child: const Icon(
+                                Icons.refresh_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            // Shift Badge
+                            Obx(() => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: shiftCtrl.activeShift.value != null
+                                        ? Colors.green.shade400
+                                        : Colors.red.shade400,
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: (shiftCtrl.activeShift.value !=
+                                                null
+                                            ? Colors.green
+                                            : Colors.red)
+                                          .withValues(alpha: 0.3),
+                                        blurRadius: 8,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        shiftCtrl.activeShift.value != null
+                                            ? 'Aktif'
+                                            : 'Tutup',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )),
+                          ],
+                        )),
+                    const SizedBox(height: 12),
+                    // Subtitle
+                    const Text(
+                      'Sistem Kasir Modern untuk Restoran & Retail',
+                      style: TextStyle(
+                        color: Colors.white60,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: 0.2,
+                      ),
                     ),
-                  )),
-              const SizedBox(height: 4),
-              const Text(
-                'Kasir Pintar',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
+                  ],
                 ),
               ),
             ],
           ),
         ),
       ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.settings_rounded, color: Colors.white),
-          tooltip: 'Pengaturan',
-          onPressed: () => Get.toNamed(AppRoutes.appSettings),
-        ),
-        IconButton(
-          icon: const Icon(Icons.refresh, color: Colors.white),
-          tooltip: 'Refresh',
-          onPressed: controller.loadStats,
-        ),
-      ],
     );
   }
 
@@ -261,163 +457,6 @@ class HomeView extends GetView<HomeController> {
                 fontSize: 11, color: AppColors.textSecondary),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildMenuGrid() {
-    return GridView.count(
-      crossAxisCount: 3,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-      childAspectRatio: 1.0,
-      children: [
-        _buildMenuCard(
-          label: 'Kasir',
-          icon: Icons.point_of_sale_rounded,
-          color: AppColors.primary,
-          onTap: () {
-            final shiftCtrl = Get.find<ShiftController>();
-            if (shiftCtrl.activeShift.value == null) {
-              Get.toNamed(AppRoutes.openShift);
-            } else {
-              Get.toNamed(AppRoutes.orderType);
-            }
-          },
-        ),
-        _buildMenuCard(
-          label: 'Meja',
-          icon: Icons.table_restaurant_rounded,
-          color: Colors.teal.shade600,
-          onTap: () => Get.toNamed(AppRoutes.tables),
-        ),
-        _buildMenuCard(
-          label: 'Dapur',
-          icon: Icons.soup_kitchen_rounded,
-          color: Colors.deepOrange.shade600,
-          onTap: () => Get.toNamed(AppRoutes.kitchen),
-          badge: controller.activeOrderCount,
-        ),
-        _buildMenuCard(
-          label: 'Aktif',
-          icon: Icons.receipt_long_rounded,
-          color: Colors.purple.shade600,
-          onTap: () => Get.toNamed(AppRoutes.activeOrders),
-          badge: controller.activeOrderCount,
-        ),
-        _buildMenuCard(
-          label: 'Produk',
-          icon: Icons.inventory_2_rounded,
-          color: AppColors.accent,
-          onTap: () => Get.toNamed(AppRoutes.products),
-        ),
-        _buildMenuCard(
-          label: 'Riwayat',
-          icon: Icons.history_rounded,
-          color: AppColors.success,
-          onTap: () => Get.toNamed(AppRoutes.history),
-        ),
-        _buildMenuCard(
-          label: 'Printer',
-          icon: Icons.print_rounded,
-          color: const Color(0xFF1565C0),
-          onTap: () => Get.toNamed(AppRoutes.printerSettings),
-        ),
-        _buildMenuCard(
-          label: 'Shift',
-          icon: Icons.schedule_rounded,
-          color: AppColors.success,
-          onTap: () {
-            final shiftCtrl = Get.find<ShiftController>();
-            if (shiftCtrl.activeShift.value != null) {
-              Get.toNamed(AppRoutes.closeShift);
-            } else {
-              Get.toNamed(AppRoutes.shiftReport);
-            }
-          },
-        ),
-        _buildMenuCard(
-          label: 'Log Batal',
-          icon: Icons.cancel_rounded,
-          color: AppColors.error,
-          onTap: () => Get.toNamed(AppRoutes.voidLog),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMenuCard({
-    required String label,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-    RxInt? badge,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: const [
-            BoxShadow(
-                color: AppColors.cardShadow,
-                blurRadius: 6,
-                offset: Offset(0, 2))
-          ],
-        ),
-        child: Stack(
-          children: [
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(icon, color: Colors.white, size: 24),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (badge != null)
-              Positioned(
-                top: 6,
-                right: 6,
-                child: Obx(() => badge.value > 0
-                    ? Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: AppColors.error,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          '${badge.value}',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      )
-                    : const SizedBox()),
-              ),
-          ],
-        ),
       ),
     );
   }

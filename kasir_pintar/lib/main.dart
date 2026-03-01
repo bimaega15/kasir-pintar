@@ -50,6 +50,7 @@ class KasirPintarApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       initialBinding: InitialBinding(),
       initialRoute: AppRoutes.splash,
+      home: null,
       getPages: AppPages.routes,
       debugShowCheckedModeBanner: false,
       defaultTransition: Transition.rightToLeft,
