@@ -72,13 +72,31 @@ class PrinterService extends GetxService {
   // ── Permissions ────────────────────────────────────────────────────────────
 
   Future<bool> _requestPermissions() async {
-    final permissions = <Permission>[
-      Permission.bluetooth,
+    // Jangan request Permission.bluetooth — itu normal/install-time permission
+    // (maxSdkVersion="30" di manifest), sehingga di Android 12+ selalu denied.
+    // Cukup request runtime permissions yang benar-benar butuh persetujuan user.
+    final results = await [
       Permission.bluetoothConnect,
       Permission.bluetoothScan,
       Permission.location,
-    ];
-    final results = await permissions.request();
+    ].request();
+
+    // Jika user pernah pilih "Jangan tanyakan lagi", arahkan ke Pengaturan app
+    if (results.values.any((s) => s.isPermanentlyDenied)) {
+      Get.snackbar(
+        'Izin Diperlukan',
+        'Aktifkan izin Bluetooth di Pengaturan Aplikasi',
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 5),
+        mainButton: TextButton(
+          onPressed: openAppSettings,
+          child: const Text('Buka Pengaturan',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        ),
+      );
+      return false;
+    }
+
     return results.values.every((s) => s.isGranted || s.isLimited);
   }
 
