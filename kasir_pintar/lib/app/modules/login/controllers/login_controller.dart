@@ -1,10 +1,16 @@
+import 'dart:io' show Platform;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../../data/providers/storage_provider.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
+
+/// True only on platforms where google_sign_in has native support.
+bool get _googleSignInSupported =>
+    !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
 class LoginController extends GetxController {
   final _db = Get.find<DatabaseProvider>();
@@ -119,6 +125,17 @@ class LoginController extends GetxController {
   final _googleSignIn = GoogleSignIn();
 
   Future<void> signInWithGoogle() async {
+    if (!_googleSignInSupported) {
+      Get.snackbar(
+        'Tidak Tersedia',
+        'Login Google hanya tersedia di Android dan iOS.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange.shade100,
+        colorText: Colors.orange.shade800,
+        margin: const EdgeInsets.all(16),
+      );
+      return;
+    }
     isGoogleLoading.value = true;
     try {
       // Paksa pilih akun setiap kali (bukan auto-login akun terakhir)
