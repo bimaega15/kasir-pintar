@@ -15,6 +15,7 @@ class HomeView extends GetView<HomeController> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
+        controller: controller.scrollController,
         slivers: [
           _buildAppBar(),
           SliverPadding(
@@ -60,28 +61,28 @@ class HomeView extends GetView<HomeController> {
               icon: Icons.point_of_sale_rounded,
               label: 'Kasir',
               onTap: () {
-                Get.find<MainNavigationController>().changeIndex(4);
+                Get.find<MainNavigationController>(tag: MainNavigationController.TAG).changeIndex(4);
               },
             ),
             _buildQuickAccessCard(
               icon: Icons.inventory_2_rounded,
               label: 'Master Data',
               onTap: () {
-                Get.find<MainNavigationController>().changeIndex(1);
+                Get.find<MainNavigationController>(tag: MainNavigationController.TAG).changeIndex(1);
               },
             ),
             _buildQuickAccessCard(
               icon: Icons.assessment_rounded,
               label: 'Laporan',
               onTap: () {
-                Get.find<MainNavigationController>().changeIndex(2);
+                Get.find<MainNavigationController>(tag: MainNavigationController.TAG).changeIndex(2);
               },
             ),
             _buildQuickAccessCard(
               icon: Icons.settings_rounded,
               label: 'Pengaturan',
               onTap: () {
-                Get.find<MainNavigationController>().changeIndex(3);
+                Get.find<MainNavigationController>(tag: MainNavigationController.TAG).changeIndex(3);
               },
             ),
           ],
@@ -143,7 +144,47 @@ class HomeView extends GetView<HomeController> {
       pinned: true,
       backgroundColor: AppColors.primary,
       elevation: 0,
+      automaticallyImplyLeading: false,
+      title: Obx(() => AnimatedOpacity(
+        opacity: controller.isAppBarCollapsed.value ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 200),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.8),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Kasir Pintar',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            GestureDetector(
+              onTap: controller.loadStats,
+              child: const Icon(
+                Icons.refresh_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ],
+        ),
+      )),
       flexibleSpace: FlexibleSpaceBar(
+        collapseMode: CollapseMode.pin,
         background: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -179,9 +220,9 @@ class HomeView extends GetView<HomeController> {
                   ),
                 ),
               ),
-              // Content
+              // Content - hanya tampil saat expanded
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.start,

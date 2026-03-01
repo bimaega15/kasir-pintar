@@ -4,69 +4,57 @@ import '../controllers/main_navigation_controller.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/views/home_view.dart';
-import '../../home/controllers/home_controller.dart';
 import '../../settings/views/settings_view.dart';
-import '../../settings/controllers/settings_controller.dart';
 import '../../../modules/master/views/master_view.dart';
 import '../../../modules/report/views/report_view.dart';
 
-class MainNavigationView extends GetView<MainNavigationController> {
+class MainNavigationView extends StatefulWidget {
   const MainNavigationView({super.key});
 
   @override
-  String? get tag => MainNavigationController.TAG;
+  State<MainNavigationView> createState() => _MainNavigationViewState();
+}
+
+class _MainNavigationViewState extends State<MainNavigationView> {
+  late final MainNavigationController _ctrl;
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = Get.find<MainNavigationController>(tag: MainNavigationController.TAG);
+    _pages = const [
+      HomeView(),
+      MasterPageContent(),
+      ReportPageContent(),
+      SettingsView(),
+      KasirPageContent(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        body: Stack(
-          children: [
-            IndexedStack(
-              index: controller.currentIndex.value,
-              children: _buildPages(),
-            ),
-            // Spacer at bottom to prevent content overlap with navbar
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                height: 120,
-                color: Colors.transparent,
-              ),
-            ),
-          ],
-        ),
-        bottomNavigationBar: _buildCustomBottomBar(),
-        floatingActionButton: _buildKasirButton(),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      );
-    });
-  }
-
-  List<Widget> _buildPages() {
-    return [
-      // Home Page
-      GetBuilder<HomeController>(
-        builder: (controller) {
-          return const HomeView();
-        },
-      ),
-      // Master Page
-      const MasterPageContent(),
-      // Report Page
-      const ReportPageContent(),
-      // Settings Page
-      GetBuilder<SettingsController>(
-        builder: (controller) {
-          return const SettingsView();
-        },
-      ),
-      // Kasir Page
-      const KasirPageContent(),
-    ];
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Obx(() => Stack(
+        children: [
+          IndexedStack(
+            index: _ctrl.currentIndex.value,
+            children: _pages,
+          ),
+          // Spacer at bottom to prevent content overlap with navbar
+          const Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: SizedBox(height: 120),
+          ),
+        ],
+      )),
+      bottomNavigationBar: _buildCustomBottomBar(),
+      floatingActionButton: _buildKasirButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+    );
   }
 
   Widget _buildCustomBottomBar() {
@@ -79,57 +67,57 @@ class MainNavigationView extends GetView<MainNavigationController> {
             offset: const Offset(0, -2),
           ),
         ],
+        color: Colors.white,
       ),
-      child: BottomNavigationBar(
-        currentIndex: controller.currentIndex.value == 4 ? 0 : controller.currentIndex.value,
-        onTap: (index) {
-          if (index >= 4) {
-            controller.changeIndex(4);
-          } else {
-            controller.changeIndex(index);
-          }
-        },
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textSecondary,
-        selectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontSize: 11,
-        ),
-        elevation: 0,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded, size: 24),
-            activeIcon: Icon(Icons.home_rounded, size: 28),
-            label: 'Home',
+      child: Obx(() {
+        final isKasirActive = _ctrl.currentIndex.value == 4;
+        return BottomNavigationBar(
+          currentIndex: isKasirActive ? 0 : _ctrl.currentIndex.value,
+          onTap: (index) {
+            _ctrl.changeIndex(index);
+          },
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          selectedItemColor: isKasirActive ? AppColors.textSecondary : AppColors.primary,
+          unselectedItemColor: AppColors.textSecondary,
+          selectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 11,
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory_2_rounded, size: 24),
-            activeIcon: Icon(Icons.inventory_2_rounded, size: 28),
-            label: 'Master',
+          unselectedLabelStyle: const TextStyle(
+            fontSize: 11,
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assessment_rounded, size: 24),
-            activeIcon: Icon(Icons.assessment_rounded, size: 28),
-            label: 'Report',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings_rounded, size: 24),
-            activeIcon: Icon(Icons.settings_rounded, size: 28),
-            label: 'Setting',
-          ),
-        ],
-      ),
+          elevation: 0,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_rounded, size: 24),
+              activeIcon: Icon(Icons.home_rounded, size: 28),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.inventory_2_rounded, size: 24),
+              activeIcon: Icon(Icons.inventory_2_rounded, size: 28),
+              label: 'Master',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.assessment_rounded, size: 24),
+              activeIcon: Icon(Icons.assessment_rounded, size: 28),
+              label: 'Report',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings_rounded, size: 24),
+              activeIcon: Icon(Icons.settings_rounded, size: 28),
+              label: 'Setting',
+            ),
+          ],
+        );
+      }),
     );
   }
 
   Widget _buildKasirButton() {
     return GestureDetector(
-      onTap: () => controller.changeIndex(4),
+      onTap: () => _ctrl.changeIndex(4),
       child: Container(
         width: 55,
         height: 55,
@@ -149,7 +137,7 @@ class MainNavigationView extends GetView<MainNavigationController> {
           child: Obx(() => Icon(
             Icons.point_of_sale_rounded,
             color: Colors.white,
-            size: controller.currentIndex.value == 4 ? 24 : 20,
+            size: _ctrl.currentIndex.value == 4 ? 24 : 20,
           )),
         ),
       ),

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "309795729530",
+    "project_id": "kasir-pintar-2a02f",
+    "storage_bucket": "kasir-pintar-2a02f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:309795729530:android:718444c473df93a9be8bc3",
+        "android_client_info": {
+          "package_name": "com.example.kasir_pintar"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "309795729530-h5cagkusmb81c9b1fjvul42drs0phjvn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.kasir_pintar",
+            "certificate_hash": "158c770e58ed3197fbd64d940b0bc45b3789aa7d"
+          }
+        },
+        {
+          "client_id": "309795729530-63bgmsfqo90d3j9nquq1cpu6vb81jvth.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCFzrDvLsNr40jsiKXisSTCqrUAqnrKmMQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "309795729530-63bgmsfqo90d3j9nquq1cpu6vb81jvth.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

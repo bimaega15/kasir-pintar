@@ -27,4 +27,7 @@ abstract class AppRoutes {
   static const shiftReport = '/shift/report';
   static const voidLog = '/void-log';
   static const voidLogDetail = '/void-log/detail';
+  // v4 — auth
+  static const login = '/login';
+  static const setup = '/setup';
 }

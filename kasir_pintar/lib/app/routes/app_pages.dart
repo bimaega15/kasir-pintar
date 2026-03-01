@@ -41,6 +41,9 @@ import '../modules/shift/views/close_shift_view.dart';
 import '../modules/shift/views/shift_report_view.dart';
 import '../modules/void_log/views/void_log_view.dart';
 import '../modules/void_log/views/void_log_detail_view.dart';
+import '../modules/login/bindings/login_binding.dart';
+import '../modules/login/views/login_view.dart';
+import '../modules/login/views/setup_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -82,6 +85,7 @@ class AppPages {
     GetPage(
       name: AppRoutes.addEditProduct,
       page: () => const AddEditProductView(),
+      binding: ProductsBinding(),
       transition: Transition.downToUp,
     ),
     GetPage(
@@ -117,6 +121,7 @@ class AppPages {
     GetPage(
       name: AppRoutes.addEditTable,
       page: () => const AddEditTableView(),
+      binding: TablesBinding(),
       transition: Transition.downToUp,
     ),
     // ── v2: Order flow ────────────────────────────────────────────────────────
@@ -180,6 +185,19 @@ class AppPages {
       page: () => const ShiftReportView(),
       binding: ShiftBinding(),
       transition: Transition.rightToLeft,
+    ),
+    // ── v4: Auth ──────────────────────────────────────────────────────────────
+    GetPage(
+      name: AppRoutes.login,
+      page: () => const LoginView(),
+      binding: LoginBinding(),
+      transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: AppRoutes.setup,
+      page: () => const SetupView(),
+      binding: LoginBinding(),
+      transition: Transition.fadeIn,
     ),
     // ── v3: Void Log ──────────────────────────────────────────────────────────
     GetPage(

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/repositories/order_repository.dart';
 import '../../../data/repositories/product_repository.dart';
@@ -13,6 +14,9 @@ class HomeController extends GetxController {
   ShiftController get shiftCtrl => Get.find<ShiftController>();
   bool get hasActiveShift => shiftCtrl.activeShift.value != null;
 
+  final scrollController = ScrollController();
+  final isAppBarCollapsed = false.obs;
+
   final totalProducts = 0.obs;
   final totalTransactionsToday = 0.obs;
   final todayRevenue = 0.0.obs;
@@ -26,6 +30,17 @@ class HomeController extends GetxController {
     super.onInit();
     _setGreeting();
     loadStats();
+    scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void onClose() {
+    scrollController.dispose();
+    super.onClose();
+  }
+
+  void _onScroll() {
+    isAppBarCollapsed.value = scrollController.offset > 40;
   }
 
   Future<void> loadStats() async {

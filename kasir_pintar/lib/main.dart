@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +15,24 @@ import 'app/utils/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inisialisasi Firebase (hanya pada platform yang didukung)
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    await Firebase.initializeApp();
+  }
+
+  // Suppress known Flutter Windows keyboard state assertion bug
+  // See: https://github.com/flutter/flutter/issues/93283
+  FlutterError.onError = (details) {
+    final msg = details.exceptionAsString();
+    if (msg.contains('_pressedKeys.containsKey') ||
+        msg.contains('KeyDownEvent is dispatched') ||
+        msg.contains('KeyUpEvent is dispatched')) {
+      // Known Flutter Windows keyboard tracking bug — safe to ignore
+      return;
+    }
+    FlutterError.presentError(details);
+  };
 
   // Inisialisasi sqflite untuk platform desktop (Windows, Linux, macOS)
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
