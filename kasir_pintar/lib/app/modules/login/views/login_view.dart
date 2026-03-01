@@ -165,73 +165,75 @@ class LoginView extends GetView<LoginController> {
                         ),
                 ),
               )),
-          const SizedBox(height: 24),
-          // Divider ATAU
-          Row(
-            children: [
-              const Expanded(child: Divider(thickness: 1)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  'ATAU',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade500,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-              const Expanded(child: Divider(thickness: 1)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Tombol Login Google
-          Obx(() => SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: OutlinedButton(
-                  onPressed: controller.isGoogleLoading.value
-                      ? null
-                      : controller.signInWithGoogle,
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.grey.shade300, width: 1.5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+          // Google Sign-In hanya tersedia di Android & iOS
+          if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) ...[
+            const SizedBox(height: 24),
+            // Divider ATAU
+            Row(
+              children: [
+                const Expanded(child: Divider(thickness: 1)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'ATAU',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.2,
                     ),
-                    backgroundColor: Colors.white,
                   ),
-                  child: controller.isGoogleLoading.value
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2.5),
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // Google G logo menggunakan RichText
-                            Container(
-                              width: 22,
-                              height: 22,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const _GoogleIcon(),
-                            ),
-                            const SizedBox(width: 10),
-                            const Text(
-                              'Lanjutkan dengan Google',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF3C4043),
-                              ),
-                            ),
-                          ],
-                        ),
                 ),
-              )),
+                const Expanded(child: Divider(thickness: 1)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Tombol Login Google
+            Obx(() => SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: OutlinedButton(
+                    onPressed: controller.isGoogleLoading.value
+                        ? null
+                        : controller.signInWithGoogle,
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      backgroundColor: Colors.white,
+                    ),
+                    child: controller.isGoogleLoading.value
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 22,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const _GoogleIcon(),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text(
+                                'Lanjutkan dengan Google',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF3C4043),
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                )),
+          ],
           const SizedBox(height: 20),
           // Link Daftar Akun
           Row(
