@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(flutter analyze --no-fatal-infos)",
-      "Bash(flutter analyze --no-pub)"
+      "Bash(flutter analyze --no-pub)",
+      "Bash(java -version)",
+      "Bash(keytool -version)",
+      "Bash(keytool -genkeypair -v -keystore \"c:/flutter/kasir-pintar/kasir_pintar/android/app/kasir_pintar.jks\" -storetype JKS -alias kasir-pintar -storepass kasirpintar123 -keypass kasirpintar123 -keyalg RSA -keysize 2048 -validity 10000 -dname \"CN=Kasir Pintar, OU=Mobile, O=Kasir Pintar, L=Jakarta, ST=DKI Jakarta, C=ID\")",
+      "Bash(flutter pub get)",
+      "Bash(flutter build apk --debug)",
+      "Bash(flutter build apk --release)"
     ]
   }
 }

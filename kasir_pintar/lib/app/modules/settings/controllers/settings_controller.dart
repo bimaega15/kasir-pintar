@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/providers/storage_provider.dart';
+import '../../../services/check_version_service.dart';
 
 class SettingsController extends GetxController {
   final _db = Get.find<DatabaseProvider>();
@@ -76,5 +77,11 @@ class SettingsController extends GetxController {
       colorText: Colors.green.shade900,
       duration: const Duration(seconds: 2),
     );
+  }
+
+  Future<void> checkForUpdates() async {
+    final ctx = Get.context;
+    if (ctx == null) return;
+    await CheckVersionService.checkManual(ctx);
   }
 }

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../data/repositories/order_repository.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/transaction_repository.dart';
+import '../../../services/check_version_service.dart';
 import '../../../utils/helpers/currency_helper.dart';
 import '../../shift/controllers/shift_controller.dart';
 
@@ -31,6 +32,15 @@ class HomeController extends GetxController {
     _setGreeting();
     loadStats();
     scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void onReady() {
+    super.onReady();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = Get.context;
+      if (ctx != null) CheckVersionService.checkOnce(ctx);
+    });
   }
 
   @override

@@ -58,6 +58,15 @@ class SettingsView extends GetView<SettingsController> {
                 color: Colors.purple,
                 onTap: () => Get.toNamed(AppRoutes.printerSettings),
               ),
+              const SizedBox(height: 12),
+              // Pembaruan Aplikasi
+              _buildMenuCard(
+                icon: Icons.system_update_rounded,
+                title: 'Pembaruan Aplikasi',
+                subtitle: 'Cek dan unduh versi terbaru',
+                color: Colors.green,
+                onTap: () => controller.checkForUpdates(),
+              ),
               const SizedBox(height: 24),
               // Form Settings
               const Divider(),
