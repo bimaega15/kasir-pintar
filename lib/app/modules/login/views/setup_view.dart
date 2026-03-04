@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/login_controller.dart';
 import '../../../utils/constants/app_colors.dart';
+import '../../../routes/app_routes.dart';
 
 class SetupView extends StatefulWidget {
   const SetupView({super.key});
@@ -188,6 +189,31 @@ class _SetupViewState extends State<SetupView> {
                         ),
                 ),
               )),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Sudah punya akun? ',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => Get.offNamed(AppRoutes.login),
+                child: const Text(
+                  'Login di sini',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

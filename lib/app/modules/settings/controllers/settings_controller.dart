@@ -94,7 +94,14 @@ class SettingsController extends GetxController {
       await _db.setSetting('app_password', '');
 
       // Sign out from Firebase if logged in via Google
-      await FirebaseAuth.instance.signOut();
+      try {
+        if (FirebaseAuth.instance.currentUser != null) {
+          await FirebaseAuth.instance.signOut();
+        }
+      } catch (firebaseError) {
+        // Firebase not initialized, skip Firebase logout
+        print('Firebase signOut skipped: $firebaseError');
+      }
 
       // Navigate to login screen
       Get.offAllNamed(AppRoutes.login);
