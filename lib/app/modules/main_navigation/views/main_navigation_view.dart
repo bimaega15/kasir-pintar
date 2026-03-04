@@ -191,6 +191,7 @@ class KasirPageContent extends StatelessWidget {
               title: 'Sistem Dapur',
               subtitle: 'Display pesanan untuk dapur & monitoring produksi',
               color: Colors.deepOrange.shade600,
+              badgeCount: 3,
               onTap: () => Get.toNamed(AppRoutes.kitchen),
             ),
             const SizedBox(height: 12),
@@ -200,6 +201,7 @@ class KasirPageContent extends StatelessWidget {
               title: 'Pesanan Aktif',
               subtitle: 'Lihat dan kelola pesanan yang sedang diproses',
               color: Colors.purple.shade600,
+              badgeCount: 5,
               onTap: () => Get.toNamed(AppRoutes.activeOrders),
             ),
             const SizedBox(height: 12),
@@ -255,6 +257,7 @@ class KasirPageContent extends StatelessWidget {
     required String subtitle,
     required Color color,
     required VoidCallback onTap,
+    int? badgeCount,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -275,45 +278,77 @@ class KasirPageContent extends StatelessWidget {
             width: 1,
           ),
         ),
-        child: Row(
+        child: Stack(
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 32),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: color, size: 32),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: AppColors.textSecondary,
+                ),
+              ],
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
+            // Badge count
+            if (badgeCount != null && badgeCount > 0)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      )
+                    ],
+                  ),
+                  child: Text(
+                    badgeCount > 99 ? '99+' : badgeCount.toString(),
                     style: const TextStyle(
-                      fontSize: 16,
+                      color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
                       fontSize: 12,
-                      color: AppColors.textSecondary,
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 14,
-              color: AppColors.textSecondary,
-            ),
           ],
         ),
       ),

@@ -110,50 +110,54 @@ class TablesView extends GetView<TablesController> {
         statusIcon = Icons.check_circle_rounded;
     }
 
-    return GestureDetector(
-      onLongPress: () => _showTableActions(table),
-      child: Container(
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: textColor.withValues(alpha: 0.3)),
-          boxShadow: const [
-            BoxShadow(
-                color: AppColors.cardShadow,
-                blurRadius: 4,
-                offset: Offset(0, 2))
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.table_restaurant_rounded, color: textColor, size: 32),
-            const SizedBox(height: 8),
-            Text(
-              'Meja ${table.number}',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: textColor),
-            ),
-            const SizedBox(height: 2),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(statusIcon, size: 12, color: textColor),
-                const SizedBox(width: 3),
-                Text(table.statusLabel,
-                    style: TextStyle(fontSize: 11, color: textColor)),
-              ],
-            ),
-            const SizedBox(height: 2),
-            Text(
-              '${table.capacity} kursi',
-              style: TextStyle(
-                  fontSize: 11,
-                  color: textColor.withValues(alpha: 0.7)),
-            ),
-          ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onLongPress: () => _showTableActions(table),
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: textColor.withValues(alpha: 0.3)),
+            boxShadow: const [
+              BoxShadow(
+                  color: AppColors.cardShadow,
+                  blurRadius: 4,
+                  offset: Offset(0, 2))
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.table_restaurant_rounded, color: textColor, size: 32),
+              const SizedBox(height: 8),
+              Text(
+                'Meja ${table.number}',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: textColor),
+              ),
+              const SizedBox(height: 2),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(statusIcon, size: 12, color: textColor),
+                  const SizedBox(width: 3),
+                  Text(table.statusLabel,
+                      style: TextStyle(fontSize: 11, color: textColor)),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${table.capacity} kursi',
+                style: TextStyle(
+                    fontSize: 11,
+                    color: textColor.withValues(alpha: 0.7)),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -179,7 +183,7 @@ class TablesView extends GetView<TablesController> {
               leading: const Icon(Icons.edit_rounded, color: AppColors.primary),
               title: const Text('Edit Meja'),
               onTap: () {
-                Get.back();
+                Navigator.pop(Get.context!);
                 controller.prepareEdit(table);
                 Get.toNamed(AppRoutes.addEditTable);
               },
@@ -190,13 +194,15 @@ class TablesView extends GetView<TablesController> {
               title: const Text('Hapus Meja',
                   style: TextStyle(color: AppColors.error)),
               onTap: () {
-                Get.back();
+                Navigator.pop(Get.context!);
                 controller.deleteTable(table);
               },
             ),
           ],
         ),
       ),
+      isDismissible: true,
+      enableDrag: true,
     );
   }
 }

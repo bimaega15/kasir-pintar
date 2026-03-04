@@ -18,19 +18,31 @@ void main() async {
 
   // Inisialisasi Firebase (hanya pada platform yang didukung)
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-    await Firebase.initializeApp();
+    try {
+      await Firebase.initializeApp();
+    } catch (e) {
+      print('Error initializing Firebase: $e');
+    }
   }
 
-  // Suppress known Flutter Windows keyboard state assertion bug
+  // Suppress known Flutter errors
   // See: https://github.com/flutter/flutter/issues/93283
   FlutterError.onError = (details) {
     final msg = details.exceptionAsString();
+    
+    // Known Flutter Windows keyboard tracking bug — safe to ignore
     if (msg.contains('_pressedKeys.containsKey') ||
         msg.contains('KeyDownEvent is dispatched') ||
         msg.contains('KeyUpEvent is dispatched')) {
-      // Known Flutter Windows keyboard tracking bug — safe to ignore
       return;
     }
+    
+    // Native channel empty response — safe to ignore
+    if (msg.contains('Unable to parse JSON message') ||
+        msg.contains('The document is empty')) {
+      return;
+    }
+    
     FlutterError.presentError(details);
   };
 

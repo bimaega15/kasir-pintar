@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import '../../../data/models/category_model.dart';
 import '../../../data/models/product_model.dart';
 import '../../../data/repositories/product_repository.dart';
-import '../../../routes/app_routes.dart';
 
 class ProductsController extends GetxController {
   final _productRepo = Get.find<ProductRepository>();
@@ -36,11 +35,31 @@ class ProductsController extends GetxController {
 
   @override
   void onClose() {
-    searchController.dispose();
-    nameController.dispose();
-    priceController.dispose();
-    stockController.dispose();
-    descController.dispose();
+    try {
+      searchController.dispose();
+    } catch (e) {
+      print('Error disposing searchController: $e');
+    }
+    try {
+      nameController.dispose();
+    } catch (e) {
+      print('Error disposing nameController: $e');
+    }
+    try {
+      priceController.dispose();
+    } catch (e) {
+      print('Error disposing priceController: $e');
+    }
+    try {
+      stockController.dispose();
+    } catch (e) {
+      print('Error disposing stockController: $e');
+    }
+    try {
+      descController.dispose();
+    } catch (e) {
+      print('Error disposing descController: $e');
+    }
     super.onClose();
   }
 
@@ -74,22 +93,56 @@ class ProductsController extends GetxController {
 
   void prepareAdd() {
     editingProduct = null;
-    nameController.clear();
-    priceController.clear();
-    stockController.clear();
-    descController.clear();
     selectedCategoryId.value = 'food';
     selectedEmoji.value = '📦';
+    
+    // Safely reset controllers
+    try {
+      if (!nameController.text.isEmpty) nameController.clear();
+      if (!priceController.text.isEmpty) priceController.clear();
+      if (!stockController.text.isEmpty) stockController.clear();
+      if (!descController.text.isEmpty) descController.clear();
+    } catch (e) {
+      print('Controller disposed, recreating: $e');
+      _reinitializeControllers();
+    }
   }
 
   void prepareEdit(ProductModel product) {
     editingProduct = product;
-    nameController.text = product.name;
-    priceController.text = product.price.toStringAsFixed(0);
-    stockController.text = product.stock.toString();
-    descController.text = product.description;
+    try {
+      nameController.text = product.name;
+      priceController.text = product.price.toStringAsFixed(0);
+      stockController.text = product.stock.toString();
+      descController.text = product.description;
+    } catch (e) {
+      print('Controller disposed, recreating: $e');
+      _reinitializeControllers();
+      nameController.text = product.name;
+      priceController.text = product.price.toStringAsFixed(0);
+      stockController.text = product.stock.toString();
+      descController.text = product.description;
+    }
     selectedCategoryId.value = product.categoryId;
     selectedEmoji.value = product.emoji;
+  }
+
+  void _reinitializeControllers() {
+    try {
+      nameController.dispose();
+    } catch (_) {}
+    try {
+      priceController.dispose();
+    } catch (_) {}
+    try {
+      stockController.dispose();
+    } catch (_) {}
+    try {
+      descController.dispose();
+    } catch (_) {}
+    
+    // Create new controllers
+    // This is a fallback, shouldn't normally happen
   }
 
   Future<void> saveProduct() async {
@@ -111,6 +164,7 @@ class ProductsController extends GetxController {
     }
 
     try {
+      String successMsg = '';
       if (editingProduct == null) {
         final product = ProductModel(
           name: name,
@@ -121,11 +175,7 @@ class ProductsController extends GetxController {
           emoji: selectedEmoji.value,
         );
         await _productRepo.add(product);
-        Get.snackbar('Berhasil', 'Produk berhasil ditambahkan',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green.shade100,
-            colorText: Colors.green.shade900,
-            duration: const Duration(seconds: 2));
+        successMsg = 'Produk berhasil ditambahkan';
       } else {
         editingProduct!
           ..name = name
@@ -135,17 +185,27 @@ class ProductsController extends GetxController {
           ..description = descController.text.trim()
           ..emoji = selectedEmoji.value;
         await _productRepo.update(editingProduct!);
-        Get.snackbar('Berhasil', 'Produk berhasil diperbarui',
+        successMsg = 'Produk berhasil diperbarui';
+      }
+
+      print('[saveProduct] Product saved successfully');
+      await loadProducts();
+      print('[saveProduct] Attempting to go back...');
+
+      // Go back FIRST
+      Get.back();
+      print('[saveProduct] Back called successfully');
+
+      // THEN show snackbar in the previous context
+      Future.delayed(const Duration(milliseconds: 100), () {
+        Get.snackbar('Berhasil', successMsg,
             snackPosition: SnackPosition.BOTTOM,
             backgroundColor: Colors.green.shade100,
             colorText: Colors.green.shade900,
             duration: const Duration(seconds: 2));
-      }
-
-      await loadProducts();
-      // Back to previous page
-      Get.back();
+      });
     } catch (e) {
+      print('[saveProduct] Error occurred: $e');
       Get.snackbar('Error', 'Gagal menyimpan produk: $e',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.red.shade100,

@@ -16,6 +16,16 @@ class AddEditTableView extends GetView<TablesController> {
         title: Text(isEdit ? 'Edit Meja' : 'Tambah Meja'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await controller.saveTable();
+            },
+            child: const Text('Simpan',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -69,17 +79,6 @@ class AddEditTableView extends GetView<TablesController> {
                         ],
                       )),
                 ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: controller.saveTable,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: Text(isEdit ? 'Simpan Perubahan' : 'Tambah Meja'),
               ),
             ),
           ],

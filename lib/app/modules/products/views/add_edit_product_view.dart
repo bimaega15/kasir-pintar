@@ -23,7 +23,9 @@ class AddEditProductView extends GetView<ProductsController> {
         title: Text(isEditing ? 'Edit Produk' : 'Tambah Produk'),
         actions: [
           TextButton(
-            onPressed: controller.saveProduct,
+            onPressed: () async {
+              await controller.saveProduct();
+            },
             child: const Text('Simpan',
                 style: TextStyle(
                     color: Colors.white, fontWeight: FontWeight.bold)),
@@ -115,19 +117,6 @@ class AddEditProductView extends GetView<ProductsController> {
               ),
             ),
             const SizedBox(height: 32),
-
-            // Save button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: controller.saveProduct,
-                icon: Icon(isEditing ? Icons.save_rounded : Icons.add_rounded),
-                label: Text(isEditing ? 'Simpan Perubahan' : 'Tambah Produk'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            ),
           ],
         ),
       ),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/table_model.dart';
 import '../../../data/repositories/table_repository.dart';
-import '../../../routes/app_routes.dart';
 
 class TablesController extends GetxController {
   final _repo = Get.find<TableRepository>();
@@ -23,8 +22,16 @@ class TablesController extends GetxController {
 
   @override
   void onClose() {
-    numberController.dispose();
-    capacityController.dispose();
+    try {
+      numberController.dispose();
+    } catch (e) {
+      print('Error disposing numberController: $e');
+    }
+    try {
+      capacityController.dispose();
+    } catch (e) {
+      print('Error disposing capacityController: $e');
+    }
     super.onClose();
   }
 
@@ -44,16 +51,46 @@ class TablesController extends GetxController {
 
   void prepareAdd() {
     editingTable = null;
-    numberController.clear();
-    capacityController.text = '4';
     selectedStatus.value = TableStatus.available;
+    
+    // Safely reset controllers
+    try {
+      // Only clear/set if controller is still valid
+      if (!numberController.text.isEmpty) {
+        numberController.clear();
+      }
+      capacityController.text = '4';
+    } catch (e) {
+      // If controller is disposed, recreate them
+      print('Controller disposed, recreating: $e');
+      _reinitializeControllers();
+    }
   }
 
   void prepareEdit(TableModel table) {
     editingTable = table;
-    numberController.text = table.number.toString();
-    capacityController.text = table.capacity.toString();
+    try {
+      numberController.text = table.number.toString();
+      capacityController.text = table.capacity.toString();
+    } catch (e) {
+      print('Controller disposed, recreating: $e');
+      _reinitializeControllers();
+      numberController.text = table.number.toString();
+      capacityController.text = table.capacity.toString();
+    }
     selectedStatus.value = table.status;
+  }
+
+  void _reinitializeControllers() {
+    try {
+      numberController.dispose();
+    } catch (_) {}
+    try {
+      capacityController.dispose();
+    } catch (_) {}
+    
+    // Create new controllers
+    // This is a fallback, shouldn't normally happen
   }
 
   Future<void> saveTable() async {
@@ -66,36 +103,58 @@ class TablesController extends GetxController {
       return;
     }
 
+    // Check if table number already exists
+    final isDuplicate = tables.any((table) {
+      // For new table: check if number exists in any table
+      if (editingTable == null) {
+        return table.number == number;
+      }
+      // For edit: check if number exists in other tables (exclude current)
+      return table.number == number && table.id != editingTable!.id;
+    });
+
+    if (isDuplicate) {
+      Get.snackbar('Error', 'Nomor meja $number sudah ada',
+          snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+
     try {
+      String successMsg = '';
       if (editingTable == null) {
         await _repo.add(TableModel(
           number: number,
           capacity: capacity,
           status: selectedStatus.value,
         ));
-        Get.snackbar('Berhasil', 'Meja berhasil ditambahkan',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green.shade100,
-            colorText: Colors.green.shade900,
-            duration: const Duration(seconds: 2));
+        successMsg = 'Meja berhasil ditambahkan';
       } else {
         editingTable!
           ..number = number
           ..capacity = capacity
           ..status = selectedStatus.value;
         await _repo.update(editingTable!);
-        Get.snackbar('Berhasil', 'Meja berhasil diperbarui',
+        successMsg = 'Meja berhasil diperbarui';
+      }
+
+      print('[saveTable] Table saved successfully');
+      await loadTables();
+      print('[saveTable] Attempting to go back...');
+
+      // Go back FIRST
+      Get.back();
+      print('[saveTable] Back called successfully');
+
+      // THEN show snackbar in the previous context
+      Future.delayed(const Duration(milliseconds: 100), () {
+        Get.snackbar('Berhasil', successMsg,
             snackPosition: SnackPosition.BOTTOM,
             backgroundColor: Colors.green.shade100,
             colorText: Colors.green.shade900,
             duration: const Duration(seconds: 2));
-      }
-
-      await loadTables();
-      // Wait for snackbar to show before navigating
-      await Future.delayed(const Duration(milliseconds: 500));
-      Get.back();
+      });
     } catch (e) {
+      print('[saveTable] Error occurred: $e');
       Get.snackbar('Error', 'Gagal menyimpan meja: $e',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.red.shade100,

@@ -31,9 +31,14 @@ class PrinterService extends GetxService {
   void onInit() {
     super.onInit();
     if (!Platform.isAndroid) return;
-    _printer = BlueThermalPrinter.instance;
-    _loadSavedPrinter();
-    _loadPaperWidth();
+    try {
+      _printer = BlueThermalPrinter.instance;
+      _loadSavedPrinter();
+      _loadPaperWidth();
+    } catch (e) {
+      print('[PrinterService] Error initializing blue thermal printer: $e');
+      _printer = null;
+    }
   }
 
   Future<void> _loadSavedPrinter() async {
@@ -75,35 +80,40 @@ class PrinterService extends GetxService {
     // Jangan request Permission.bluetooth — itu normal/install-time permission
     // (maxSdkVersion="30" di manifest), sehingga di Android 12+ selalu denied.
     // Cukup request runtime permissions yang benar-benar butuh persetujuan user.
-    final results = await [
-      Permission.bluetoothConnect,
-      Permission.bluetoothScan,
-      Permission.location,
-    ].request();
+    try {
+      final results = await [
+        Permission.bluetoothConnect,
+        Permission.bluetoothScan,
+        Permission.location,
+      ].request();
 
-    // Jika user pernah pilih "Jangan tanyakan lagi", arahkan ke Pengaturan app
-    if (results.values.any((s) => s.isPermanentlyDenied)) {
-      Get.snackbar(
-        'Izin Diperlukan',
-        'Aktifkan izin Bluetooth di Pengaturan Aplikasi',
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 5),
-        mainButton: TextButton(
-          onPressed: openAppSettings,
-          child: const Text('Buka Pengaturan',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        ),
-      );
+      // Jika user pernah pilih "Jangan tanyakan lagi", arahkan ke Pengaturan app
+      if (results.values.any((s) => s.isPermanentlyDenied)) {
+        Get.snackbar(
+          'Izin Diperlukan',
+          'Aktifkan izin Bluetooth di Pengaturan Aplikasi',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 5),
+          mainButton: TextButton(
+            onPressed: openAppSettings,
+            child: const Text('Buka Pengaturan',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        );
+        return false;
+      }
+
+      return results.values.every((s) => s.isGranted || s.isLimited);
+    } catch (e) {
+      print('[PrinterService] Error requesting permissions: $e');
       return false;
     }
-
-    return results.values.every((s) => s.isGranted || s.isLimited);
   }
 
   // ── Scan ───────────────────────────────────────────────────────────────────
 
   Future<void> scanDevices() async {
-    if (!Platform.isAndroid) return;
+    if (!Platform.isAndroid || _printer == null) return;
     isLoading.value = true;
     devices.clear();
     try {
@@ -140,7 +150,7 @@ class PrinterService extends GetxService {
   // ── Connect / Disconnect ───────────────────────────────────────────────────
 
   Future<bool> connect(BluetoothDevice device) async {
-    if (!Platform.isAndroid) return false;
+    if (!Platform.isAndroid || _printer == null) return false;
     isLoading.value = true;
     try {
       await _printer!.connect(device);
@@ -180,7 +190,7 @@ class PrinterService extends GetxService {
   }
 
   Future<void> disconnect() async {
-    if (!Platform.isAndroid) return;
+    if (!Platform.isAndroid || _printer == null) return;
     try {
       await _printer!.disconnect();
     } catch (_) {}
@@ -189,7 +199,7 @@ class PrinterService extends GetxService {
   }
 
   Future<void> checkConnection() async {
-    if (!Platform.isAndroid) return;
+    if (!Platform.isAndroid || _printer == null) return;
     try {
       final connected = await _printer!.isConnected ?? false;
       isConnected.value = connected;
@@ -202,7 +212,7 @@ class PrinterService extends GetxService {
   // ── Print Receipt ──────────────────────────────────────────────────────────
 
   Future<void> printReceipt(TransactionModel transaction) async {
-    if (!Platform.isAndroid) {
+    if (!Platform.isAndroid || _printer == null) {
       Get.snackbar(
         'Tidak Didukung',
         'Fitur cetak hanya tersedia di Android',

@@ -218,9 +218,10 @@ class CheckVersionService {
         options: Options(
           receiveTimeout: const Duration(seconds: 15),
           sendTimeout: const Duration(seconds: 10),
+          responseType: ResponseType.json,
         ),
       );
-      if (response.statusCode == 200 && response.data != null) {
+      if (response.statusCode == 200 && response.data != null && response.data!.isNotEmpty) {
         return AppVersionInfo.fromJson(response.data!);
       }
     } catch (e) {

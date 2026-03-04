@@ -83,74 +83,82 @@ class _ReceiptViewState extends State<ReceiptView> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // Success badge
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: AppColors.cardShadow,
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 72,
-                          height: 72,
-                          decoration: BoxDecoration(
-                            color: AppColors.success.withValues(alpha: 0.12),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.check_circle_rounded,
-                            color: AppColors.success,
-                            size: 44,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Pembayaran Berhasil!',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.success,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          CurrencyHelper.formatDateTime(transaction.createdAt),
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Receipt card (wrapped for screenshot)
+                  // Main receipt card with success header
                   Screenshot(
                     controller: _screenshotController,
                     child: Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: const [
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
                           BoxShadow(
-                            color: AppColors.cardShadow,
-                            blurRadius: 8,
-                            offset: Offset(0, 2),
+                            color: AppColors.success.withValues(alpha: 0.1),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
-                      child: Column(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Column(
                         children: [
+                          // Success badge integrated at top
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 24,
+                              horizontal: 20,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  AppColors.success.withValues(alpha: 0.08),
+                                  AppColors.success.withValues(alpha: 0.04),
+                                ],
+                              ),
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: AppColors.success.withValues(alpha: 0.1),
+                                ),
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Container(
+                                  width: 64,
+                                  height: 64,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.success.withValues(alpha: 0.15),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.check_circle_rounded,
+                                    color: AppColors.success,
+                                    size: 40,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Pembayaran Berhasil!',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.success,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  CurrencyHelper.formatDateTime(
+                                      transaction.createdAt),
+                                  style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
                           // Header struk
                           Container(
                             width: double.infinity,
@@ -160,9 +168,6 @@ class _ReceiptViewState extends State<ReceiptView> {
                             ),
                             decoration: const BoxDecoration(
                               color: AppColors.primary,
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(14),
-                              ),
                             ),
                             child: Column(
                               children: [
@@ -383,9 +388,6 @@ class _ReceiptViewState extends State<ReceiptView> {
                             padding: const EdgeInsets.all(12),
                             decoration: const BoxDecoration(
                               color: AppColors.background,
-                              borderRadius: BorderRadius.vertical(
-                                bottom: Radius.circular(14),
-                              ),
                             ),
                             child: const Text(
                               'Terima kasih telah berbelanja!\nSilakan kunjungi kami kembali.',
@@ -399,6 +401,7 @@ class _ReceiptViewState extends State<ReceiptView> {
                         ],
                       ),
                     ),
+                    ),
                   ),
                 ],
               ),
@@ -407,13 +410,13 @@ class _ReceiptViewState extends State<ReceiptView> {
 
           // Action buttons
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             child: Column(
               children: [
                 // Cetak Struk (Android only)
                 if (Platform.isAndroid)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.only(bottom: 12),
                     child: SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
@@ -421,19 +424,25 @@ class _ReceiptViewState extends State<ReceiptView> {
                           final printerService = Get.find<PrinterService>();
                           printerService.printReceipt(transaction);
                         },
-                        icon: const Icon(Icons.print_rounded),
-                        label: const Text('Cetak Struk'),
+                        icon: const Icon(Icons.print_rounded, size: 20),
+                        label: const Text(
+                          'Cetak Struk',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                        ),
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           backgroundColor: const Color(0xFF1565C0),
                           foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 // Bagikan Struk (all platforms)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.only(bottom: 12),
                   child: SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -442,21 +451,28 @@ class _ReceiptViewState extends State<ReceiptView> {
                           : () => _shareReceipt(transaction),
                       icon: _isSharing
                           ? const SizedBox(
-                              width: 18,
-                              height: 18,
+                              width: 20,
+                              height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
                               ),
                             )
-                          : const Icon(Icons.share_rounded),
+                          : const Icon(Icons.share_rounded, size: 20),
                       label: Text(
                         _isSharing ? 'Menyiapkan...' : 'Bagikan Struk',
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600),
                       ),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         backgroundColor: AppColors.accent,
                         foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
                   ),
@@ -466,11 +482,21 @@ class _ReceiptViewState extends State<ReceiptView> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => Get.offAllNamed(AppRoutes.main),
-                        icon: const Icon(Icons.home_rounded),
-                        label: const Text('Ke Beranda'),
+                        icon: const Icon(Icons.home_rounded, size: 20),
+                        label: const Text(
+                          'Beranda',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600),
+                        ),
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          side: const BorderSide(color: AppColors.primary),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(
+                            color: AppColors.primary,
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       ),
                     ),
@@ -478,10 +504,19 @@ class _ReceiptViewState extends State<ReceiptView> {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () => Get.offAllNamed(AppRoutes.orderType),
-                        icon: const Icon(Icons.add_shopping_cart_rounded),
-                        label: const Text('Pesanan Baru'),
+                        icon: const Icon(Icons.add_shopping_cart_rounded, size: 20),
+                        label: const Text(
+                          'Pesanan Baru',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600),
+                        ),
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       ),
                     ),
