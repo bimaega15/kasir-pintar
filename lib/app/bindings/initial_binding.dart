@@ -7,6 +7,8 @@ import '../data/repositories/transaction_repository.dart';
 import '../modules/order/controllers/order_controller.dart';
 import '../modules/shift/controllers/shift_controller.dart';
 import '../modules/main_navigation/controllers/main_navigation_controller.dart';
+import '../modules/home/controllers/home_controller.dart';
+import '../modules/kitchen/controllers/kitchen_controller.dart';
 
 class InitialBinding extends Bindings {
   @override
@@ -20,6 +22,8 @@ class InitialBinding extends Bindings {
     // Shared state across app
     Get.lazyPut<OrderController>(() => OrderController(), fenix: true);
     Get.lazyPut<ShiftController>(() => ShiftController(), fenix: true);
+    Get.lazyPut<HomeController>(() => HomeController(), fenix: true);
+    Get.lazyPut<KitchenController>(() => KitchenController(), fenix: true);
     // Main Navigation Controller - Always available globally
     Get.lazyPut<MainNavigationController>(
       () => MainNavigationController(),
