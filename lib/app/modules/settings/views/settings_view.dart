@@ -192,7 +192,7 @@ class SettingsView extends GetView<SettingsController> {
           ElevatedButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              Get.offAllNamed(AppRoutes.login);
+              controller.logout();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

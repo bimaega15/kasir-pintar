@@ -1,6 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/providers/storage_provider.dart';
+import '../../../routes/app_routes.dart';
 import '../../../services/check_version_service.dart';
 
 class SettingsController extends GetxController {
@@ -83,5 +85,36 @@ class SettingsController extends GetxController {
     final ctx = Get.context;
     if (ctx == null) return;
     await CheckVersionService.checkManual(ctx);
+  }
+
+  Future<void> logout() async {
+    try {
+      // Clear saved local credentials
+      await _db.setSetting('app_username', '');
+      await _db.setSetting('app_password', '');
+
+      // Sign out from Firebase if logged in via Google
+      await FirebaseAuth.instance.signOut();
+
+      // Navigate to login screen
+      Get.offAllNamed(AppRoutes.login);
+
+      Get.snackbar(
+        'Berhasil',
+        'Anda telah keluar dari aplikasi',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.blue.shade100,
+        colorText: Colors.blue.shade900,
+        duration: const Duration(seconds: 2),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Gagal keluar: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade900,
+      );
+    }
   }
 }
