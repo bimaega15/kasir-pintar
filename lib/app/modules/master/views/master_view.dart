@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
+import '../../products/controllers/products_controller.dart';
+import '../../tables/controllers/tables_controller.dart';
 
 class MasterPageContent extends StatelessWidget {
   const MasterPageContent({super.key});
@@ -38,7 +40,15 @@ class MasterPageContent extends StatelessWidget {
               color: AppColors.accent,
               onTap: () => Get.toNamed(AppRoutes.products),
               actionButton: ElevatedButton.icon(
-                onPressed: () => Get.toNamed(AppRoutes.addEditProduct),
+                onPressed: () {
+                  // Ensure controller is registered
+                  if (!Get.isRegistered<ProductsController>()) {
+                    Get.put(ProductsController());
+                  }
+                  final ctrl = Get.find<ProductsController>();
+                  ctrl.prepareAdd();
+                  Get.toNamed(AppRoutes.addEditProduct);
+                },
                 icon: const Icon(Icons.add_rounded, size: 18),
                 label: const Text('Tambah Produk'),
                 style: ElevatedButton.styleFrom(
@@ -59,7 +69,15 @@ class MasterPageContent extends StatelessWidget {
               color: Colors.teal.shade600,
               onTap: () => Get.toNamed(AppRoutes.tables),
               actionButton: ElevatedButton.icon(
-                onPressed: () => Get.toNamed(AppRoutes.addEditTable),
+                onPressed: () {
+                  // Ensure controller is registered
+                  if (!Get.isRegistered<TablesController>()) {
+                    Get.put(TablesController());
+                  }
+                  final ctrl = Get.find<TablesController>();
+                  ctrl.prepareAdd();
+                  Get.toNamed(AppRoutes.addEditTable);
+                },
                 icon: const Icon(Icons.add_rounded, size: 18),
                 label: const Text('Tambah Meja'),
                 style: ElevatedButton.styleFrom(

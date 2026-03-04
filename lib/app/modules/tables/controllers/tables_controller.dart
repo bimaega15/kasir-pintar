@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/table_model.dart';
 import '../../../data/repositories/table_repository.dart';
+import '../../../routes/app_routes.dart';
 
 class TablesController extends GetxController {
   final _repo = Get.find<TableRepository>();
@@ -28,8 +29,17 @@ class TablesController extends GetxController {
   }
 
   Future<void> loadTables() async {
-    final list = await _repo.getAll();
-    tables.assignAll(list);
+    try {
+      final list = await _repo.getAll();
+      tables.assignAll(list);
+      print('[loadTables] Successfully loaded ${list.length} tables');
+    } catch (e) {
+      print('[loadTables] Error loading tables: $e');
+      Get.snackbar('Error', 'Gagal memuat meja: $e',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade900);
+    }
   }
 
   void prepareAdd() {
@@ -56,30 +66,43 @@ class TablesController extends GetxController {
       return;
     }
 
-    if (editingTable == null) {
-      await _repo.add(TableModel(
-        number: number,
-        capacity: capacity,
-        status: selectedStatus.value,
-      ));
-      Get.snackbar('Berhasil', 'Meja berhasil ditambahkan',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.shade100,
-          colorText: Colors.green.shade900);
-    } else {
-      editingTable!
-        ..number = number
-        ..capacity = capacity
-        ..status = selectedStatus.value;
-      await _repo.update(editingTable!);
-      Get.snackbar('Berhasil', 'Meja berhasil diperbarui',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.shade100,
-          colorText: Colors.green.shade900);
-    }
+    try {
+      if (editingTable == null) {
+        await _repo.add(TableModel(
+          number: number,
+          capacity: capacity,
+          status: selectedStatus.value,
+        ));
+        Get.snackbar('Berhasil', 'Meja berhasil ditambahkan',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.green.shade100,
+            colorText: Colors.green.shade900,
+            duration: const Duration(seconds: 2));
+      } else {
+        editingTable!
+          ..number = number
+          ..capacity = capacity
+          ..status = selectedStatus.value;
+        await _repo.update(editingTable!);
+        Get.snackbar('Berhasil', 'Meja berhasil diperbarui',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.green.shade100,
+            colorText: Colors.green.shade900,
+            duration: const Duration(seconds: 2));
+      }
 
-    await loadTables();
-    Get.back();
+      await loadTables();
+      // Wait for snackbar to show before navigating
+      await Future.delayed(const Duration(milliseconds: 500));
+      Get.back();
+    } catch (e) {
+      Get.snackbar('Error', 'Gagal menyimpan meja: $e',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade900,
+          duration: const Duration(seconds: 3));
+      print('Error saving table: $e');
+    }
   }
 
   Future<void> deleteTable(TableModel table) async {
@@ -104,8 +127,22 @@ class TablesController extends GetxController {
       ],
     ));
     if (confirm == true) {
-      await _repo.delete(table.id);
-      await loadTables();
+      try {
+        await _repo.delete(table.id);
+        await loadTables();
+        Get.snackbar('Berhasil', 'Meja berhasil dihapus',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.green.shade100,
+            colorText: Colors.green.shade900,
+            duration: const Duration(seconds: 2));
+      } catch (e) {
+        Get.snackbar('Error', 'Gagal menghapus meja: $e',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red.shade100,
+            colorText: Colors.red.shade900,
+            duration: const Duration(seconds: 3));
+        print('Error deleting table: $e');
+      }
     }
   }
 }

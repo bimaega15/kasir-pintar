@@ -79,7 +79,7 @@ class ShiftController extends GetxController {
         colorText: const Color(0xFF2E7D32),
       );
 
-      Get.offAllNamed(AppRoutes.home);
+      Get.offAllNamed(AppRoutes.main);
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -126,7 +126,7 @@ class ShiftController extends GetxController {
         colorText: const Color(0xFF2E7D32),
       );
 
-      Get.offAllNamed(AppRoutes.home);
+      Get.offAllNamed(AppRoutes.main);
     } catch (e) {
       Get.snackbar(
         'Error',

@@ -360,12 +360,34 @@ class DatabaseProvider extends GetxService {
   // ── Products ──────────────────────────────────────────────────────────────
 
   Future<List<ProductModel>> getProducts() async {
-    final maps = await _db.query('products', orderBy: 'created_at ASC');
-    return maps.map(_productFromMap).toList();
+    try {
+      final maps = await _db.query('products', orderBy: 'created_at ASC');
+      print('[getProducts] Retrieved ${maps.length} product records');
+      return maps.map((m) {
+        try {
+          return _productFromMap(m);
+        } catch (e) {
+          print('[getProducts] Error parsing product: $e');
+          print('[getProducts] Problematic map: $m');
+          rethrow;
+        }
+      }).toList();
+    } catch (e) {
+      print('[getProducts] Error: $e');
+      rethrow;
+    }
   }
 
   Future<void> insertProduct(ProductModel product) async {
-    await _db.insert('products', _productToMap(product));
+    try {
+      final map = _productToMap(product);
+      print('[insertProduct] Inserting product: ${product.name} with map: $map');
+      await _db.insert('products', map);
+      print('[insertProduct] Successfully inserted product: ${product.name}');
+    } catch (e) {
+      print('[insertProduct] Error inserting product: $e');
+      rethrow;
+    }
   }
 
   Future<void> updateProduct(ProductModel product) async {
@@ -381,16 +403,40 @@ class DatabaseProvider extends GetxService {
     await _db.delete('products', where: 'id = ?', whereArgs: [id]);
   }
 
-  ProductModel _productFromMap(Map<String, Object?> m) => ProductModel(
-    id: m['id'] as String,
-    name: m['name'] as String,
-    categoryId: m['category_id'] as String,
-    price: (m['price'] as num).toDouble(),
-    stock: m['stock'] as int,
-    description: m['description'] as String? ?? '',
-    emoji: m['emoji'] as String? ?? '📦',
-    createdAt: DateTime.parse(m['created_at'] as String),
-  );
+  ProductModel _productFromMap(Map<String, Object?> m) {
+    try {
+      // Defensive parsing with null checks
+      final id = m['id'] as String?;
+      final name = m['name'] as String?;
+      final categoryId = m['category_id'] as String?;
+      final priceValue = m['price'];
+      final stockValue = m['stock'];
+      final description = m['description'] as String? ?? '';
+      final emoji = m['emoji'] as String? ?? '📦';
+      final createdAtStr = m['created_at'] as String?;
+
+      if (id == null || name == null || categoryId == null || priceValue == null || stockValue == null || createdAtStr == null) {
+        throw FormatException('Missing required fields in product map: $m');
+      }
+
+      final price = (priceValue as num).toDouble();
+      final stock = stockValue as int;
+
+      return ProductModel(
+        id: id,
+        name: name,
+        categoryId: categoryId,
+        price: price,
+        stock: stock,
+        description: description,
+        emoji: emoji,
+        createdAt: DateTime.parse(createdAtStr),
+      );
+    } catch (e) {
+      print('[_productFromMap] Error parsing map: $m with error: $e');
+      rethrow;
+    }
+  }
 
   Map<String, Object?> _productToMap(ProductModel p) => {
     'id': p.id,

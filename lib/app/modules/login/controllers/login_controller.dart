@@ -16,36 +16,20 @@ class LoginController extends GetxController {
   final _db = Get.find<DatabaseProvider>();
 
   // ── Login fields ─────────────────────────────────────────────────────────
-  final loginUsernameCtrl = TextEditingController();
-  final loginPasswordCtrl = TextEditingController();
   final isLoginPasswordVisible = false.obs;
   final isLoginLoading = false.obs;
 
   // ── Setup fields ──────────────────────────────────────────────────────────
-  final setupUsernameCtrl = TextEditingController();
-  final setupPasswordCtrl = TextEditingController();
-  final setupConfirmCtrl = TextEditingController();
   final isSetupPasswordVisible = false.obs;
   final isSetupConfirmVisible = false.obs;
   final isSetupLoading = false.obs;
 
-  @override
-  void onClose() {
-    loginUsernameCtrl.dispose();
-    loginPasswordCtrl.dispose();
-    setupUsernameCtrl.dispose();
-    setupPasswordCtrl.dispose();
-    setupConfirmCtrl.dispose();
-    super.onClose();
-  }
-
   // ── Login ─────────────────────────────────────────────────────────────────
 
-  Future<void> login() async {
-    final username = loginUsernameCtrl.text.trim();
-    final password = loginPasswordCtrl.text;
+  Future<void> login({required String username, required String password}) async {
+    var trimmedUsername = username.trim();
 
-    if (username.isEmpty || password.isEmpty) {
+    if (trimmedUsername.isEmpty || password.isEmpty) {
       Get.snackbar(
         'Perhatian',
         'Username dan password wajib diisi',
@@ -62,7 +46,7 @@ class LoginController extends GetxController {
       final savedUsername = await _db.getSetting('app_username') ?? '';
       final savedPassword = await _db.getSetting('app_password') ?? '';
 
-      if (username == savedUsername && password == savedPassword) {
+      if (trimmedUsername == savedUsername && password == savedPassword) {
         Get.offAllNamed(AppRoutes.main);
       } else {
         Get.snackbar(
@@ -189,12 +173,14 @@ class LoginController extends GetxController {
 
   // ── Setup ─────────────────────────────────────────────────────────────────
 
-  Future<void> setupAccount() async {
-    final username = setupUsernameCtrl.text.trim();
-    final password = setupPasswordCtrl.text;
-    final confirm = setupConfirmCtrl.text;
+  Future<void> setupAccount({
+    required String username,
+    required String password,
+    required String confirm,
+  }) async {
+    var trimmedUsername = username.trim();
 
-    if (username.isEmpty || password.isEmpty || confirm.isEmpty) {
+    if (trimmedUsername.isEmpty || password.isEmpty || confirm.isEmpty) {
       Get.snackbar(
         'Perhatian',
         'Semua kolom wajib diisi',
@@ -206,7 +192,7 @@ class LoginController extends GetxController {
       return;
     }
 
-    if (username.length < 3) {
+    if (trimmedUsername.length < 3) {
       Get.snackbar(
         'Perhatian',
         'Username minimal 3 karakter',
@@ -244,7 +230,7 @@ class LoginController extends GetxController {
 
     isSetupLoading.value = true;
     try {
-      await _db.setSetting('app_username', username);
+      await _db.setSetting('app_username', trimmedUsername);
       await _db.setSetting('app_password', password);
 
       Get.snackbar(

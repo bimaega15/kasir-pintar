@@ -3,8 +3,47 @@ import 'package:get/get.dart';
 import '../controllers/login_controller.dart';
 import '../../../utils/constants/app_colors.dart';
 
-class SetupView extends GetView<LoginController> {
+class SetupView extends StatefulWidget {
   const SetupView({super.key});
+
+  @override
+  State<SetupView> createState() => _SetupViewState();
+}
+
+class _SetupViewState extends State<SetupView> {
+  late TextEditingController setupUsernameCtrl;
+  late TextEditingController setupPasswordCtrl;
+  late TextEditingController setupConfirmCtrl;
+  late RxBool isSetupPasswordVisible;
+  late RxBool isSetupConfirmVisible;
+  late LoginController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    setupUsernameCtrl = TextEditingController();
+    setupPasswordCtrl = TextEditingController();
+    setupConfirmCtrl = TextEditingController();
+    isSetupPasswordVisible = false.obs;
+    isSetupConfirmVisible = false.obs;
+    controller = Get.find<LoginController>();
+  }
+
+  @override
+  void dispose() {
+    setupUsernameCtrl.dispose();
+    setupPasswordCtrl.dispose();
+    setupConfirmCtrl.dispose();
+    super.dispose();
+  }
+
+  void _setupAccount() {
+    controller.setupAccount(
+      username: setupUsernameCtrl.text,
+      password: setupPasswordCtrl.text,
+      confirm: setupConfirmCtrl.text,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,7 +130,7 @@ class SetupView extends GetView<LoginController> {
         children: [
           _buildField(
             label: 'Username',
-            controller: controller.setupUsernameCtrl,
+            controller: setupUsernameCtrl,
             hint: 'Masukkan username',
             icon: Icons.person_outline_rounded,
             obscure: false,
@@ -100,20 +139,20 @@ class SetupView extends GetView<LoginController> {
           const SizedBox(height: 18),
           Obx(() => _buildField(
                 label: 'Password',
-                controller: controller.setupPasswordCtrl,
+                controller: setupPasswordCtrl,
                 hint: 'Masukkan password',
                 icon: Icons.lock_outline_rounded,
-                obscure: !controller.isSetupPasswordVisible.value,
-                visibleObs: controller.isSetupPasswordVisible,
+                obscure: !isSetupPasswordVisible.value,
+                visibleObs: isSetupPasswordVisible,
               )),
           const SizedBox(height: 18),
           Obx(() => _buildField(
                 label: 'Konfirmasi Password',
-                controller: controller.setupConfirmCtrl,
+                controller: setupConfirmCtrl,
                 hint: 'Ulangi password',
                 icon: Icons.lock_outline_rounded,
-                obscure: !controller.isSetupConfirmVisible.value,
-                visibleObs: controller.isSetupConfirmVisible,
+                obscure: !isSetupConfirmVisible.value,
+                visibleObs: isSetupConfirmVisible,
               )),
           const SizedBox(height: 28),
           Obx(() => SizedBox(
@@ -122,7 +161,7 @@ class SetupView extends GetView<LoginController> {
                 child: ElevatedButton(
                   onPressed: controller.isSetupLoading.value
                       ? null
-                      : controller.setupAccount,
+                      : _setupAccount,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -160,7 +199,7 @@ class SetupView extends GetView<LoginController> {
     required String hint,
     required IconData icon,
     required bool obscure,
-    required RxBool? visibleObs,
+    RxBool? visibleObs,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

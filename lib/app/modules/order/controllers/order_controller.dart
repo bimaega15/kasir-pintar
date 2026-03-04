@@ -350,7 +350,7 @@ class OrderController extends GetxController {
     await loadProducts();
     await loadTables();
 
-    // Navigate to active orders
-    Get.offAllNamed(AppRoutes.home);
+    // Navigate back to main navigation wrapper to maintain bottom nav bar
+    Get.offAllNamed(AppRoutes.main);
   }
 }

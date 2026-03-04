@@ -22,7 +22,7 @@ class OrderTypeView extends GetView<OrderController> {
             if (Navigator.canPop(context)) {
               Get.back();
             } else {
-              Get.offAllNamed(AppRoutes.home);
+              Get.offAllNamed(AppRoutes.main);
             }
           },
         ),

@@ -7,8 +7,41 @@ import '../controllers/login_controller.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
 
-class LoginView extends GetView<LoginController> {
+class LoginView extends StatefulWidget {
   const LoginView({super.key});
+
+  @override
+  State<LoginView> createState() => _LoginViewState();
+}
+
+class _LoginViewState extends State<LoginView> {
+  late TextEditingController loginUsernameCtrl;
+  late TextEditingController loginPasswordCtrl;
+  late RxBool isLoginPasswordVisible;
+  late LoginController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    loginUsernameCtrl = TextEditingController();
+    loginPasswordCtrl = TextEditingController();
+    isLoginPasswordVisible = false.obs;
+    controller = Get.find<LoginController>();
+  }
+
+  @override
+  void dispose() {
+    loginUsernameCtrl.dispose();
+    loginPasswordCtrl.dispose();
+    super.dispose();
+  }
+
+  void _login() {
+    controller.login(
+      username: loginUsernameCtrl.text,
+      password: loginPasswordCtrl.text,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +127,7 @@ class LoginView extends GetView<LoginController> {
         children: [
           _buildField(
             label: 'Username',
-            controller: controller.loginUsernameCtrl,
+            controller: loginUsernameCtrl,
             hint: 'Masukkan username',
             icon: Icons.person_outline_rounded,
             obscure: false,
@@ -104,13 +137,13 @@ class LoginView extends GetView<LoginController> {
           const SizedBox(height: 18),
           Obx(() => _buildField(
                 label: 'Password',
-                controller: controller.loginPasswordCtrl,
+                controller: loginPasswordCtrl,
                 hint: 'Masukkan password',
                 icon: Icons.lock_outline_rounded,
-                obscure: !controller.isLoginPasswordVisible.value,
-                visibleObs: controller.isLoginPasswordVisible,
+                obscure: !isLoginPasswordVisible.value,
+                visibleObs: isLoginPasswordVisible,
                 textInputAction: TextInputAction.done,
-                onSubmitted: (_) => controller.login(),
+                onSubmitted: (_) => _login(),
               )),
           // Lupa Password
           Align(
@@ -138,7 +171,7 @@ class LoginView extends GetView<LoginController> {
                 height: 50,
                 child: ElevatedButton(
                   onPressed:
-                      controller.isLoginLoading.value ? null : controller.login,
+                      controller.isLoginLoading.value ? null : _login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,

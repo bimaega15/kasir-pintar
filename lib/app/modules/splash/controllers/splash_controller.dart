@@ -13,11 +13,7 @@ class SplashController extends GetxController {
 
   Future<void> _navigate() async {
     await Future.delayed(const Duration(seconds: 2));
-    final username = await _db.getSetting('app_username');
-    if (username == null || username.isEmpty) {
-      Get.offAllNamed(AppRoutes.setup);
-    } else {
-      Get.offAllNamed(AppRoutes.login);
-    }
+    // Selalu ke login dulu, dari login ada tombol "Daftar" jika belum punya akun
+    Get.offAllNamed(AppRoutes.login);
   }
 }

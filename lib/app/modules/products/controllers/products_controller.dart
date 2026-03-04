@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../data/models/category_model.dart';
 import '../../../data/models/product_model.dart';
 import '../../../data/repositories/product_repository.dart';
+import '../../../routes/app_routes.dart';
 
 class ProductsController extends GetxController {
   final _productRepo = Get.find<ProductRepository>();
@@ -44,8 +45,17 @@ class ProductsController extends GetxController {
   }
 
   Future<void> loadProducts() async {
-    final list = await _productRepo.getAll();
-    products.assignAll(list);
+    try {
+      final list = await _productRepo.getAll();
+      products.assignAll(list);
+      print('[loadProducts] Successfully loaded ${list.length} products');
+    } catch (e) {
+      print('[loadProducts] Error loading products: $e');
+      Get.snackbar('Error', 'Gagal memuat produk: $e',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade900);
+    }
   }
 
   List<ProductModel> get filteredProducts {
@@ -100,37 +110,49 @@ class ProductsController extends GetxController {
       return;
     }
 
-    if (editingProduct == null) {
-      final product = ProductModel(
-        name: name,
-        categoryId: selectedCategoryId.value,
-        price: price,
-        stock: stock,
-        description: descController.text.trim(),
-        emoji: selectedEmoji.value,
-      );
-      await _productRepo.add(product);
-      Get.snackbar('Berhasil', 'Produk berhasil ditambahkan',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.shade100,
-          colorText: Colors.green.shade900);
-    } else {
-      editingProduct!
-        ..name = name
-        ..categoryId = selectedCategoryId.value
-        ..price = price
-        ..stock = stock
-        ..description = descController.text.trim()
-        ..emoji = selectedEmoji.value;
-      await _productRepo.update(editingProduct!);
-      Get.snackbar('Berhasil', 'Produk berhasil diperbarui',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.shade100,
-          colorText: Colors.green.shade900);
-    }
+    try {
+      if (editingProduct == null) {
+        final product = ProductModel(
+          name: name,
+          categoryId: selectedCategoryId.value,
+          price: price,
+          stock: stock,
+          description: descController.text.trim(),
+          emoji: selectedEmoji.value,
+        );
+        await _productRepo.add(product);
+        Get.snackbar('Berhasil', 'Produk berhasil ditambahkan',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.green.shade100,
+            colorText: Colors.green.shade900,
+            duration: const Duration(seconds: 2));
+      } else {
+        editingProduct!
+          ..name = name
+          ..categoryId = selectedCategoryId.value
+          ..price = price
+          ..stock = stock
+          ..description = descController.text.trim()
+          ..emoji = selectedEmoji.value;
+        await _productRepo.update(editingProduct!);
+        Get.snackbar('Berhasil', 'Produk berhasil diperbarui',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.green.shade100,
+            colorText: Colors.green.shade900,
+            duration: const Duration(seconds: 2));
+      }
 
-    await loadProducts();
-    Get.back();
+      await loadProducts();
+      // Back to previous page
+      Get.back();
+    } catch (e) {
+      Get.snackbar('Error', 'Gagal menyimpan produk: $e',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade900,
+          duration: const Duration(seconds: 3));
+      print('Error saving product: $e');
+    }
   }
 
   Future<void> deleteProduct(ProductModel product) async {
@@ -150,8 +172,22 @@ class ProductsController extends GetxController {
       ),
     );
     if (confirm == true) {
-      await _productRepo.delete(product.id);
-      await loadProducts();
+      try {
+        await _productRepo.delete(product.id);
+        await loadProducts();
+        Get.snackbar('Berhasil', 'Produk berhasil dihapus',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.green.shade100,
+            colorText: Colors.green.shade900,
+            duration: const Duration(seconds: 2));
+      } catch (e) {
+        Get.snackbar('Error', 'Gagal menghapus produk: $e',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red.shade100,
+            colorText: Colors.red.shade900,
+            duration: const Duration(seconds: 3));
+        print('Error deleting product: $e');
+      }
     }
   }
 }

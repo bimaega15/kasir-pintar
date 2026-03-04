@@ -72,7 +72,7 @@ class _ReceiptViewState extends State<ReceiptView> {
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
-            onPressed: () => Get.offAllNamed(AppRoutes.home),
+            onPressed: () => Get.offAllNamed(AppRoutes.main),
           ),
         ],
       ),
@@ -465,7 +465,7 @@ class _ReceiptViewState extends State<ReceiptView> {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () => Get.offAllNamed(AppRoutes.home),
+                        onPressed: () => Get.offAllNamed(AppRoutes.main),
                         icon: const Icon(Icons.home_rounded),
                         label: const Text('Ke Beranda'),
                         style: OutlinedButton.styleFrom(
@@ -477,7 +477,7 @@ class _ReceiptViewState extends State<ReceiptView> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () => Get.offAllNamed(AppRoutes.home),
+                        onPressed: () => Get.offAllNamed(AppRoutes.orderType),
                         icon: const Icon(Icons.add_shopping_cart_rounded),
                         label: const Text('Pesanan Baru'),
                         style: ElevatedButton.styleFrom(
