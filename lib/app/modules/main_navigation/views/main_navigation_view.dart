@@ -7,6 +7,8 @@ import '../../home/views/home_view.dart';
 import '../../settings/views/settings_view.dart';
 import '../../../modules/master/views/master_view.dart';
 import '../../../modules/report/views/report_view.dart';
+import '../../home/controllers/home_controller.dart';
+import '../../kitchen/controllers/kitchen_controller.dart';
 
 class MainNavigationView extends StatefulWidget {
   const MainNavigationView({super.key});
@@ -149,8 +151,26 @@ class _MainNavigationViewState extends State<MainNavigationView> {
 // Kasir Page Content Widget
 // ============================================================================
 
-class KasirPageContent extends StatelessWidget {
+class KasirPageContent extends StatefulWidget {
   const KasirPageContent({super.key});
+
+  @override
+  State<KasirPageContent> createState() => _KasirPageContentState();
+}
+
+class _KasirPageContentState extends State<KasirPageContent> {
+  late final HomeController _homeCtrl;
+  late final KitchenController _kitchenCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _homeCtrl = Get.find<HomeController>();
+    _kitchenCtrl = Get.find<KitchenController>();
+    // Refresh data when kasir page opens
+    _homeCtrl.loadStats();
+    _kitchenCtrl.loadOrders();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -186,24 +206,24 @@ class KasirPageContent extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             // Dapur / Kitchen
-            _buildMenuCard(
+            Obx(() => _buildMenuCard(
               icon: Icons.soup_kitchen_rounded,
               title: 'Sistem Dapur',
               subtitle: 'Display pesanan untuk dapur & monitoring produksi',
               color: Colors.deepOrange.shade600,
-              badgeCount: 3,
+              badgeCount: _kitchenCtrl.pendingOrders.length,
               onTap: () => Get.toNamed(AppRoutes.kitchen),
-            ),
+            )),
             const SizedBox(height: 12),
             // Pesanan Aktif
-            _buildMenuCard(
+            Obx(() => _buildMenuCard(
               icon: Icons.receipt_long_rounded,
               title: 'Pesanan Aktif',
               subtitle: 'Lihat dan kelola pesanan yang sedang diproses',
               color: Colors.purple.shade600,
-              badgeCount: 5,
+              badgeCount: _homeCtrl.activeOrderCount.value,
               onTap: () => Get.toNamed(AppRoutes.activeOrders),
-            ),
+            )),
             const SizedBox(height: 12),
             // Manajemen Shift
             _buildMenuCard(
@@ -226,21 +246,21 @@ class KasirPageContent extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: _buildStatCard(
+                  child: Obx(() => _buildStatCard(
                     icon: Icons.shopping_cart_rounded,
                     label: 'Pesanan Aktif',
-                    value: '5',
+                    value: _homeCtrl.activeOrderCount.value.toString(),
                     color: Colors.purple,
-                  ),
+                  )),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildStatCard(
+                  child: Obx(() => _buildStatCard(
                     icon: Icons.done_all_rounded,
                     label: 'Siap Diambil',
-                    value: '3',
+                    value: _kitchenCtrl.readyOrders.length.toString(),
                     color: AppColors.success,
-                  ),
+                  )),
                 ),
               ],
             ),
@@ -279,6 +299,7 @@ class KasirPageContent extends StatelessWidget {
           ),
         ),
         child: Stack(
+          clipBehavior: Clip.none,
           children: [
             Row(
               children: [
@@ -324,17 +345,17 @@ class KasirPageContent extends StatelessWidget {
             // Badge count
             if (badgeCount != null && badgeCount > 0)
               Positioned(
-                top: 8,
-                right: 8,
+                top: -8,
+                right: -8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                   decoration: BoxDecoration(
                     color: color,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: color.withValues(alpha: 0.3),
-                        blurRadius: 4,
+                        color: color.withValues(alpha: 0.4),
+                        blurRadius: 6,
                         offset: const Offset(0, 2),
                       )
                     ],
@@ -344,7 +365,7 @@ class KasirPageContent extends StatelessWidget {
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                      fontSize: 11,
                     ),
                   ),
                 ),
