@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
+import '../../settings/controllers/settings_controller.dart';
 import '../controllers/order_controller.dart';
 
 class OrderConfirmView extends GetView<OrderController> {
   const OrderConfirmView({super.key});
+
+  bool get _isSupermarket =>
+      Get.find<SettingsController>().selectedPosType.value == 'supermarket';
 
   @override
   Widget build(BuildContext context) {
@@ -24,9 +28,11 @@ class OrderConfirmView extends GetView<OrderController> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // Order info
-                    _infoCard(),
-                    const SizedBox(height: 12),
+                    // Order info — hidden for supermarket
+                    if (!_isSupermarket) ...[
+                      _infoCard(),
+                      const SizedBox(height: 12),
+                    ],
                     // Items
                     _itemsCard(),
                     const SizedBox(height: 12),
@@ -386,6 +392,7 @@ class OrderConfirmView extends GetView<OrderController> {
   }
 
   Widget _bottomButtons() {
+    final isSupermarket = _isSupermarket;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       child: Column(
@@ -395,9 +402,15 @@ class OrderConfirmView extends GetView<OrderController> {
             child: ElevatedButton.icon(
               onPressed: controller.isCartEmpty
                   ? null
-                  : controller.sendToKitchen,
-              icon: const Icon(Icons.send_rounded),
-              label: const Text('Kirim ke Dapur'),
+                  : (isSupermarket
+                      ? controller.sendToPayment
+                      : controller.sendToKitchen),
+              icon: Icon(isSupermarket
+                  ? Icons.payment_rounded
+                  : Icons.send_rounded),
+              label: Text(isSupermarket
+                  ? 'Lanjut ke Pembayaran'
+                  : 'Kirim ke Dapur'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 backgroundColor: AppColors.success,

@@ -8,6 +8,7 @@ import '../../../data/models/payment_entry_model.dart';
 import '../../../data/models/split_transaction_model.dart';
 import '../../../data/models/transaction_model.dart';
 import '../../../data/repositories/transaction_repository.dart';
+import '../../../modules/settings/controllers/settings_controller.dart';
 import '../../../routes/app_routes.dart';
 import '../../../services/printer_service.dart';
 import '../../../utils/constants/app_colors.dart';
@@ -503,7 +504,10 @@ class _ReceiptViewState extends State<ReceiptView> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () => Get.offAllNamed(AppRoutes.orderType),
+                        onPressed: () {
+                          final posType = Get.find<SettingsController>().selectedPosType.value;
+                          Get.offAllNamed(posType == 'supermarket' ? AppRoutes.pos : AppRoutes.orderType);
+                        },
                         icon: const Icon(Icons.add_shopping_cart_rounded, size: 20),
                         label: const Text(
                           'Pesanan Baru',

@@ -299,6 +299,45 @@ class OrderController extends GetxController {
     );
   }
 
+  // ── Send to payment directly (Supermarket mode) ───────────────────────────
+
+  Future<void> sendToPayment() async {
+    if (cart.isEmpty) {
+      Get.snackbar(
+        'Keranjang Kosong',
+        'Tambahkan produk terlebih dahulu',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    final invoiceNumber = await _transactionRepo.generateInvoiceNumber();
+
+    final order = OrderModel(
+      invoiceNumber: invoiceNumber,
+      orderType: OrderType.takeAway,
+      tableId: null,
+      tableNumber: null,
+      guestCount: 1,
+      customerName: customerName.value,
+      items: List.from(cart),
+      subtotal: subtotal,
+      discount: discount.value,
+      taxPercent: taxPercent.value,
+      taxAmount: taxAmount,
+      serviceChargePercent: serviceChargePercent.value,
+      serviceChargeAmount: serviceChargeAmount,
+      total: total,
+    );
+
+    await _orderRepo.save(order);
+
+    clearCart();
+    await loadProducts();
+
+    Get.toNamed(AppRoutes.payment, arguments: order);
+  }
+
   // ── Send to kitchen ───────────────────────────────────────────────────────
 
   Future<void> sendToKitchen() async {

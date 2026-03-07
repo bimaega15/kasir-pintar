@@ -218,7 +218,6 @@ class _SetupViewState extends State<SetupView> {
       ),
     );
   }
-
   Widget _buildField({
     required String label,
     required TextEditingController controller,

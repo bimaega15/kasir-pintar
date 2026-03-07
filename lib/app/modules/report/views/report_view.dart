@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../controllers/report_controller.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
 
@@ -31,47 +32,59 @@ class ReportPageContent extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             // Riwayat Transaksi
-            _buildReportCard(
-              icon: Icons.history_rounded,
-              title: 'Riwayat Transaksi',
-              subtitle: 'Lihat semua transaksi, filter berdasarkan tanggal',
-              color: AppColors.success,
-              count: '0',
-              onTap: () => Get.toNamed(AppRoutes.history),
-            ),
+            Obx(() {
+              final ctrl = Get.find<ReportController>();
+              return _buildReportCard(
+                icon: Icons.history_rounded,
+                title: 'Riwayat Transaksi',
+                subtitle: 'Lihat semua transaksi, filter berdasarkan tanggal',
+                color: AppColors.success,
+                count: ctrl.totalTransactions.value.toString(),
+                onTap: () {
+                  ctrl.loadStats();
+                  Get.toNamed(AppRoutes.history);
+                },
+              );
+            }),
             const SizedBox(height: 16),
             // Log Batal
-            _buildReportCard(
-              icon: Icons.cancel_rounded,
-              title: 'Log Transaksi Dibatalkan',
-              subtitle: 'Lihat transaksi yang dibatalkan beserta alasannya',
-              color: AppColors.error,
-              count: '0',
-              onTap: () => Get.toNamed(AppRoutes.voidLog),
-            ),
+            Obx(() {
+              final ctrl = Get.find<ReportController>();
+              return _buildReportCard(
+                icon: Icons.cancel_rounded,
+                title: 'Log Transaksi Dibatalkan',
+                subtitle: 'Lihat transaksi yang dibatalkan beserta alasannya',
+                color: AppColors.error,
+                count: ctrl.totalCancelled.value.toString(),
+                onTap: () => Get.toNamed(AppRoutes.voidLog),
+              );
+            }),
             const SizedBox(height: 24),
             // Stats Cards
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    label: 'Total Transaksi',
-                    value: '0',
-                    icon: Icons.receipt_long_rounded,
-                    color: AppColors.accent,
+            Obx(() {
+              final ctrl = Get.find<ReportController>();
+              return Row(
+                children: [
+                  Expanded(
+                    child: _buildStatCard(
+                      label: 'Total Transaksi',
+                      value: ctrl.totalTransactions.value.toString(),
+                      icon: Icons.receipt_long_rounded,
+                      color: AppColors.accent,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildStatCard(
-                    label: 'Dibatalkan',
-                    value: '0',
-                    icon: Icons.cancel_rounded,
-                    color: AppColors.error,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildStatCard(
+                      label: 'Dibatalkan',
+                      value: ctrl.totalCancelled.value.toString(),
+                      icon: Icons.cancel_rounded,
+                      color: AppColors.error,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              );
+            }),
             const SizedBox(height: 24),
             // Info Card
             Container(

@@ -1,8 +1,9 @@
 import 'package:get/get.dart';
+import '../controllers/report_controller.dart';
 
 class ReportBinding extends Bindings {
   @override
   void dependencies() {
-    // No specific controller needed for Report
+    Get.lazyPut<ReportController>(() => ReportController(), fenix: true);
   }
 }

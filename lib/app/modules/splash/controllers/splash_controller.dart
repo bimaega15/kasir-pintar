@@ -1,4 +1,6 @@
+import 'dart:io' show Platform;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get/get.dart';
 import '../../../data/providers/storage_provider.dart';
 import '../../../routes/app_routes.dart';
@@ -25,12 +27,17 @@ class SplashController extends GetxController {
       return;
     }
 
-    // Check if user has Firebase session (Google login)
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser != null) {
-      // User is logged in via Firebase/Google, go to main app
-      Get.offAllNamed(AppRoutes.main);
-      return;
+    // Check if user has Firebase session (Google login) — only on supported platforms
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      try {
+        final currentUser = FirebaseAuth.instance.currentUser;
+        if (currentUser != null) {
+          Get.offAllNamed(AppRoutes.main);
+          return;
+        }
+      } catch (_) {
+        // Firebase not initialized, skip
+      }
     }
 
     // No session found, go to login
