@@ -216,8 +216,8 @@ class CheckVersionService {
       final response = await Dio().get<Map<String, dynamic>>(
         _versionCheckUrl,
         options: Options(
-          receiveTimeout: const Duration(seconds: 15),
-          sendTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 5),
+          sendTimeout: const Duration(seconds: 5),
           responseType: ResponseType.json,
         ),
       );

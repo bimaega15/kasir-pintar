@@ -12,7 +12,7 @@ class ProductsController extends GetxController {
   final searchQuery = ''.obs;
   final searchController = TextEditingController();
 
-  final categories = CategoryModel.defaultCategories;
+  List<CategoryModel> get categories => CategoryModel.defaultCategories;
 
   // Form fields for add/edit
   final nameController = TextEditingController();

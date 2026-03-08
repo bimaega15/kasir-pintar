@@ -29,6 +29,7 @@ import '../modules/order/views/order_type_view.dart';
 import '../modules/order/views/table_select_view.dart';
 import '../modules/order/views/order_confirm_view.dart';
 import '../modules/order/views/active_orders_view.dart';
+import '../modules/order/views/parked_orders_view.dart';
 import '../modules/kitchen/bindings/kitchen_binding.dart';
 import '../modules/kitchen/views/kitchen_view.dart';
 import '../modules/payment/bindings/payment_binding.dart';
@@ -39,6 +40,7 @@ import '../modules/shift/bindings/shift_binding.dart';
 import '../modules/shift/views/open_shift_view.dart';
 import '../modules/shift/views/close_shift_view.dart';
 import '../modules/shift/views/shift_report_view.dart';
+import '../modules/debt/views/debt_list_view.dart';
 import '../modules/void_log/views/void_log_view.dart';
 import '../modules/void_log/views/void_log_detail_view.dart';
 import '../modules/login/bindings/login_binding.dart';
@@ -144,6 +146,16 @@ class AppPages {
     GetPage(
       name: AppRoutes.activeOrders,
       page: () => const ActiveOrdersView(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.parkedOrders,
+      page: () => const ParkedOrdersView(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.debtList,
+      page: () => const DebtListView(),
       transition: Transition.rightToLeft,
     ),
     // ── v2: Kitchen ───────────────────────────────────────────────────────────

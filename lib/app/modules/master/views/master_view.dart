@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../products/controllers/products_controller.dart';
-import '../../settings/controllers/settings_controller.dart';
 import '../../tables/controllers/tables_controller.dart';
 
 class MasterPageContent extends StatelessWidget {
@@ -61,13 +60,10 @@ class MasterPageContent extends StatelessWidget {
                 ),
               ),
             ),
-            Obx(() {
-              final posType = Get.find<SettingsController>().selectedPosType.value;
-              if (posType == 'supermarket') return const SizedBox.shrink();
-              return Column(
-                children: [
-                  const SizedBox(height: 16),
-                  _buildMenuCard(
+            Column(
+              children: [
+                const SizedBox(height: 16),
+                _buildMenuCard(
                     icon: Icons.table_restaurant_rounded,
                     title: 'Meja Restoran',
                     subtitle: 'Kelola meja, nomor, dan kapasitas',
@@ -94,8 +90,7 @@ class MasterPageContent extends StatelessWidget {
                     ),
                   ),
                 ],
-              );
-            }),
+              ),
             const SizedBox(height: 24),
             // Info Card
             Container(

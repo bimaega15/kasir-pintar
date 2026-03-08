@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/products_controller.dart';
-import '../../../data/models/category_model.dart';
 import '../../../utils/constants/app_colors.dart';
 
 class AddEditProductView extends GetView<ProductsController> {
@@ -199,7 +198,7 @@ class AddEditProductView extends GetView<ProductsController> {
   }
 
   Widget _buildCategoryDropdown() {
-    final cats = CategoryModel.defaultCategories
+    final cats = controller.categories
         .where((c) => c.id != 'all')
         .toList();
     return Obx(() => InputDecorator(

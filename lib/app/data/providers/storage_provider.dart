@@ -10,12 +10,13 @@ import '../models/shift_model.dart';
 import '../models/split_transaction_model.dart';
 import '../models/table_model.dart';
 import '../models/transaction_model.dart';
+import '../models/debt_model.dart';
 import '../models/void_log_model.dart';
 
 /// Provider SQLite — mendukung offline penuh tanpa jaringan.
 class DatabaseProvider extends GetxService {
   static const _dbName = 'kasir_pintar.db';
-  static const _dbVersion = 6;
+  static const _dbVersion = 7;
 
   late Database _db;
 
@@ -26,6 +27,12 @@ class DatabaseProvider extends GetxService {
     _db = await openDatabase(
       path,
       version: _dbVersion,
+      onConfigure: (db) async {
+        // WAL mode allows concurrent reads + writes without locking conflicts
+        await db.execute('PRAGMA journal_mode=WAL');
+        // Retry for up to 5 seconds before throwing "database is locked"
+        await db.execute('PRAGMA busy_timeout=5000');
+      },
       onCreate: _createTables,
       onUpgrade: _onUpgrade,
     );
@@ -204,10 +211,56 @@ class DatabaseProvider extends GetxService {
       )
     ''');
 
+    batch.execute('''
+      CREATE TABLE debts (
+        id               TEXT    PRIMARY KEY,
+        invoice_number   TEXT    NOT NULL,
+        customer_name    TEXT    NOT NULL DEFAULT '',
+        total_amount     REAL    NOT NULL,
+        dp_amount        REAL    NOT NULL DEFAULT 0,
+        remaining_amount REAL    NOT NULL,
+        status           TEXT    NOT NULL DEFAULT 'unpaid',
+        created_at       TEXT    NOT NULL,
+        paid_at          TEXT,
+        notes            TEXT    NOT NULL DEFAULT ''
+      )
+    ''');
+
+    batch.execute('''
+      CREATE TABLE debt_payments (
+        id        INTEGER PRIMARY KEY AUTOINCREMENT,
+        debt_id   TEXT    NOT NULL,
+        amount    REAL    NOT NULL,
+        method    TEXT    NOT NULL DEFAULT 'Tunai',
+        paid_at   TEXT    NOT NULL,
+        notes     TEXT    NOT NULL DEFAULT '',
+        FOREIGN KEY (debt_id) REFERENCES debts(id)
+      )
+    ''');
+
     await batch.commit(noResult: true);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 7) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS debts (
+          id TEXT PRIMARY KEY, invoice_number TEXT NOT NULL,
+          customer_name TEXT NOT NULL DEFAULT '', total_amount REAL NOT NULL,
+          dp_amount REAL NOT NULL DEFAULT 0, remaining_amount REAL NOT NULL,
+          status TEXT NOT NULL DEFAULT 'unpaid', created_at TEXT NOT NULL,
+          paid_at TEXT, notes TEXT NOT NULL DEFAULT ''
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS debt_payments (
+          id INTEGER PRIMARY KEY AUTOINCREMENT, debt_id TEXT NOT NULL,
+          amount REAL NOT NULL, method TEXT NOT NULL DEFAULT 'Tunai',
+          paid_at TEXT NOT NULL, notes TEXT NOT NULL DEFAULT '',
+          FOREIGN KEY (debt_id) REFERENCES debts(id)
+        )
+      ''');
+    }
     if (oldVersion < 6) {
       final batch = db.batch();
       batch.execute('''
@@ -527,7 +580,15 @@ class DatabaseProvider extends GetxService {
 
   Future<List<OrderModel>> getActiveOrders() async {
     final orderMaps = await _db.rawQuery(
-      "SELECT * FROM orders WHERE kitchen_status != 'paid' ORDER BY created_at ASC",
+      "SELECT * FROM orders WHERE kitchen_status != 'paid' AND kitchen_status != 'parked' ORDER BY created_at ASC",
+    );
+    if (orderMaps.isEmpty) return [];
+    return _assembleOrders(orderMaps);
+  }
+
+  Future<List<OrderModel>> getParkedOrders() async {
+    final orderMaps = await _db.rawQuery(
+      "SELECT * FROM orders WHERE kitchen_status = 'parked' ORDER BY created_at ASC",
     );
     if (orderMaps.isEmpty) return [];
     return _assembleOrders(orderMaps);
@@ -946,6 +1007,75 @@ class DatabaseProvider extends GetxService {
     await _db.delete('transaction_items',
         where: 'transaction_id = ?', whereArgs: [id]);
     await _db.delete('transactions', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ── Debts ─────────────────────────────────────────────────────────────────
+
+  Future<void> insertDebt(DebtModel debt) async {
+    await _db.insert('debts', debt.toMap());
+  }
+
+  Future<List<DebtModel>> getDebts({bool unpaidOnly = false}) async {
+    final maps = unpaidOnly
+        ? await _db.query('debts',
+            where: "status != 'paid'", orderBy: 'created_at DESC')
+        : await _db.query('debts', orderBy: 'created_at DESC');
+    final debts = maps.map(DebtModel.fromMap).toList();
+    for (final debt in debts) {
+      debt.payments = await getDebtPayments(debt.id);
+    }
+    return debts;
+  }
+
+  Future<DebtModel?> getDebtById(String id) async {
+    final maps = await _db.query('debts', where: 'id = ?', whereArgs: [id]);
+    if (maps.isEmpty) return null;
+    final debt = DebtModel.fromMap(maps.first);
+    debt.payments = await getDebtPayments(id);
+    return debt;
+  }
+
+  Future<List<DebtPaymentEntry>> getDebtPayments(String debtId) async {
+    final maps = await _db.query('debt_payments',
+        where: 'debt_id = ?', whereArgs: [debtId], orderBy: 'paid_at ASC');
+    return maps.map(DebtPaymentEntry.fromMap).toList();
+  }
+
+  Future<void> insertDebtPayment(DebtPaymentEntry payment) async {
+    await _db.insert('debt_payments', payment.toMap());
+    final debt = await getDebtById(payment.debtId);
+    if (debt == null) return;
+    final totalPaid =
+        debt.payments.fold(0.0, (s, p) => s + p.amount) + debt.dpAmount;
+    final remaining =
+        (debt.totalAmount - totalPaid).clamp(0.0, double.infinity);
+    final status = remaining <= 0
+        ? 'paid'
+        : totalPaid > debt.dpAmount
+            ? 'partial'
+            : debt.status;
+    await _db.update(
+      'debts',
+      {
+        'remaining_amount': remaining,
+        'status': status,
+        'paid_at': remaining <= 0 ? DateTime.now().toIso8601String() : null,
+      },
+      where: 'id = ?',
+      whereArgs: [payment.debtId],
+    );
+  }
+
+  Future<void> deleteDebt(String id) async {
+    await _db.delete('debt_payments', where: 'debt_id = ?', whereArgs: [id]);
+    await _db.delete('debts', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<double> getTotalOutstandingDebt() async {
+    final result = await _db.rawQuery(
+      "SELECT SUM(remaining_amount) as total FROM debts WHERE status != 'paid'",
+    );
+    return (result.first['total'] as num?)?.toDouble() ?? 0.0;
   }
 
   // ── Invoice Number ────────────────────────────────────────────────────────

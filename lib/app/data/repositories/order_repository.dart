@@ -15,6 +15,8 @@ class OrderRepository {
 
   Future<List<OrderModel>> getActive() => _db.getActiveOrders();
 
+  Future<List<OrderModel>> getParked() => _db.getParkedOrders();
+
   Future<OrderModel?> getById(String id) => _db.getOrderById(id);
 
   Future<void> save(OrderModel order) => _db.insertOrder(order);

@@ -194,11 +194,6 @@ class SettingsPageContent extends GetView<SettingsController> {
                     ),
                     const SizedBox(height: 20),
                     _buildSettingSection(
-                      title: 'Jenis POS',
-                      child: _buildPosTypeSelector(),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildSettingSection(
                       title: 'Informasi Toko',
                       child: TextField(
                         controller: controller.storeNameController,
@@ -266,67 +261,6 @@ class SettingsPageContent extends GetView<SettingsController> {
         );
       },
     );
-  }
-
-  Widget _buildPosTypeSelector() {
-    const options = [
-      ('restaurant', Icons.restaurant_menu_rounded, 'Restaurant / Cafe'),
-      ('supermarket', Icons.storefront_rounded, 'Supermarket'),
-      ('laundry', Icons.local_laundry_service_rounded, 'Laundry'),
-    ];
-    return Obx(() => Column(
-          children: options.map((opt) {
-            final (value, icon, label) = opt;
-            final selected = controller.selectedPosType.value == value;
-            return GestureDetector(
-              onTap: () => controller.selectedPosType.value = value,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                margin: const EdgeInsets.only(bottom: 10),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? AppColors.primary.withValues(alpha: 0.08)
-                      : AppColors.background,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: selected ? AppColors.primary : Colors.transparent,
-                    width: 1.5,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      icon,
-                      size: 22,
-                      color: selected
-                          ? AppColors.primary
-                          : AppColors.textSecondary,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'POS Kasir $label',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight:
-                              selected ? FontWeight.w600 : FontWeight.normal,
-                          color: selected
-                              ? AppColors.primary
-                              : AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                    if (selected)
-                      const Icon(Icons.check_circle_rounded,
-                          color: AppColors.primary, size: 20),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        ));
   }
 
   Widget _buildSettingSection({

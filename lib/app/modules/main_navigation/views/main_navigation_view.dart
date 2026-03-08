@@ -9,7 +9,8 @@ import '../../../modules/master/views/master_view.dart';
 import '../../../modules/report/views/report_view.dart';
 import '../../home/controllers/home_controller.dart';
 import '../../kitchen/controllers/kitchen_controller.dart';
-import '../../settings/controllers/settings_controller.dart';
+import '../../debt/controllers/debt_controller.dart';
+import '../../order/controllers/order_controller.dart';
 
 class MainNavigationView extends StatefulWidget {
   const MainNavigationView({super.key});
@@ -162,17 +163,21 @@ class KasirPageContent extends StatefulWidget {
 class _KasirPageContentState extends State<KasirPageContent> {
   late final HomeController _homeCtrl;
   late final KitchenController _kitchenCtrl;
-  late final SettingsController _settingsCtrl;
+  late final OrderController _orderCtrl;
+  late final DebtController _debtCtrl;
 
   @override
   void initState() {
     super.initState();
     _homeCtrl = Get.find<HomeController>();
     _kitchenCtrl = Get.find<KitchenController>();
-    _settingsCtrl = Get.find<SettingsController>();
+    _orderCtrl = Get.find<OrderController>();
+    _debtCtrl = Get.find<DebtController>();
     // Refresh data when kasir page opens
     _homeCtrl.loadStats();
     _kitchenCtrl.loadOrders();
+    _orderCtrl.loadParkedCount();
+    _debtCtrl.loadDebts();
   }
 
   @override
@@ -185,9 +190,7 @@ class _KasirPageContentState extends State<KasirPageContent> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: Obx(() {
-        final isSupermarket = _settingsCtrl.selectedPosType.value == 'supermarket';
-        return SingleChildScrollView(
+      body: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,36 +208,47 @@ class _KasirPageContentState extends State<KasirPageContent> {
               _buildMenuCard(
                 icon: Icons.point_of_sale_rounded,
                 title: 'Masukkan Pesanan',
-                subtitle: isSupermarket
-                    ? 'Buat transaksi baru'
-                    : 'Buat pesanan baru (Dine-In / Take-Away / Retail)',
+                subtitle: 'Buat pesanan baru (Dine-In / Take-Away)',
                 color: AppColors.primary,
-                onTap: () => isSupermarket
-                    ? Get.toNamed(AppRoutes.pos)
-                    : Get.toNamed(AppRoutes.orderType),
+                onTap: () => Get.toNamed(AppRoutes.orderType),
               ),
               const SizedBox(height: 12),
-              // Dapur & Pesanan Aktif — hidden for supermarket
-              if (!isSupermarket) ...[
-                Obx(() => _buildMenuCard(
-                  icon: Icons.soup_kitchen_rounded,
-                  title: 'Sistem Dapur',
-                  subtitle: 'Display pesanan untuk dapur & monitoring produksi',
-                  color: Colors.deepOrange.shade600,
-                  badgeCount: _kitchenCtrl.pendingOrders.length,
-                  onTap: () => Get.toNamed(AppRoutes.kitchen),
-                )),
-                const SizedBox(height: 12),
-                Obx(() => _buildMenuCard(
-                  icon: Icons.receipt_long_rounded,
-                  title: 'Pesanan Aktif',
-                  subtitle: 'Lihat dan kelola pesanan yang sedang diproses',
-                  color: Colors.purple.shade600,
-                  badgeCount: _homeCtrl.activeOrderCount.value,
-                  onTap: () => Get.toNamed(AppRoutes.activeOrders),
-                )),
-                const SizedBox(height: 12),
-              ],
+              Obx(() => _buildMenuCard(
+                icon: Icons.soup_kitchen_rounded,
+                title: 'Sistem Dapur',
+                subtitle: 'Display pesanan untuk dapur & monitoring produksi',
+                color: Colors.deepOrange.shade600,
+                badgeCount: _kitchenCtrl.pendingOrders.length,
+                onTap: () => Get.toNamed(AppRoutes.kitchen),
+              )),
+              const SizedBox(height: 12),
+              Obx(() => _buildMenuCard(
+                icon: Icons.receipt_long_rounded,
+                title: 'Pesanan Aktif',
+                subtitle: 'Lihat dan kelola pesanan yang sedang diproses',
+                color: Colors.purple.shade600,
+                badgeCount: _homeCtrl.activeOrderCount.value,
+                onTap: () => Get.toNamed(AppRoutes.activeOrders),
+              )),
+              const SizedBox(height: 12),
+              Obx(() => _buildMenuCard(
+                icon: Icons.pause_circle_outline_rounded,
+                title: 'Transaksi Tertunda',
+                subtitle: 'Lanjutkan transaksi yang ditunda sebelumnya',
+                color: Colors.amber.shade700,
+                badgeCount: _orderCtrl.parkedCount.value,
+                onTap: () => Get.toNamed(AppRoutes.parkedOrders),
+              )),
+              const SizedBox(height: 12),
+              Obx(() => _buildMenuCard(
+                icon: Icons.account_balance_wallet_outlined,
+                title: 'Daftar Hutang',
+                subtitle: 'Kelola piutang dan catat pembayaran hutang',
+                color: Colors.orange.shade700,
+                badgeCount: _debtCtrl.unpaidCount.value,
+                onTap: () => Get.toNamed(AppRoutes.debtList),
+              )),
+              const SizedBox(height: 12),
               // Riwayat Transaksi
               _buildMenuCard(
                 icon: Icons.history_rounded,
@@ -273,31 +287,20 @@ class _KasirPageContentState extends State<KasirPageContent> {
                     )),
                   ),
                   const SizedBox(width: 12),
-                  if (!isSupermarket)
-                    Expanded(
-                      child: Obx(() => _buildStatCard(
-                        icon: Icons.shopping_cart_rounded,
-                        label: 'Pesanan Aktif',
-                        value: _homeCtrl.activeOrderCount.value.toString(),
-                        color: Colors.purple,
-                      )),
-                    )
-                  else
-                    Expanded(
-                      child: Obx(() => _buildStatCard(
-                        icon: Icons.attach_money_rounded,
-                        label: 'Pendapatan Hari Ini',
-                        value: _homeCtrl.totalTransactionsToday.value.toString(),
-                        color: AppColors.success,
-                      )),
-                    ),
+                  Expanded(
+                    child: Obx(() => _buildStatCard(
+                      icon: Icons.shopping_cart_rounded,
+                      label: 'Pesanan Aktif',
+                      value: _homeCtrl.activeOrderCount.value.toString(),
+                      color: Colors.purple,
+                    )),
+                  ),
                 ],
               ),
               const SizedBox(height: 20),
             ],
           ),
-        );
-      }),
+        ),
     );
   }
 

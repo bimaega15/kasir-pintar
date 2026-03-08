@@ -28,8 +28,11 @@ class OrderController extends GetxController {
   final discount = 0.0.obs;
   final discountController = TextEditingController();
 
+  // ── Parked orders ─────────────────────────────────────────────────────────
+  final parkedCount = 0.obs;
+
   // ── Product browsing ──────────────────────────────────────────────────────
-  final categories = CategoryModel.defaultCategories;
+  List<CategoryModel> get categories => CategoryModel.defaultCategories;
   final products = <ProductModel>[].obs;
   final selectedCategory = 'all'.obs;
   final searchQuery = ''.obs;
@@ -51,6 +54,7 @@ class OrderController extends GetxController {
     loadProducts();
     loadTables();
     loadSettings();
+    loadParkedCount();
     searchController.addListener(
       () => searchQuery.value = searchController.text,
     );
@@ -391,5 +395,96 @@ class OrderController extends GetxController {
 
     // Navigate back to main navigation wrapper to maintain bottom nav bar
     Get.offAllNamed(AppRoutes.main);
+  }
+
+  // ── Parked orders ─────────────────────────────────────────────────────────
+
+  Future<List<OrderModel>> fetchParkedOrders() => _orderRepo.getParked();
+
+  Future<void> loadParkedCount() async {
+    final list = await _orderRepo.getParked();
+    parkedCount.value = list.length;
+  }
+
+  Future<void> deleteParkedOrder(String id) async {
+    await _orderRepo.delete(id);
+    await loadParkedCount();
+  }
+
+  Future<void> parkOrder() async {
+    if (cart.isEmpty) {
+      Get.snackbar(
+        'Keranjang Kosong',
+        'Tambahkan produk terlebih dahulu',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    final invoiceNumber = await _transactionRepo.generateInvoiceNumber();
+
+    final order = OrderModel(
+      invoiceNumber: invoiceNumber,
+      orderType: orderType.value,
+      tableId: selectedTable.value?.id,
+      tableNumber: selectedTable.value?.number,
+      guestCount: guestCount.value,
+      customerName: customerName.value,
+      items: List.from(cart),
+      kitchenStatus: KitchenStatus.parked,
+      subtotal: subtotal,
+      discount: discount.value,
+      taxPercent: taxPercent.value,
+      taxAmount: taxAmount,
+      serviceChargePercent: serviceChargePercent.value,
+      serviceChargeAmount: serviceChargeAmount,
+      total: total,
+    );
+
+    await _orderRepo.save(order);
+
+    Get.snackbar(
+      'Transaksi Ditunda',
+      'Pesanan ${order.invoiceNumber} disimpan sebagai tertunda',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.amber.shade100,
+      colorText: Colors.amber.shade900,
+      duration: const Duration(seconds: 3),
+    );
+
+    clearCart();
+    await loadParkedCount();
+
+    Get.offAllNamed(AppRoutes.main);
+  }
+
+  Future<void> resumeParkedOrder(OrderModel order) async {
+    // Restore cart state
+    orderType.value = order.orderType;
+    guestCount.value = order.guestCount;
+    customerName.value = order.customerName;
+    customerNameController.text = order.customerName;
+    discount.value = order.discount;
+    discountController.text = order.discount > 0
+        ? order.discount.toStringAsFixed(0)
+        : '';
+    discountMode.value = 'Rp';
+
+    // Restore table if dine-in
+    if (order.tableId != null) {
+      selectedTable.value = tables.firstWhereOrNull(
+        (t) => t.id == order.tableId,
+      );
+    } else {
+      selectedTable.value = null;
+    }
+
+    cart.assignAll(order.items);
+
+    // Delete the parked record
+    await _orderRepo.delete(order.id);
+    await loadParkedCount();
+
+    Get.toNamed(AppRoutes.orderConfirm);
   }
 }

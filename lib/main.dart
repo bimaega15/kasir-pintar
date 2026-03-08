@@ -33,7 +33,9 @@ void main() async {
     // Known Flutter Windows keyboard tracking bug — safe to ignore
     if (msg.contains('_pressedKeys.containsKey') ||
         msg.contains('KeyDownEvent is dispatched') ||
-        msg.contains('KeyUpEvent is dispatched')) {
+        msg.contains('KeyUpEvent is dispatched') ||
+        msg.contains('_keysPressed.isNotEmpty') ||
+        msg.contains('no keys are in keysPressed')) {
       return;
     }
     

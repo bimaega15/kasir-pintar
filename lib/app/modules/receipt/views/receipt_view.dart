@@ -8,7 +8,6 @@ import '../../../data/models/payment_entry_model.dart';
 import '../../../data/models/split_transaction_model.dart';
 import '../../../data/models/transaction_model.dart';
 import '../../../data/repositories/transaction_repository.dart';
-import '../../../modules/settings/controllers/settings_controller.dart';
 import '../../../routes/app_routes.dart';
 import '../../../services/printer_service.dart';
 import '../../../utils/constants/app_colors.dart';
@@ -36,21 +35,66 @@ class _ReceiptViewState extends State<ReceiptView> {
     _splitsFuture = _txRepo.getSplits(transaction.id);
   }
 
+  String _buildReceiptText(TransactionModel transaction) {
+    final sep = '─' * 32;
+    final buf = StringBuffer();
+    buf.writeln('🏪 KASIR PINTAR');
+    buf.writeln(sep);
+    buf.writeln(transaction.invoiceNumber);
+    final orderLabel = transaction.orderType == 'take_away' ? 'Take Away' : 'Dine In';
+    final tableLabel = transaction.tableNumber != null ? ' · Meja ${transaction.tableNumber}' : '';
+    buf.writeln('$orderLabel$tableLabel');
+    if (transaction.customerName.isNotEmpty) {
+      buf.writeln('👤 ${transaction.customerName}');
+    }
+    buf.writeln(sep);
+    for (final item in transaction.items) {
+      buf.writeln('${item.product.emoji} ${item.product.name}');
+      buf.writeln(
+          '  ${item.quantity} x ${CurrencyHelper.formatRupiah(item.product.price)}  →  ${CurrencyHelper.formatRupiah(item.subtotal)}');
+    }
+    buf.writeln(sep);
+    buf.writeln('Subtotal    : ${CurrencyHelper.formatRupiah(transaction.subtotal)}');
+    if (transaction.discount > 0) {
+      buf.writeln('Diskon      : - ${CurrencyHelper.formatRupiah(transaction.discount)}');
+    }
+    if (transaction.taxAmount > 0) {
+      buf.writeln('Pajak       : ${CurrencyHelper.formatRupiah(transaction.taxAmount)}');
+    }
+    if (transaction.serviceChargeAmount > 0) {
+      buf.writeln('Service     : ${CurrencyHelper.formatRupiah(transaction.serviceChargeAmount)}');
+    }
+    buf.writeln(sep);
+    buf.writeln('TOTAL       : ${CurrencyHelper.formatRupiah(transaction.total)}');
+    buf.writeln(sep);
+    buf.writeln('Metode Bayar: ${transaction.paymentMethod}');
+    buf.writeln('Dibayar     : ${CurrencyHelper.formatRupiah(transaction.paymentAmount)}');
+    if (transaction.change > 0) {
+      buf.writeln('Kembalian   : ${CurrencyHelper.formatRupiah(transaction.change)}');
+    }
+    buf.writeln(sep);
+    buf.writeln('Terima kasih telah berbelanja! 🙏');
+    return buf.toString();
+  }
+
   Future<void> _shareReceipt(TransactionModel transaction) async {
     setState(() => _isSharing = true);
     try {
+      final receiptText = _buildReceiptText(transaction);
       final image = await _screenshotController.capture(pixelRatio: 2.0);
-      if (image == null) return;
-      final dir = await getTemporaryDirectory();
-      final file = File(
-        '${dir.path}/struk_${transaction.invoiceNumber.replaceAll('/', '_')}.png',
-      );
-      await file.writeAsBytes(image);
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text:
-            'Struk ${transaction.invoiceNumber} - ${CurrencyHelper.formatRupiah(transaction.total)}',
-      );
+      if (image != null) {
+        final dir = await getTemporaryDirectory();
+        final file = File(
+          '${dir.path}/struk_${transaction.invoiceNumber.replaceAll('/', '_')}.png',
+        );
+        await file.writeAsBytes(image);
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: receiptText,
+        );
+      } else {
+        await Share.share(receiptText);
+      }
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -505,8 +549,7 @@ class _ReceiptViewState extends State<ReceiptView> {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          final posType = Get.find<SettingsController>().selectedPosType.value;
-                          Get.offAllNamed(posType == 'supermarket' ? AppRoutes.pos : AppRoutes.orderType);
+                          Get.offAllNamed(AppRoutes.orderType);
                         },
                         icon: const Icon(Icons.add_shopping_cart_rounded, size: 20),
                         label: const Text(

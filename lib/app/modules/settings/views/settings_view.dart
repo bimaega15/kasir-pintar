@@ -85,24 +85,6 @@ class SettingsView extends GetView<SettingsController> {
                       ),
                       maxLines: 1,
                     ),
-                    const SizedBox(height: 16),
-                    Obx(() => DropdownButtonFormField<String>(
-                          initialValue: controller.selectedPosType.value,
-                          decoration: const InputDecoration(
-                            labelText: 'Jenis POS',
-                            prefixIcon: Icon(Icons.storefront_rounded),
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          ),
-                          items: const [
-                            DropdownMenuItem(value: 'restaurant', child: Text('POS Kasir Restaurant / Cafe')),
-                            DropdownMenuItem(value: 'supermarket', child: Text('POS Kasir Supermarket')),
-                            DropdownMenuItem(value: 'laundry', child: Text('POS Kasir Laundry')),
-                          ],
-                          onChanged: (val) {
-                            if (val != null) controller.selectedPosType.value = val;
-                          },
-                        )),
                   ],
                 ),
               ),

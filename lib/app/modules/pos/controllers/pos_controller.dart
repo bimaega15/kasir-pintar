@@ -25,7 +25,7 @@ class PosController extends GetxController {
   final discountController = TextEditingController();
   final cashController = TextEditingController();
 
-  final categories = CategoryModel.defaultCategories;
+  List<CategoryModel> get categories => CategoryModel.defaultCategories;
   final paymentMethods = ['Tunai', 'Transfer', 'Kartu Debit', 'QRIS'];
 
   @override

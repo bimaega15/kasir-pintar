@@ -13,7 +13,7 @@ class SettingsController extends GetxController {
   final serviceChargeController = TextEditingController();
 
   final isLoading = false.obs;
-  final selectedPosType = 'restaurant'.obs;
+  bool _disposed = false;
 
   @override
   void onInit() {
@@ -23,6 +23,7 @@ class SettingsController extends GetxController {
 
   @override
   void onClose() {
+    _disposed = true;
     storeNameController.dispose();
     taxController.dispose();
     serviceChargeController.dispose();
@@ -36,12 +37,12 @@ class SettingsController extends GetxController {
       final tax = await _db.getSetting('tax_percent') ?? '0';
       final service = await _db.getSetting('service_charge_percent') ?? '0';
 
+      if (_disposed) return;
       storeNameController.text = name;
       taxController.text = tax;
       serviceChargeController.text = service;
-      selectedPosType.value = await _db.getSetting('pos_type') ?? 'restaurant';
     } finally {
-      isLoading.value = false;
+      if (!_disposed) isLoading.value = false;
     }
   }
 
@@ -72,7 +73,7 @@ class SettingsController extends GetxController {
     await _db.setSetting('store_name', name);
     await _db.setSetting('tax_percent', taxVal.toString());
     await _db.setSetting('service_charge_percent', serviceVal.toString());
-    await _db.setSetting('pos_type', selectedPosType.value);
+
 
     Get.snackbar(
       'Tersimpan',

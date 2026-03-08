@@ -2,14 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
-import '../../settings/controllers/settings_controller.dart';
 import '../controllers/order_controller.dart';
 
 class OrderConfirmView extends GetView<OrderController> {
   const OrderConfirmView({super.key});
-
-  bool get _isSupermarket =>
-      Get.find<SettingsController>().selectedPosType.value == 'supermarket';
 
   @override
   Widget build(BuildContext context) {
@@ -28,11 +24,9 @@ class OrderConfirmView extends GetView<OrderController> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // Order info — hidden for supermarket
-                    if (!_isSupermarket) ...[
-                      _infoCard(),
-                      const SizedBox(height: 12),
-                    ],
+                    // Order info
+                    _infoCard(),
+                    const SizedBox(height: 12),
                     // Items
                     _itemsCard(),
                     const SizedBox(height: 12),
@@ -392,7 +386,6 @@ class OrderConfirmView extends GetView<OrderController> {
   }
 
   Widget _bottomButtons() {
-    final isSupermarket = _isSupermarket;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       child: Column(
@@ -400,17 +393,9 @@ class OrderConfirmView extends GetView<OrderController> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: controller.isCartEmpty
-                  ? null
-                  : (isSupermarket
-                      ? controller.sendToPayment
-                      : controller.sendToKitchen),
-              icon: Icon(isSupermarket
-                  ? Icons.payment_rounded
-                  : Icons.send_rounded),
-              label: Text(isSupermarket
-                  ? 'Lanjut ke Pembayaran'
-                  : 'Kirim ke Dapur'),
+              onPressed: controller.isCartEmpty ? null : controller.sendToKitchen,
+              icon: const Icon(Icons.send_rounded),
+              label: const Text('Kirim ke Dapur'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 backgroundColor: AppColors.success,
@@ -419,17 +404,33 @@ class OrderConfirmView extends GetView<OrderController> {
             ),
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: Get.back,
-              icon: const Icon(Icons.edit_rounded),
-              label: const Text('Edit Pesanan'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                side: const BorderSide(color: AppColors.primary),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: Get.back,
+                  icon: const Icon(Icons.edit_rounded),
+                  label: const Text('Edit Pesanan'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: controller.isCartEmpty ? null : controller.parkOrder,
+                  icon: const Icon(Icons.pause_circle_outline_rounded),
+                  label: const Text('Tunda'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: const BorderSide(color: Colors.amber),
+                    foregroundColor: Colors.amber.shade700,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../data/models/debt_model.dart';
 import '../../../data/models/order_model.dart';
 import '../../../data/models/payment_entry_model.dart';
 import '../../../data/models/split_transaction_model.dart';
 import '../../../data/providers/storage_provider.dart';
+import '../../../data/repositories/debt_repository.dart';
 import '../../../data/repositories/order_repository.dart';
 import '../../../data/repositories/table_repository.dart';
+import '../../../modules/debt/controllers/debt_controller.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/helpers/currency_helper.dart';
 
@@ -222,6 +225,58 @@ class PaymentController extends GetxController {
       Get.offAllNamed(AppRoutes.receipt, arguments: transaction);
     } catch (e) {
       Get.snackbar('Error', 'Gagal memproses pembayaran: $e',
+          snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      isProcessing.value = false;
+    }
+  }
+
+  // ── Hutang / DP ───────────────────────────────────────────────────────────
+
+  Future<void> processDebt({
+    required double amountPaid,
+    required String customerName,
+  }) async {
+    isProcessing.value = true;
+    try {
+      final total = order.total;
+      // dp = actual amount credited toward the bill (capped at total)
+      final dp = amountPaid.clamp(0.0, total);
+      final remaining = total - dp;
+
+      // Payment entry: records the actual cash handed over (for kembalian calc)
+      final paymentEntries = amountPaid > 0
+          ? [PaymentEntry(method: remaining > 0 ? 'DP/Hutang' : 'Tunai', amount: amountPaid)]
+          : [PaymentEntry(method: 'Hutang', amount: 0)];
+
+      final transaction = await _orderRepo.convertToTransaction(
+        order,
+        paymentEntries,
+      );
+      await _orderRepo.delete(order.id);
+      if (order.tableId != null) {
+        await _tableRepo.setAvailable(order.tableId!);
+      }
+
+      // Only create debt record if there is still remaining balance
+      if (remaining > 0) {
+        final debt = DebtModel(
+          invoiceNumber: transaction.invoiceNumber,
+          customerName: customerName.isNotEmpty
+              ? customerName
+              : order.customerName,
+          totalAmount: total,
+          dpAmount: dp,
+          remainingAmount: remaining,
+          status: dp > 0 ? 'partial' : 'unpaid',
+        );
+        await Get.find<DebtRepository>().save(debt);
+        Get.find<DebtController>().loadDebts();
+      }
+
+      Get.offAllNamed(AppRoutes.receipt, arguments: transaction);
+    } catch (e) {
+      Get.snackbar('Error', 'Gagal memproses hutang: $e',
           snackPosition: SnackPosition.BOTTOM);
     } finally {
       isProcessing.value = false;

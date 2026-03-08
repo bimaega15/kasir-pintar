@@ -135,7 +135,7 @@ class PaymentView extends GetView<PaymentController> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Split bill progress or Bagi Tagihan button
+                  // Split bill progress or action buttons
                   Obx(() => controller.isSplitMode.value
                       ? _buildSplitProgress()
                       : Row(
@@ -149,10 +149,19 @@ class PaymentView extends GetView<PaymentController> {
                             ),
                             const Spacer(),
                             TextButton.icon(
+                              onPressed: () => _showHutangDialog(context),
+                              icon: const Icon(
+                                  Icons.account_balance_wallet_outlined,
+                                  size: 16),
+                              label: const Text('Hutang/DP'),
+                              style: TextButton.styleFrom(
+                                  foregroundColor: Colors.orange.shade700),
+                            ),
+                            TextButton.icon(
                               onPressed: _showSplitCountDialog,
                               icon: const Icon(Icons.call_split_rounded,
                                   size: 16),
-                              label: const Text('Bagi Tagihan'),
+                              label: const Text('Bagi'),
                               style: TextButton.styleFrom(
                                   foregroundColor: AppColors.accent),
                             ),
@@ -297,6 +306,160 @@ class PaymentView extends GetView<PaymentController> {
             ],
           ),
         ));
+  }
+
+  void _showHutangDialog(BuildContext context) {
+    final customerCtrl = TextEditingController(
+        text: controller.order.customerName);
+    final paidCtrl = TextEditingController();
+    double amountPaid = 0;
+    final total = controller.order.total;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) {
+          final kembalian = (amountPaid - total).clamp(0.0, double.infinity);
+          final sisaHutang = (total - amountPaid).clamp(0.0, double.infinity);
+          final isOverpaid = amountPaid >= total;
+
+          return AlertDialog(
+            title: const Text('Hutang / Down Payment'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Total tagihan
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Total Tagihan',
+                            style: TextStyle(fontSize: 13)),
+                        Text(
+                          CurrencyHelper.formatRupiah(total),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: customerCtrl,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Nama Pelanggan',
+                      prefixIcon: Icon(Icons.person_outline_rounded),
+                      hintText: 'Opsional',
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: paidCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Jumlah Dibayar Sekarang',
+                      prefixText: 'Rp ',
+                      hintText: '0  (kosongkan jika hutang penuh)',
+                      isDense: true,
+                    ),
+                    onChanged: (v) => setState(() {
+                      amountPaid = double.tryParse(
+                              v.replaceAll('.', '').trim()) ??
+                          0;
+                    }),
+                  ),
+                  const SizedBox(height: 14),
+                  // Live preview
+                  if (amountPaid > 0)
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isOverpaid
+                            ? Colors.green.shade50
+                            : Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isOverpaid
+                              ? Colors.green.shade200
+                              : Colors.orange.shade200,
+                        ),
+                      ),
+                      child: isOverpaid
+                          ? Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Kembalian',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.success)),
+                                Text(
+                                  CurrencyHelper.formatRupiah(kembalian),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.success,
+                                      fontSize: 15),
+                                ),
+                              ],
+                            )
+                          : Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Sisa Hutang',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.orange)),
+                                Text(
+                                  CurrencyHelper.formatRupiah(sisaHutang),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.orange.shade700,
+                                      fontSize: 15),
+                                ),
+                              ],
+                            ),
+                    ),
+                  if (amountPaid == 0)
+                    Text(
+                      'Seluruh Rp ${CurrencyHelper.formatRupiah(total)} akan dicatat sebagai hutang',
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.orange.shade700),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Batal')),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  controller.processDebt(
+                    amountPaid: amountPaid,
+                    customerName: customerCtrl.text.trim(),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange.shade600,
+                    foregroundColor: Colors.white),
+                child: Text(isOverpaid ? 'Proses Pembayaran' : 'Konfirmasi Hutang'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   void _showSplitCountDialog() {
