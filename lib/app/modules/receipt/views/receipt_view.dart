@@ -5,8 +5,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../data/models/payment_entry_model.dart';
-import '../../../data/models/split_transaction_model.dart';
 import '../../../data/models/transaction_model.dart';
+import '../../../data/providers/storage_provider.dart';
 import '../../../data/repositories/transaction_repository.dart';
 import '../../../routes/app_routes.dart';
 import '../../../services/printer_service.dart';
@@ -24,21 +24,34 @@ class _ReceiptViewState extends State<ReceiptView> {
   final _screenshotController = ScreenshotController();
   bool _isSharing = false;
   late Future<List<PaymentEntry>> _paymentsFuture;
-  late Future<List<SplitTransactionModel>> _splitsFuture;
+  late Future<Map<String, String>> _storeInfoFuture;
   final _txRepo = Get.find<TransactionRepository>();
+  final _db = Get.find<DatabaseProvider>();
 
   @override
   void initState() {
     super.initState();
     final transaction = Get.arguments as TransactionModel;
     _paymentsFuture = _txRepo.getPayments(transaction.id);
-    _splitsFuture = _txRepo.getSplits(transaction.id);
+    _storeInfoFuture = _loadStoreInfo();
   }
 
-  String _buildReceiptText(TransactionModel transaction) {
+  Future<Map<String, String>> _loadStoreInfo() async {
+    final name = await _db.getSetting('store_name') ?? 'Kasir Pintar';
+    final address = await _db.getSetting('store_address') ?? '';
+    final logo = await _db.getSetting('store_logo_path') ?? '';
+    final footer = await _db.getSetting('store_footer') ?? '';
+    return {'name': name, 'address': address, 'logo': logo, 'footer': footer};
+  }
+
+  String _buildReceiptText(
+      TransactionModel transaction, Map<String, String> storeInfo) {
+    final storeName = storeInfo['name'] ?? 'Kasir Pintar';
+    final storeAddress = storeInfo['address'] ?? '';
     final sep = '─' * 32;
     final buf = StringBuffer();
-    buf.writeln('🏪 KASIR PINTAR');
+    buf.writeln('🏪 ${storeName.toUpperCase()}');
+    if (storeAddress.isNotEmpty) buf.writeln(storeAddress);
     buf.writeln(sep);
     buf.writeln(transaction.invoiceNumber);
     final orderLabel = transaction.orderType == 'take_away' ? 'Take Away' : 'Dine In';
@@ -74,13 +87,19 @@ class _ReceiptViewState extends State<ReceiptView> {
     }
     buf.writeln(sep);
     buf.writeln('Terima kasih telah berbelanja! 🙏');
+    final footer = storeInfo['footer'] ?? '';
+    if (footer.isNotEmpty) {
+      buf.writeln(sep);
+      buf.writeln(footer);
+    }
     return buf.toString();
   }
 
   Future<void> _shareReceipt(TransactionModel transaction) async {
     setState(() => _isSharing = true);
     try {
-      final receiptText = _buildReceiptText(transaction);
+      final storeInfo = await _storeInfoFuture;
+      final receiptText = _buildReceiptText(transaction, storeInfo);
       final image = await _screenshotController.capture(pixelRatio: 2.0);
       if (image != null) {
         final dir = await getTemporaryDirectory();
@@ -115,6 +134,21 @@ class _ReceiptViewState extends State<ReceiptView> {
         title: const Text('Struk Pembayaran'),
         automaticallyImplyLeading: false,
         actions: [
+          _isSharing
+              ? const Padding(
+                  padding: EdgeInsets.all(14),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
+                  ),
+                )
+              : IconButton(
+                  icon: const Icon(Icons.share_rounded),
+                  tooltip: 'Bagikan Struk',
+                  onPressed: () => _shareReceipt(transaction),
+                ),
           IconButton(
             icon: const Icon(Icons.close),
             onPressed: () => Get.offAllNamed(AppRoutes.main),
@@ -204,70 +238,112 @@ class _ReceiptViewState extends State<ReceiptView> {
                             ),
                           ),
 
-                          // Header struk
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 16,
-                              horizontal: 20,
-                            ),
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                            ),
-                            child: Column(
-                              children: [
-                                const Text(
-                                  '🏪 KASIR PINTAR',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    letterSpacing: 1,
-                                  ),
+                          // Header struk — nama toko, logo, alamat
+                          FutureBuilder<Map<String, String>>(
+                            future: _storeInfoFuture,
+                            builder: (context, snap) {
+                              final info = snap.data ?? {};
+                              final storeName = info['name'] ?? 'Kasir Pintar';
+                              final address = info['address'] ?? '';
+                              final logoPath = info['logo'] ?? '';
+                              final hasLogo = logoPath.isNotEmpty &&
+                                  File(logoPath).existsSync();
+
+                              return Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 16, horizontal: 20),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primary,
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  transaction.invoiceNumber,
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                                child: Column(
                                   children: [
-                                    Icon(
-                                      transaction.orderType == 'take_away'
-                                          ? Icons.takeout_dining_rounded
-                                          : Icons.restaurant_rounded,
-                                      color: Colors.white70,
-                                      size: 14,
-                                    ),
-                                    const SizedBox(width: 4),
+                                    // Logo
+                                    if (hasLogo) ...[
+                                      ClipRRect(
+                                        borderRadius:
+                                            BorderRadius.circular(8),
+                                        child: Image.file(
+                                          File(logoPath),
+                                          height: 64,
+                                          width: 64,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                    ],
+                                    // Nama toko
                                     Text(
-                                      transaction.orderTypeLabel +
-                                          (transaction.tableNumber != null
-                                              ? ' · Meja ${transaction.tableNumber}'
-                                              : ''),
+                                      storeName.toUpperCase(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        letterSpacing: 1,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    // Alamat
+                                    if (address.isNotEmpty) ...[
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        address,
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 11,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                    const SizedBox(height: 6),
+                                    // Invoice number
+                                    Text(
+                                      transaction.invoiceNumber,
                                       style: const TextStyle(
                                         color: Colors.white70,
                                         fontSize: 12,
                                       ),
                                     ),
+                                    const SizedBox(height: 4),
+                                    // Order type
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          transaction.orderType == 'take_away'
+                                              ? Icons.takeout_dining_rounded
+                                              : Icons.restaurant_rounded,
+                                          color: Colors.white70,
+                                          size: 14,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          transaction.orderTypeLabel +
+                                              (transaction.tableNumber != null
+                                                  ? ' · Meja ${transaction.tableNumber}'
+                                                  : ''),
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    if (transaction.customerName.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '👤 ${transaction.customerName}',
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
-                                const SizedBox(height: 8),
-                                if (transaction.customerName.isNotEmpty)
-                                  Text(
-                                    '👤 ${transaction.customerName}',
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
 
                           // Items
@@ -428,20 +504,45 @@ class _ReceiptViewState extends State<ReceiptView> {
                           ),
 
                           // Footer
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            decoration: const BoxDecoration(
-                              color: AppColors.background,
-                            ),
-                            child: const Text(
-                              'Terima kasih telah berbelanja!\nSilakan kunjungi kami kembali.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
+                          FutureBuilder<Map<String, String>>(
+                            future: _storeInfoFuture,
+                            builder: (context, snap) {
+                              final footer =
+                                  snap.data?['footer'] ?? '';
+                              return Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.fromLTRB(
+                                    12, 12, 12, 16),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.background,
+                                ),
+                                child: Column(
+                                  children: [
+                                    const Text(
+                                      'Terima kasih telah berbelanja!\nSilakan kunjungi kami kembali.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    if (footer.isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      const Divider(height: 1),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        footer,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -485,43 +586,6 @@ class _ReceiptViewState extends State<ReceiptView> {
                       ),
                     ),
                   ),
-                // Bagikan Struk (all platforms)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _isSharing
-                          ? null
-                          : () => _shareReceipt(transaction),
-                      icon: _isSharing
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
-                              ),
-                            )
-                          : const Icon(Icons.share_rounded, size: 20),
-                      label: Text(
-                        _isSharing ? 'Menyiapkan...' : 'Bagikan Struk',
-                        style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: AppColors.accent,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
                 Row(
                   children: [
                     Expanded(

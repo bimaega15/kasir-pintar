@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import '../models/cart_item_model.dart';
+import '../models/category_model.dart';
 import '../models/order_item_model.dart';
 import '../models/order_model.dart';
 import '../models/payment_entry_model.dart';
@@ -16,7 +17,7 @@ import '../models/void_log_model.dart';
 /// Provider SQLite — mendukung offline penuh tanpa jaringan.
 class DatabaseProvider extends GetxService {
   static const _dbName = 'kasir_pintar.db';
-  static const _dbVersion = 7;
+  static const _dbVersion = 8;
 
   late Database _db;
 
@@ -238,10 +239,29 @@ class DatabaseProvider extends GetxService {
       )
     ''');
 
+    batch.execute('''
+      CREATE TABLE categories (
+        id         TEXT PRIMARY KEY,
+        name       TEXT NOT NULL,
+        icon       TEXT NOT NULL DEFAULT '📦',
+        sort_order INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+
     await batch.commit(noResult: true);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 8) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS categories (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          icon TEXT NOT NULL DEFAULT '📦',
+          sort_order INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+    }
     if (oldVersion < 7) {
       await db.execute('''
         CREATE TABLE IF NOT EXISTS debts (
@@ -405,6 +425,25 @@ class DatabaseProvider extends GetxService {
       final batch = _db.batch();
       for (final t in TableModel.defaultTables) {
         batch.insert('tables', _tableToMap(t));
+      }
+      await batch.commit(noResult: true);
+    }
+
+    final categoryCount =
+        Sqflite.firstIntValue(
+          await _db.rawQuery('SELECT COUNT(*) FROM categories'),
+        ) ??
+        0;
+    if (categoryCount == 0) {
+      final batch = _db.batch();
+      final defaults = [
+        const CategoryModel(id: 'food', name: 'Makanan', icon: '🍔'),
+        const CategoryModel(id: 'drink', name: 'Minuman', icon: '☕'),
+        const CategoryModel(id: 'snack', name: 'Snack', icon: '🍿'),
+        const CategoryModel(id: 'other', name: 'Lainnya', icon: '📦'),
+      ];
+      for (int i = 0; i < defaults.length; i++) {
+        batch.insert('categories', _categoryToMap(defaults[i], i));
       }
       await batch.commit(noResult: true);
     }
@@ -733,6 +772,7 @@ class DatabaseProvider extends GetxService {
         total: (m['total'] as num).toDouble(),
         items: itemsByOrder[oid] ?? [],
         payments: paymentsByOrder[oid] ?? [],
+        customerName: m['customer_name'] as String? ?? '',
         cashierName: m['cashier_name'] as String? ?? 'Kasir',
         createdAt: DateTime.parse(m['created_at'] as String),
         kitchenSentAt: m['kitchen_sent_at'] != null
@@ -1027,6 +1067,15 @@ class DatabaseProvider extends GetxService {
     return debts;
   }
 
+  Future<DebtModel?> getDebtByInvoice(String invoiceNumber) async {
+    final maps = await _db.query('debts',
+        where: 'invoice_number = ?', whereArgs: [invoiceNumber]);
+    if (maps.isEmpty) return null;
+    final debt = DebtModel.fromMap(maps.first);
+    debt.payments = await getDebtPayments(debt.id);
+    return debt;
+  }
+
   Future<DebtModel?> getDebtById(String id) async {
     final maps = await _db.query('debts', where: 'id = ?', whereArgs: [id]);
     if (maps.isEmpty) return null;
@@ -1077,6 +1126,47 @@ class DatabaseProvider extends GetxService {
     );
     return (result.first['total'] as num?)?.toDouble() ?? 0.0;
   }
+
+  // ── Categories ────────────────────────────────────────────────────────────
+
+  Future<List<CategoryModel>> getCategories() async {
+    final maps = await _db.query('categories', orderBy: 'sort_order ASC, name ASC');
+    return maps.map(_categoryFromMap).toList();
+  }
+
+  Future<void> insertCategory(CategoryModel category, {int sortOrder = 999}) async {
+    await _db.insert(
+      'categories',
+      _categoryToMap(category, sortOrder),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> updateCategory(CategoryModel category) async {
+    await _db.update(
+      'categories',
+      {'name': category.name, 'icon': category.icon},
+      where: 'id = ?',
+      whereArgs: [category.id],
+    );
+  }
+
+  Future<void> deleteCategory(String id) async {
+    await _db.delete('categories', where: 'id = ?', whereArgs: [id]);
+  }
+
+  CategoryModel _categoryFromMap(Map<String, Object?> m) => CategoryModel(
+    id: m['id'] as String,
+    name: m['name'] as String,
+    icon: m['icon'] as String? ?? '📦',
+  );
+
+  Map<String, Object?> _categoryToMap(CategoryModel c, int sortOrder) => {
+    'id': c.id,
+    'name': c.name,
+    'icon': c.icon,
+    'sort_order': sortOrder,
+  };
 
   // ── Invoice Number ────────────────────────────────────────────────────────
 

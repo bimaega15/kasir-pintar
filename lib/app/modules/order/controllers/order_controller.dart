@@ -5,6 +5,7 @@ import '../../../data/models/order_item_model.dart';
 import '../../../data/models/order_model.dart';
 import '../../../data/models/product_model.dart';
 import '../../../data/models/table_model.dart';
+import '../../../data/repositories/category_repository.dart';
 import '../../../data/repositories/order_repository.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/table_repository.dart';
@@ -17,6 +18,7 @@ class OrderController extends GetxController {
   final _tableRepo = Get.find<TableRepository>();
   final _productRepo = Get.find<ProductRepository>();
   final _transactionRepo = Get.find<TransactionRepository>();
+  final _categoryRepo = Get.find<CategoryRepository>();
 
   // ── Active order state ────────────────────────────────────────────────────
   final orderType = OrderType.dineIn.obs;
@@ -32,7 +34,7 @@ class OrderController extends GetxController {
   final parkedCount = 0.obs;
 
   // ── Product browsing ──────────────────────────────────────────────────────
-  List<CategoryModel> get categories => CategoryModel.defaultCategories;
+  final categories = <CategoryModel>[].obs;
   final products = <ProductModel>[].obs;
   final selectedCategory = 'all'.obs;
   final searchQuery = ''.obs;
@@ -52,6 +54,7 @@ class OrderController extends GetxController {
   void onInit() {
     super.onInit();
     loadProducts();
+    loadCategories();
     loadTables();
     loadSettings();
     loadParkedCount();
@@ -73,6 +76,18 @@ class OrderController extends GetxController {
   Future<void> loadProducts() async {
     final list = await _productRepo.getAll();
     products.assignAll(list);
+  }
+
+  Future<void> loadCategories() async {
+    try {
+      final list = await _categoryRepo.getAll();
+      categories.assignAll([
+        const CategoryModel(id: 'all', name: 'Semua', icon: '🏪'),
+        ...list,
+      ]);
+    } catch (_) {
+      categories.assignAll(CategoryModel.defaultCategories);
+    }
   }
 
   Future<void> loadTables() async {

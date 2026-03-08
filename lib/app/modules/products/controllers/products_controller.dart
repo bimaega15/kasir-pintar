@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/category_model.dart';
 import '../../../data/models/product_model.dart';
+import '../../../data/repositories/category_repository.dart';
 import '../../../data/repositories/product_repository.dart';
 
 class ProductsController extends GetxController {
   final _productRepo = Get.find<ProductRepository>();
+  final _categoryRepo = Get.find<CategoryRepository>();
 
   final products = <ProductModel>[].obs;
+  final categories = <CategoryModel>[].obs;
   final filterCategory = 'all'.obs;
   final searchQuery = ''.obs;
   final searchController = TextEditingController();
-
-  List<CategoryModel> get categories => CategoryModel.defaultCategories;
 
   // Form fields for add/edit
   final nameController = TextEditingController();
@@ -28,10 +29,33 @@ class ProductsController extends GetxController {
   void onInit() {
     super.onInit();
     loadProducts();
+    loadCategories();
     searchController.addListener(() {
       searchQuery.value = searchController.text;
     });
   }
+
+  Future<void> loadCategories() async {
+    try {
+      final list = await _categoryRepo.getAll();
+      // Prepend "Semua" for the filter tab; exclude from form dropdown
+      categories.assignAll([
+        const CategoryModel(id: 'all', name: 'Semua', icon: '🏪'),
+        ...list,
+      ]);
+      // If editing a product whose categoryId no longer exists, fallback
+      if (!categories.any((c) => c.id == selectedCategoryId.value)) {
+        selectedCategoryId.value = list.isNotEmpty ? list.first.id : 'other';
+      }
+    } catch (e) {
+      // Fallback to hardcoded defaults if DB fails
+      categories.assignAll(CategoryModel.defaultCategories);
+    }
+  }
+
+  /// Categories excluding "Semua" — used in add/edit product form
+  List<CategoryModel> get formCategories =>
+      categories.where((c) => c.id != 'all').toList();
 
   @override
   void onClose() {
@@ -93,7 +117,8 @@ class ProductsController extends GetxController {
 
   void prepareAdd() {
     editingProduct = null;
-    selectedCategoryId.value = 'food';
+    final firstReal = formCategories.isNotEmpty ? formCategories.first.id : 'other';
+    selectedCategoryId.value = firstReal;
     selectedEmoji.value = '📦';
     
     // Safely reset controllers

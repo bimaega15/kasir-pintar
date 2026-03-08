@@ -198,28 +198,33 @@ class AddEditProductView extends GetView<ProductsController> {
   }
 
   Widget _buildCategoryDropdown() {
-    final cats = controller.categories
-        .where((c) => c.id != 'all')
-        .toList();
-    return Obx(() => InputDecorator(
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.category_outlined),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          ),
-          child: DropdownButton<String>(
-            value: controller.selectedCategoryId.value,
-            isExpanded: true,
-            underline: const SizedBox(),
-            items: cats
-                .map((cat) => DropdownMenuItem(
-                      value: cat.id,
-                      child: Text('${cat.icon} ${cat.name}'),
-                    ))
-                .toList(),
-            onChanged: (val) {
-              if (val != null) controller.selectedCategoryId.value = val;
-            },
-          ),
-        ));
+    return Obx(() {
+      final cats = controller.formCategories;
+      final currentId = controller.selectedCategoryId.value;
+      // Ensure value is valid in current list; fallback to first
+      final validId = cats.any((c) => c.id == currentId)
+          ? currentId
+          : (cats.isNotEmpty ? cats.first.id : currentId);
+      return InputDecorator(
+        decoration: const InputDecoration(
+          prefixIcon: Icon(Icons.category_outlined),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        ),
+        child: DropdownButton<String>(
+          value: validId,
+          isExpanded: true,
+          underline: const SizedBox(),
+          items: cats
+              .map((cat) => DropdownMenuItem(
+                    value: cat.id,
+                    child: Text('${cat.icon} ${cat.name}'),
+                  ))
+              .toList(),
+          onChanged: (val) {
+            if (val != null) controller.selectedCategoryId.value = val;
+          },
+        ),
+      );
+    });
   }
 }

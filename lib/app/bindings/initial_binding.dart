@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../data/repositories/category_repository.dart';
 import '../data/repositories/debt_repository.dart';
 import '../data/repositories/order_repository.dart';
 import '../data/repositories/product_repository.dart';
@@ -15,6 +16,7 @@ import '../modules/kitchen/controllers/kitchen_controller.dart';
 class InitialBinding extends Bindings {
   @override
   void dependencies() {
+    Get.lazyPut<CategoryRepository>(() => CategoryRepository(), fenix: true);
     Get.lazyPut<ProductRepository>(() => ProductRepository(), fenix: true);
     Get.lazyPut<TransactionRepository>(() => TransactionRepository(),
         fenix: true);

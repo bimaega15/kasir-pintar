@@ -40,10 +40,10 @@ class DebtController extends GetxController {
     required String method,
     String notes = '',
   }) async {
-    if (amount <= 0 || amount > debt.remainingAmount) {
+    if (amount <= 0) {
       Get.snackbar(
         'Nominal Tidak Valid',
-        'Masukkan nominal antara Rp 1 – ${CurrencyHelper.formatRupiah(debt.remainingAmount)}',
+        'Masukkan nominal lebih dari 0',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.shade100,
         colorText: Colors.red.shade900,
@@ -51,22 +51,43 @@ class DebtController extends GetxController {
       return;
     }
 
+    // Credit only up to remaining; excess is kembalian (change)
+    final credited = amount.clamp(0.0, debt.remainingAmount);
+    final kembalian = amount - credited;
+
+    // Store both paid & kembalian in notes for display in history
+    final paymentNotes = kembalian > 0
+        ? 'Dibayar: ${CurrencyHelper.formatRupiah(amount)} · Kembalian: ${CurrencyHelper.formatRupiah(kembalian)}'
+        : notes;
+
     final entry = DebtPaymentEntry(
       debtId: debt.id,
-      amount: amount,
+      amount: credited,
       method: method,
-      notes: notes,
+      notes: paymentNotes,
     );
 
     await _repo.recordPayment(entry);
     await loadDebts();
 
-    final wasFullyPaid = amount >= debt.remainingAmount;
+    final wasFullyPaid = credited >= debt.remainingAmount;
+    final name = debt.customerName.isNotEmpty
+        ? debt.customerName
+        : debt.invoiceNumber;
+
+    String message;
+    if (wasFullyPaid && kembalian > 0) {
+      message = '$name telah melunasi hutang\n'
+          'Kembalian: ${CurrencyHelper.formatRupiah(kembalian)}';
+    } else if (wasFullyPaid) {
+      message = '$name telah melunasi hutang';
+    } else {
+      message = 'Sisa hutang: ${CurrencyHelper.formatRupiah(debt.remainingAmount - credited)}';
+    }
+
     Get.snackbar(
       wasFullyPaid ? 'Hutang Lunas' : 'Pembayaran Dicatat',
-      wasFullyPaid
-          ? '${debt.customerName.isNotEmpty ? debt.customerName : debt.invoiceNumber} telah melunasi hutang'
-          : 'Sisa hutang: ${CurrencyHelper.formatRupiah(debt.remainingAmount - amount)}',
+      message,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor:
           wasFullyPaid ? Colors.green.shade100 : Colors.blue.shade100,
@@ -84,76 +105,130 @@ class DebtController extends GetxController {
   void showRecordPaymentDialog(BuildContext context, DebtModel debt) {
     final amountCtrl = TextEditingController();
     String selectedMethod = 'Tunai';
+    double amountPaid = 0;
     final methods = ['Tunai', 'Transfer', 'QRIS', 'Kartu Debit', 'E-Wallet'];
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          title: Text(
-            debt.customerName.isNotEmpty
-                ? 'Bayar Hutang – ${debt.customerName}'
-                : 'Bayar Hutang – ${debt.invoiceNumber}',
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Sisa hutang: ${CurrencyHelper.formatRupiah(debt.remainingAmount)}',
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: selectedMethod,
-                decoration: const InputDecoration(
-                  labelText: 'Metode Pembayaran',
-                  isDense: true,
+        builder: (ctx, setState) {
+          final kembalian = (amountPaid - debt.remainingAmount).clamp(0.0, double.infinity);
+          final isOverpaid = amountPaid > debt.remainingAmount;
+
+          return AlertDialog(
+            title: Text(
+              debt.customerName.isNotEmpty
+                  ? 'Bayar Hutang – ${debt.customerName}'
+                  : 'Bayar Hutang – ${debt.invoiceNumber}',
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Sisa hutang: ${CurrencyHelper.formatRupiah(debt.remainingAmount)}',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 14),
                 ),
-                items: methods
-                    .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) setState(() => selectedMethod = v);
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  initialValue: selectedMethod,
+                  decoration: const InputDecoration(
+                    labelText: 'Metode Pembayaran',
+                    isDense: true,
+                  ),
+                  items: methods
+                      .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) setState(() => selectedMethod = v);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: amountCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Nominal Pembayaran',
+                    prefixText: 'Rp ',
+                    hintText: debt.remainingAmount.toStringAsFixed(0),
+                    isDense: true,
+                  ),
+                  autofocus: true,
+                  onChanged: (v) => setState(() {
+                    amountPaid = double.tryParse(
+                            v.replaceAll('.', '').trim()) ??
+                        0;
+                  }),
+                ),
+                if (amountPaid > 0) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isOverpaid
+                          ? Colors.green.shade50
+                          : Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isOverpaid
+                            ? Colors.green.shade200
+                            : Colors.blue.shade200,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          isOverpaid ? 'Kembalian' : 'Sisa Hutang',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: isOverpaid
+                                ? Colors.green.shade700
+                                : Colors.blue.shade700,
+                          ),
+                        ),
+                        Text(
+                          CurrencyHelper.formatRupiah(isOverpaid
+                              ? kembalian
+                              : debt.remainingAmount - amountPaid),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: isOverpaid
+                                ? Colors.green.shade700
+                                : Colors.blue.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final amount = double.tryParse(
+                          amountCtrl.text.replaceAll('.', '').trim()) ??
+                      0;
+                  Navigator.pop(ctx);
+                  recordPayment(
+                    debt: debt,
+                    amount: amount,
+                    method: selectedMethod,
+                  );
                 },
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: amountCtrl,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Nominal Pembayaran',
-                  prefixText: 'Rp ',
-                  hintText:
-                      debt.remainingAmount.toStringAsFixed(0),
-                  isDense: true,
-                ),
-                autofocus: true,
+                child: const Text('Simpan'),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final amount = double.tryParse(
-                        amountCtrl.text.replaceAll('.', '').trim()) ??
-                    0;
-                Navigator.pop(ctx);
-                recordPayment(
-                  debt: debt,
-                  amount: amount,
-                  method: selectedMethod,
-                );
-              },
-              child: const Text('Simpan'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

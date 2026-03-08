@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/settings_controller.dart';
@@ -74,16 +75,129 @@ class SettingsView extends GetView<SettingsController> {
               _section(
                 title: 'Informasi Toko',
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Logo upload
+                    const Text(
+                      'Logo Toko',
+                      style: TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 8),
+                    Obx(() {
+                      final path = controller.logoPath.value;
+                      return Row(
+                        children: [
+                          // Preview
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: AppColors.background,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                  color: AppColors.textSecondary
+                                      .withValues(alpha: 0.2)),
+                            ),
+                            child: path.isNotEmpty && File(path).existsSync()
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.file(
+                                      File(path),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : const Icon(Icons.store_rounded,
+                                    size: 36,
+                                    color: AppColors.textSecondary),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    onPressed: controller.pickLogo,
+                                    icon: const Icon(Icons.upload_rounded,
+                                        size: 16),
+                                    label: Text(path.isNotEmpty
+                                        ? 'Ganti Logo'
+                                        : 'Upload Logo'),
+                                    style: ElevatedButton.styleFrom(
+                                      visualDensity: VisualDensity.compact,
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 10),
+                                    ),
+                                  ),
+                                ),
+                                if (path.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton.icon(
+                                      onPressed: controller.clearLogo,
+                                      icon: const Icon(
+                                          Icons.delete_outline_rounded,
+                                          size: 16),
+                                      label: const Text('Hapus Logo'),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: AppColors.error,
+                                        side: const BorderSide(
+                                            color: AppColors.error),
+                                        visualDensity: VisualDensity.compact,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 8),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: controller.storeNameController,
                       decoration: const InputDecoration(
                         labelText: 'Nama Toko',
                         prefixIcon: Icon(Icons.store_rounded),
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       maxLines: 1,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: controller.storeAddressController,
+                      decoration: const InputDecoration(
+                        labelText: 'Alamat Toko',
+                        prefixIcon: Icon(Icons.location_on_rounded),
+                        border: OutlineInputBorder(),
+                        hintText: 'Jl. Contoh No. 1, Kota',
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: controller.storeFooterController,
+                      decoration: const InputDecoration(
+                        labelText: 'Catatan Kaki Struk',
+                        prefixIcon: Icon(Icons.notes_rounded),
+                        border: OutlineInputBorder(),
+                        hintText:
+                            'Contoh: Instagram: @tokoku | Promo setiap Jumat!',
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        helperText: 'Tampil di bagian bawah struk (opsional)',
+                      ),
+                      maxLines: 3,
                     ),
                   ],
                 ),

@@ -13,6 +13,9 @@ class DebtRepository {
 
   Future<DebtModel?> getById(String id) => _db.getDebtById(id);
 
+  Future<DebtModel?> getByInvoice(String invoiceNumber) =>
+      _db.getDebtByInvoice(invoiceNumber);
+
   Future<void> recordPayment(DebtPaymentEntry payment) =>
       _db.insertDebtPayment(payment);
 

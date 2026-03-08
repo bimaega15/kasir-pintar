@@ -46,6 +46,9 @@ import '../modules/void_log/views/void_log_detail_view.dart';
 import '../modules/login/bindings/login_binding.dart';
 import '../modules/login/views/login_view.dart';
 import '../modules/login/views/setup_view.dart';
+import '../modules/categories/bindings/categories_binding.dart';
+import '../modules/categories/views/categories_view.dart';
+import '../modules/categories/views/add_edit_category_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -210,6 +213,19 @@ class AppPages {
       page: () => const SetupView(),
       binding: LoginBinding(),
       transition: Transition.fadeIn,
+    ),
+    // ── Master Kategori ───────────────────────────────────────────────────────
+    GetPage(
+      name: AppRoutes.categories,
+      page: () => const CategoriesView(),
+      binding: CategoriesBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.addEditCategory,
+      page: () => const AddEditCategoryView(),
+      binding: CategoriesBinding(),
+      transition: Transition.downToUp,
     ),
     // ── v3: Void Log ──────────────────────────────────────────────────────────
     GetPage(

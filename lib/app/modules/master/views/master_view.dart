@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
+import '../../categories/controllers/categories_controller.dart';
 import '../../products/controllers/products_controller.dart';
 import '../../tables/controllers/tables_controller.dart';
 
@@ -56,6 +57,35 @@ class MasterPageContent extends StatelessWidget {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  minimumSize: const Size.fromHeight(36),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildMenuCard(
+              icon: Icons.category_rounded,
+              title: 'Kategori Produk',
+              subtitle: 'Kelola kategori untuk mengorganisir produk',
+              color: Colors.purple.shade600,
+              onTap: () => Get.toNamed(AppRoutes.categories),
+              actionButton: ElevatedButton.icon(
+                onPressed: () {
+                  if (!Get.isRegistered<CategoriesController>()) {
+                    Get.put(CategoriesController());
+                  }
+                  final ctrl = Get.find<CategoriesController>();
+                  ctrl.prepareAdd();
+                  Get.toNamed(AppRoutes.addEditCategory);
+                },
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('Tambah Kategori'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple.shade600,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  textStyle: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w600),
                   minimumSize: const Size.fromHeight(36),
                 ),
               ),
