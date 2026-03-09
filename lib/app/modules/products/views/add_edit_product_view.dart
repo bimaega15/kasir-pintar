@@ -115,6 +115,10 @@ class AddEditProductView extends GetView<ProductsController> {
                 alignLabelWithHint: true,
               ),
             ),
+            const SizedBox(height: 20),
+
+            // Price Levels
+            _buildPriceLevelsSection(),
             const SizedBox(height: 32),
           ],
         ),
@@ -195,6 +199,42 @@ class AddEditProductView extends GetView<ProductsController> {
             ],
           ),
         ));
+  }
+
+  Widget _buildPriceLevelsSection() {
+    return Obx(() {
+      final levels = controller.availablePriceLevels;
+      if (levels.isEmpty) return const SizedBox.shrink();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionLabel('Harga Per Level (opsional)'),
+          const SizedBox(height: 4),
+          Text(
+            'Kosongkan jika sama dengan harga utama',
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+          ),
+          const SizedBox(height: 10),
+          ...levels.map((level) {
+            final ctrl = controller.levelPriceControllers[level.id];
+            if (ctrl == null) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: TextField(
+                controller: ctrl,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: level.name + (level.isDefault ? ' (default)' : ''),
+                  hintText: '0',
+                  prefixText: 'Rp ',
+                  prefixIcon: const Icon(Icons.sell_outlined),
+                ),
+              ),
+            );
+          }),
+        ],
+      );
+    });
   }
 
   Widget _buildCategoryDropdown() {

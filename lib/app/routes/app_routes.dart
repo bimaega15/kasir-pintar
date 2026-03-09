@@ -37,4 +37,7 @@ abstract class AppRoutes {
   // master kategori
   static const categories = '/categories';
   static const addEditCategory = '/categories/form';
+  // level harga
+  static const priceLevels = '/price-levels';
+  static const addEditPriceLevel = '/price-levels/form';
 }

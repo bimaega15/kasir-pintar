@@ -5,8 +5,10 @@ import '../../../data/models/order_item_model.dart';
 import '../../../data/models/order_model.dart';
 import '../../../data/models/product_model.dart';
 import '../../../data/models/table_model.dart';
+import '../../../data/models/price_level_model.dart';
 import '../../../data/repositories/category_repository.dart';
 import '../../../data/repositories/order_repository.dart';
+import '../../../data/repositories/price_level_repository.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/table_repository.dart';
 import '../../../data/repositories/transaction_repository.dart';
@@ -19,6 +21,7 @@ class OrderController extends GetxController {
   final _productRepo = Get.find<ProductRepository>();
   final _transactionRepo = Get.find<TransactionRepository>();
   final _categoryRepo = Get.find<CategoryRepository>();
+  final _priceLevelRepo = Get.find<PriceLevelRepository>();
 
   // ── Active order state ────────────────────────────────────────────────────
   final orderType = OrderType.dineIn.obs;
@@ -47,6 +50,10 @@ class OrderController extends GetxController {
   final taxPercent = 0.0.obs;
   final serviceChargePercent = 0.0.obs;
 
+  // ── Price levels ──────────────────────────────────────────────────────────
+  final priceLevels = <PriceLevelModel>[].obs;
+  final activePriceLevelId = ''.obs;
+
   // ── Tables (for selection view) ───────────────────────────────────────────
   final tables = <TableModel>[].obs;
 
@@ -58,6 +65,7 @@ class OrderController extends GetxController {
     loadTables();
     loadSettings();
     loadParkedCount();
+    loadPriceLevels();
     searchController.addListener(
       () => searchQuery.value = searchController.text,
     );
@@ -76,6 +84,70 @@ class OrderController extends GetxController {
   Future<void> loadProducts() async {
     final list = await _productRepo.getAll();
     products.assignAll(list);
+  }
+
+  /// Dipanggil setelah scan QR. Format: `PRODUCT:<id>|<name>|<price>`
+  void handleScannedQr(String rawValue) {
+    if (!rawValue.startsWith('PRODUCT:')) {
+      Get.snackbar(
+        'Format Tidak Dikenal',
+        'QR ini bukan kode produk Kasir Pintar',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange.shade100,
+        colorText: Colors.orange.shade900,
+        duration: const Duration(seconds: 2),
+      );
+      return;
+    }
+    final parts = rawValue.substring(8).split('|');
+    if (parts.isEmpty) return;
+    final productId = parts[0];
+    final product = products.firstWhereOrNull((p) => p.id == productId);
+    if (product != null) {
+      addToCart(product);
+      Get.snackbar(
+        'Produk Ditambahkan',
+        '${product.emoji} ${product.name}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.shade100,
+        colorText: Colors.green.shade900,
+        duration: const Duration(seconds: 2),
+      );
+    } else {
+      Get.snackbar(
+        'Produk Tidak Ditemukan',
+        'ID produk tidak ada di katalog saat ini',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade900,
+        duration: const Duration(seconds: 2),
+      );
+    }
+  }
+
+  Future<void> loadPriceLevels() async {
+    try {
+      final levels = await _priceLevelRepo.getAll();
+      priceLevels.assignAll(levels);
+      final defaultLevel = levels.firstWhereOrNull((l) => l.isDefault);
+      activePriceLevelId.value = defaultLevel?.id ?? (levels.isNotEmpty ? levels.first.id : '');
+    } catch (e) {
+      print('[loadPriceLevels] Error: $e');
+    }
+  }
+
+  void setActivePriceLevel(String levelId) {
+    if (activePriceLevelId.value == levelId) return;
+    activePriceLevelId.value = levelId;
+    // Re-price all items in cart
+    for (int i = 0; i < cart.length; i++) {
+      final product = products.firstWhereOrNull((p) => p.id == cart[i].productId);
+      if (product != null) {
+        final newPrice = product.getPriceForLevel(levelId);
+        cart[i] = cart[i].copyWith(productPrice: newPrice);
+      }
+    }
+    cart.refresh();
   }
 
   Future<void> loadCategories() async {
@@ -134,11 +206,13 @@ class OrderController extends GetxController {
         );
       }
     } else {
+      final price = product.getPriceForLevel(
+          activePriceLevelId.value.isEmpty ? null : activePriceLevelId.value);
       cart.add(
         OrderItemModel(
           productId: product.id,
           productName: product.name,
-          productPrice: product.price,
+          productPrice: price,
           productEmoji: product.emoji,
           quantity: 1,
         ),

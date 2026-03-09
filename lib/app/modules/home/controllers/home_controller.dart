@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../data/models/product_model.dart';
 import '../../../data/repositories/order_repository.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/transaction_repository.dart';
 import '../../../services/check_version_service.dart';
+import '../../../services/notification_service.dart';
 import '../../../utils/helpers/currency_helper.dart';
 import '../../shift/controllers/shift_controller.dart';
 
@@ -25,6 +27,9 @@ class HomeController extends GetxController {
   final activeOrderCount = 0.obs;
   final greeting = ''.obs;
   final isLoading = false.obs;
+  final lowStockProducts = <ProductModel>[].obs;
+
+  static const int lowStockThreshold = 5;
 
   @override
   void onInit() {
@@ -71,6 +76,20 @@ class HomeController extends GetxController {
       totalTransactionsToday.value = todayTx.length;
       todayRevenue.value = todayTx.fold(0.0, (sum, t) => sum + t.total);
       activeOrderCount.value = activeOrders.length;
+
+      // Deteksi stok rendah
+      final lowStock = allProducts
+          .where((p) => p.stock <= lowStockThreshold)
+          .toList()
+        ..sort((a, b) => a.stock.compareTo(b.stock));
+      lowStockProducts.assignAll(lowStock);
+
+      // Kirim push notification jika ada stok rendah
+      if (lowStock.isNotEmpty && Get.isRegistered<NotificationService>()) {
+        Get.find<NotificationService>().showLowStockNotification(lowStock);
+      } else if (lowStock.isEmpty && Get.isRegistered<NotificationService>()) {
+        Get.find<NotificationService>().cancelLowStockNotification();
+      }
     } finally {
       isLoading.value = false;
     }

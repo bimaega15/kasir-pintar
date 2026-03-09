@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../categories/controllers/categories_controller.dart';
+import '../../price_levels/controllers/price_levels_controller.dart';
 import '../../products/controllers/products_controller.dart';
 import '../../tables/controllers/tables_controller.dart';
 
@@ -121,6 +122,33 @@ class MasterPageContent extends StatelessWidget {
                   ),
                 ],
               ),
+            const SizedBox(height: 16),
+            _buildMenuCard(
+              icon: Icons.price_change_rounded,
+              title: 'Level Harga',
+              subtitle: 'Ecer, Grosir, Khusus, dan level lainnya',
+              color: Colors.indigo.shade600,
+              onTap: () => Get.toNamed(AppRoutes.priceLevels),
+              actionButton: ElevatedButton.icon(
+                onPressed: () {
+                  if (!Get.isRegistered<PriceLevelsController>()) {
+                    Get.put(PriceLevelsController());
+                  }
+                  final ctrl = Get.find<PriceLevelsController>();
+                  ctrl.prepareAdd();
+                  Get.toNamed(AppRoutes.addEditPriceLevel);
+                },
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('Tambah Level'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.indigo.shade600,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  minimumSize: const Size.fromHeight(36),
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
             // Info Card
             Container(

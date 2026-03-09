@@ -12,12 +12,13 @@ import '../models/split_transaction_model.dart';
 import '../models/table_model.dart';
 import '../models/transaction_model.dart';
 import '../models/debt_model.dart';
+import '../models/price_level_model.dart';
 import '../models/void_log_model.dart';
 
 /// Provider SQLite — mendukung offline penuh tanpa jaringan.
 class DatabaseProvider extends GetxService {
   static const _dbName = 'kasir_pintar.db';
-  static const _dbVersion = 8;
+  static const _dbVersion = 9;
 
   late Database _db;
 
@@ -29,10 +30,8 @@ class DatabaseProvider extends GetxService {
       path,
       version: _dbVersion,
       onConfigure: (db) async {
-        // WAL mode allows concurrent reads + writes without locking conflicts
-        await db.execute('PRAGMA journal_mode=WAL');
-        // Retry for up to 5 seconds before throwing "database is locked"
-        await db.execute('PRAGMA busy_timeout=5000');
+        await db.rawQuery('PRAGMA journal_mode=WAL');
+        await db.rawQuery('PRAGMA busy_timeout=5000');
       },
       onCreate: _createTables,
       onUpgrade: _onUpgrade,
@@ -248,10 +247,48 @@ class DatabaseProvider extends GetxService {
       )
     ''');
 
+    batch.execute('''
+      CREATE TABLE price_levels (
+        id          TEXT PRIMARY KEY,
+        name        TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        sort_order  INTEGER NOT NULL DEFAULT 0,
+        is_default  INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+
+    batch.execute('''
+      CREATE TABLE product_price_levels (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id     TEXT NOT NULL,
+        price_level_id TEXT NOT NULL,
+        price          REAL NOT NULL,
+        UNIQUE(product_id, price_level_id)
+      )
+    ''');
+
     await batch.commit(noResult: true);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 9) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS price_levels (
+          id TEXT PRIMARY KEY, name TEXT NOT NULL,
+          description TEXT NOT NULL DEFAULT '',
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          is_default INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS product_price_levels (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          product_id TEXT NOT NULL, price_level_id TEXT NOT NULL,
+          price REAL NOT NULL,
+          UNIQUE(product_id, price_level_id)
+        )
+      ''');
+    }
     if (oldVersion < 8) {
       await db.execute('''
         CREATE TABLE IF NOT EXISTS categories (
@@ -429,6 +466,26 @@ class DatabaseProvider extends GetxService {
       await batch.commit(noResult: true);
     }
 
+    final priceLevelCount =
+        Sqflite.firstIntValue(
+          await _db.rawQuery('SELECT COUNT(*) FROM price_levels'),
+        ) ??
+        0;
+    if (priceLevelCount == 0) {
+      final batch = _db.batch();
+      for (int i = 0; i < PriceLevelModel.defaultLevels.length; i++) {
+        final lvl = PriceLevelModel.defaultLevels[i];
+        batch.insert('price_levels', {
+          'id': lvl.id,
+          'name': lvl.name,
+          'description': lvl.description,
+          'sort_order': i,
+          'is_default': lvl.isDefault ? 1 : 0,
+        });
+      }
+      await batch.commit(noResult: true);
+    }
+
     final categoryCount =
         Sqflite.firstIntValue(
           await _db.rawQuery('SELECT COUNT(*) FROM categories'),
@@ -454,16 +511,29 @@ class DatabaseProvider extends GetxService {
   Future<List<ProductModel>> getProducts() async {
     try {
       final maps = await _db.query('products', orderBy: 'created_at ASC');
-      print('[getProducts] Retrieved ${maps.length} product records');
-      return maps.map((m) {
-        try {
-          return _productFromMap(m);
-        } catch (e) {
-          print('[getProducts] Error parsing product: $e');
-          print('[getProducts] Problematic map: $m');
-          rethrow;
-        }
-      }).toList();
+      final products = maps.map(_productFromMap).toList();
+
+      // Load semua product_price_levels + nama level dalam 1 query JOIN
+      final priceMaps = await _db.rawQuery('''
+        SELECT ppl.product_id, ppl.price_level_id, ppl.price, pl.name as level_name
+        FROM product_price_levels ppl
+        JOIN price_levels pl ON ppl.price_level_id = pl.id
+      ''');
+
+      // Kelompokkan per product_id
+      final priceMap = <String, List<ProductPriceLevelEntry>>{};
+      for (final row in priceMaps) {
+        final pid = row['product_id'] as String;
+        priceMap.putIfAbsent(pid, () => []).add(ProductPriceLevelEntry(
+          priceLevelId: row['price_level_id'] as String,
+          priceLevelName: row['level_name'] as String,
+          price: (row['price'] as num).toDouble(),
+        ));
+      }
+      for (final p in products) {
+        p.priceLevels = priceMap[p.id] ?? [];
+      }
+      return products;
     } catch (e) {
       print('[getProducts] Error: $e');
       rethrow;
@@ -1126,6 +1196,71 @@ class DatabaseProvider extends GetxService {
     );
     return (result.first['total'] as num?)?.toDouble() ?? 0.0;
   }
+
+  // ── Price Levels ──────────────────────────────────────────────────────────
+
+  Future<List<PriceLevelModel>> getPriceLevels() async {
+    final maps = await _db.query('price_levels', orderBy: 'sort_order ASC');
+    return maps.map(_priceLevelFromMap).toList();
+  }
+
+  Future<void> insertPriceLevel(PriceLevelModel level, {int sortOrder = 99}) async {
+    await _db.insert('price_levels', _priceLevelToMap(level, sortOrder),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<void> updatePriceLevel(PriceLevelModel level) async {
+    await _db.update(
+      'price_levels',
+      {'name': level.name, 'description': level.description,
+       'is_default': level.isDefault ? 1 : 0},
+      where: 'id = ?', whereArgs: [level.id],
+    );
+  }
+
+  Future<void> setDefaultPriceLevel(String id) async {
+    await _db.update('price_levels', {'is_default': 0});
+    await _db.update('price_levels', {'is_default': 1},
+        where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> deletePriceLevel(String id) async {
+    await _db.delete('product_price_levels',
+        where: 'price_level_id = ?', whereArgs: [id]);
+    await _db.delete('price_levels', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> saveProductPriceLevels(
+      String productId, List<ProductPriceLevelEntry> entries) async {
+    await _db.delete('product_price_levels',
+        where: 'product_id = ?', whereArgs: [productId]);
+    if (entries.isEmpty) return;
+    final batch = _db.batch();
+    for (final e in entries) {
+      batch.insert('product_price_levels', {
+        'product_id': productId,
+        'price_level_id': e.priceLevelId,
+        'price': e.price,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+    await batch.commit(noResult: true);
+  }
+
+  PriceLevelModel _priceLevelFromMap(Map<String, Object?> m) => PriceLevelModel(
+    id: m['id'] as String,
+    name: m['name'] as String,
+    description: m['description'] as String? ?? '',
+    sortOrder: m['sort_order'] as int? ?? 0,
+    isDefault: (m['is_default'] as int? ?? 0) == 1,
+  );
+
+  Map<String, Object?> _priceLevelToMap(PriceLevelModel l, int sortOrder) => {
+    'id': l.id,
+    'name': l.name,
+    'description': l.description,
+    'sort_order': sortOrder,
+    'is_default': l.isDefault ? 1 : 0,
+  };
 
   // ── Categories ────────────────────────────────────────────────────────────
 

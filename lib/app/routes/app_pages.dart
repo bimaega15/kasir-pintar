@@ -49,6 +49,9 @@ import '../modules/login/views/setup_view.dart';
 import '../modules/categories/bindings/categories_binding.dart';
 import '../modules/categories/views/categories_view.dart';
 import '../modules/categories/views/add_edit_category_view.dart';
+import '../modules/price_levels/bindings/price_levels_binding.dart';
+import '../modules/price_levels/views/price_levels_view.dart';
+import '../modules/price_levels/views/add_edit_price_level_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -225,6 +228,19 @@ class AppPages {
       name: AppRoutes.addEditCategory,
       page: () => const AddEditCategoryView(),
       binding: CategoriesBinding(),
+      transition: Transition.downToUp,
+    ),
+    // ── Level Harga ───────────────────────────────────────────────────────────
+    GetPage(
+      name: AppRoutes.priceLevels,
+      page: () => const PriceLevelsView(),
+      binding: PriceLevelsBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.addEditPriceLevel,
+      page: () => const AddEditPriceLevelView(),
+      binding: PriceLevelsBinding(),
       transition: Transition.downToUp,
     ),
     // ── v3: Void Log ──────────────────────────────────────────────────────────

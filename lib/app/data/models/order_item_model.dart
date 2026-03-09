@@ -16,4 +16,13 @@ class OrderItemModel {
   });
 
   double get subtotal => productPrice * quantity;
+
+  OrderItemModel copyWith({double? productPrice}) => OrderItemModel(
+        productId: productId,
+        productName: productName,
+        productPrice: productPrice ?? this.productPrice,
+        productEmoji: productEmoji,
+        quantity: quantity,
+        note: note,
+      );
 }

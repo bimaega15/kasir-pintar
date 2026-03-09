@@ -4,6 +4,7 @@ import '../controllers/products_controller.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
+import 'product_barcode_sheet.dart';
 
 class ProductsView extends GetView<ProductsController> {
   const ProductsView({super.key});
@@ -128,13 +129,13 @@ class ProductsView extends GetView<ProductsController> {
           itemCount: list.length,
           separatorBuilder: (_, __) =>
               const Divider(height: 1, indent: 72),
-          itemBuilder: (context, i) => _buildProductTile(list[i]),
+          itemBuilder: (context, i) => _buildProductTile(context, list[i]),
         );
       }),
     );
   }
 
-  Widget _buildProductTile(product) {
+  Widget _buildProductTile(BuildContext context, product) {
     return ListTile(
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -177,6 +178,12 @@ class ProductsView extends GetView<ProductsController> {
                     fontWeight: FontWeight.w600),
               ),
             ),
+          IconButton(
+            icon: Icon(Icons.qr_code_rounded,
+                color: Colors.purple.shade400, size: 20),
+            tooltip: 'Lihat QR Code',
+            onPressed: () => ProductBarcodeSheet.show(context, product),
+          ),
           IconButton(
             icon: const Icon(Icons.edit_outlined,
                 color: AppColors.primary, size: 20),

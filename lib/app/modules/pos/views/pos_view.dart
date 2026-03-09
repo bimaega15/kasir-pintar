@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../order/controllers/order_controller.dart';
 import '../../../data/models/order_model.dart';
 import '../../../utils/constants/app_colors.dart';
+import 'barcode_scanner_view.dart';
 import 'widgets/product_card.dart';
 import 'widgets/cart_panel.dart';
 
@@ -28,6 +29,19 @@ class PosView extends GetView<OrderController> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
+          if (BarcodeScannerView.isSupported)
+            IconButton(
+              icon: const Icon(Icons.qr_code_scanner_rounded),
+              tooltip: 'Scan QR Produk',
+              onPressed: () async {
+                final result = await Navigator.of(context).push<String>(
+                  MaterialPageRoute(
+                    builder: (_) => const BarcodeScannerView(),
+                  ),
+                );
+                if (result != null) controller.handleScannedQr(result);
+              },
+            ),
           Obx(() => controller.cart.isNotEmpty
               ? Stack(
                   alignment: Alignment.topRight,
@@ -81,10 +95,54 @@ class PosView extends GetView<OrderController> {
     return Column(
       children: [
         _buildSearchBar(),
+        _buildPriceLevelBar(),
         _buildCategoryChips(),
         Expanded(child: _buildProductGrid()),
       ],
     );
+  }
+
+  Widget _buildPriceLevelBar() {
+    return Obx(() {
+      final levels = controller.priceLevels;
+      if (levels.length <= 1) return const SizedBox.shrink();
+      return Container(
+        height: 40,
+        color: AppColors.primary.withValues(alpha: 0.06),
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          itemCount: levels.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 6),
+          itemBuilder: (_, i) {
+            final level = levels[i];
+            final selected = controller.activePriceLevelId.value == level.id;
+            return GestureDetector(
+              onTap: () => controller.setActivePriceLevel(level.id),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.primary : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: selected ? AppColors.primary : AppColors.divider,
+                  ),
+                ),
+                child: Text(
+                  level.name,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: selected ? Colors.white : AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    });
   }
 
   Widget _buildSearchBar() {

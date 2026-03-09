@@ -10,6 +10,7 @@ import 'app/bindings/initial_binding.dart';
 import 'app/data/providers/storage_provider.dart';
 import 'app/routes/app_pages.dart';
 import 'app/routes/app_routes.dart';
+import 'app/services/notification_service.dart';
 import 'app/services/printer_service.dart';
 import 'app/utils/theme/app_theme.dart';
 
@@ -69,6 +70,9 @@ void main() async {
 
   // Inisialisasi PrinterService (Android only, non-blocking)
   Get.put<PrinterService>(PrinterService());
+
+  // Inisialisasi NotificationService (Android & iOS)
+  await Get.putAsync<NotificationService>(() => NotificationService().init());
 
   runApp(const KasirPintarApp());
 }

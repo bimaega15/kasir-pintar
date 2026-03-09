@@ -1,4 +1,5 @@
 import 'package:uuid/uuid.dart';
+import 'price_level_model.dart';
 
 const _uuid = Uuid();
 
@@ -6,11 +7,22 @@ class ProductModel {
   final String id;
   String name;
   String categoryId;
-  double price;
+  double price; // harga dasar (fallback jika level tidak punya harga)
   int stock;
   String description;
   String emoji;
   final DateTime createdAt;
+
+  /// Harga per level — diisi oleh storage_provider saat load
+  List<ProductPriceLevelEntry> priceLevels = [];
+
+  /// Kembalikan harga untuk level tertentu; fallback ke harga dasar
+  double getPriceForLevel(String? levelId) {
+    if (levelId == null || levelId.isEmpty) return price;
+    final entry = priceLevels.cast<ProductPriceLevelEntry?>()
+        .firstWhere((e) => e?.priceLevelId == levelId, orElse: () => null);
+    return entry?.price ?? price;
+  }
 
   ProductModel({
     String? id,

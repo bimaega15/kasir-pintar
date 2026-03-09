@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/category_model.dart';
+import '../../../data/models/price_level_model.dart';
 import '../../../data/models/product_model.dart';
 import '../../../data/repositories/category_repository.dart';
+import '../../../data/repositories/price_level_repository.dart';
 import '../../../data/repositories/product_repository.dart';
 
 class ProductsController extends GetxController {
   final _productRepo = Get.find<ProductRepository>();
   final _categoryRepo = Get.find<CategoryRepository>();
+  final _priceLevelRepo = Get.find<PriceLevelRepository>();
 
   final products = <ProductModel>[].obs;
   final categories = <CategoryModel>[].obs;
@@ -23,6 +26,12 @@ class ProductsController extends GetxController {
   final selectedCategoryId = 'food'.obs;
   final selectedEmoji = '📦'.obs;
 
+  /// Level harga yang tersedia (dimuat sekali)
+  final availablePriceLevels = <PriceLevelModel>[].obs;
+
+  /// TextEditingController per level: levelId → controller harga
+  final Map<String, TextEditingController> levelPriceControllers = {};
+
   ProductModel? editingProduct;
 
   @override
@@ -30,9 +39,37 @@ class ProductsController extends GetxController {
     super.onInit();
     loadProducts();
     loadCategories();
+    loadPriceLevels();
     searchController.addListener(() {
       searchQuery.value = searchController.text;
     });
+  }
+
+  Future<void> loadPriceLevels() async {
+    try {
+      final levels = await _priceLevelRepo.getAll();
+      availablePriceLevels.assignAll(levels);
+      _rebuildLevelControllers();
+    } catch (e) {
+      print('[loadPriceLevels] Error: $e');
+    }
+  }
+
+  void _rebuildLevelControllers() {
+    // Dispose controllers for levels that no longer exist
+    final currentIds = availablePriceLevels.map((l) => l.id).toSet();
+    final toRemove = levelPriceControllers.keys
+        .where((k) => !currentIds.contains(k))
+        .toList();
+    for (final k in toRemove) {
+      levelPriceControllers[k]?.dispose();
+      levelPriceControllers.remove(k);
+    }
+    // Add controllers for new levels
+    for (final level in availablePriceLevels) {
+      levelPriceControllers.putIfAbsent(
+          level.id, () => TextEditingController());
+    }
   }
 
   Future<void> loadCategories() async {
@@ -84,6 +121,12 @@ class ProductsController extends GetxController {
     } catch (e) {
       print('Error disposing descController: $e');
     }
+    for (final ctrl in levelPriceControllers.values) {
+      try {
+        ctrl.dispose();
+      } catch (_) {}
+    }
+    levelPriceControllers.clear();
     super.onClose();
   }
 
@@ -120,7 +163,7 @@ class ProductsController extends GetxController {
     final firstReal = formCategories.isNotEmpty ? formCategories.first.id : 'other';
     selectedCategoryId.value = firstReal;
     selectedEmoji.value = '📦';
-    
+
     // Safely reset controllers
     try {
       if (!nameController.text.isEmpty) nameController.clear();
@@ -130,6 +173,11 @@ class ProductsController extends GetxController {
     } catch (e) {
       print('Controller disposed, recreating: $e');
       _reinitializeControllers();
+    }
+
+    // Clear all level price controllers
+    for (final ctrl in levelPriceControllers.values) {
+      ctrl.clear();
     }
   }
 
@@ -150,6 +198,21 @@ class ProductsController extends GetxController {
     }
     selectedCategoryId.value = product.categoryId;
     selectedEmoji.value = product.emoji;
+
+    // Populate level price controllers from existing product data
+    for (final entry in product.priceLevels) {
+      final ctrl = levelPriceControllers[entry.priceLevelId];
+      if (ctrl != null) {
+        ctrl.text = entry.price.toStringAsFixed(0);
+      }
+    }
+    // Clear controllers for levels that are not in the product
+    final productLevelIds = product.priceLevels.map((e) => e.priceLevelId).toSet();
+    for (final id in levelPriceControllers.keys) {
+      if (!productLevelIds.contains(id)) {
+        levelPriceControllers[id]?.clear();
+      }
+    }
   }
 
   void _reinitializeControllers() {
@@ -188,6 +251,22 @@ class ProductsController extends GetxController {
       return;
     }
 
+    // Build price level entries from controllers
+    final levelEntries = <ProductPriceLevelEntry>[];
+    for (final level in availablePriceLevels) {
+      final ctrl = levelPriceControllers[level.id];
+      final levelPrice = double.tryParse(
+              ctrl?.text.replaceAll('.', '').replaceAll(',', '') ?? '') ??
+          0;
+      if (levelPrice > 0) {
+        levelEntries.add(ProductPriceLevelEntry(
+          priceLevelId: level.id,
+          priceLevelName: level.name,
+          price: levelPrice,
+        ));
+      }
+    }
+
     try {
       String successMsg = '';
       if (editingProduct == null) {
@@ -200,6 +279,7 @@ class ProductsController extends GetxController {
           emoji: selectedEmoji.value,
         );
         await _productRepo.add(product);
+        await _priceLevelRepo.saveProductPriceLevels(product.id, levelEntries);
         successMsg = 'Produk berhasil ditambahkan';
       } else {
         editingProduct!
@@ -210,6 +290,8 @@ class ProductsController extends GetxController {
           ..description = descController.text.trim()
           ..emoji = selectedEmoji.value;
         await _productRepo.update(editingProduct!);
+        await _priceLevelRepo.saveProductPriceLevels(
+            editingProduct!.id, levelEntries);
         successMsg = 'Produk berhasil diperbarui';
       }
 

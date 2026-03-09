@@ -4,8 +4,8 @@ import '../controllers/home_controller.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
-import '../../shift/controllers/shift_controller.dart';
 import '../../main_navigation/controllers/main_navigation_controller.dart';
+import '../../shift/controllers/shift_controller.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -23,6 +23,7 @@ class HomeView extends GetView<HomeController> {
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 _buildShiftBanner(),
+                _buildLowStockBanner(),
                 _buildStatsGrid(),
                 const SizedBox(height: 24),
                 _buildQuickAccessSection(),
@@ -411,6 +412,112 @@ class HomeView extends GetView<HomeController> {
           ),
         );
       }
+    });
+  }
+
+  Widget _buildLowStockBanner() {
+    return Obx(() {
+      final items = controller.lowStockProducts;
+      if (items.isEmpty) return const SizedBox.shrink();
+
+      return GestureDetector(
+        onTap: () => Get.toNamed(AppRoutes.products),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange.shade300),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded,
+                        color: Colors.orange.shade700, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Stok Hampir Habis (${items.length} produk)',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange.shade800,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Kelola →',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.orange.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, indent: 14, endIndent: 14),
+              // Product list (max 3 shown)
+              ...items.take(3).map((p) => Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    child: Row(
+                      children: [
+                        Text(p.emoji, style: const TextStyle(fontSize: 18)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            p.name,
+                            style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textPrimary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: p.stock == 0
+                                ? Colors.red.shade100
+                                : Colors.orange.shade100,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            p.stock == 0 ? 'Habis' : 'Stok: ${p.stock}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: p.stock == 0
+                                  ? Colors.red.shade700
+                                  : Colors.orange.shade700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+              if (items.length > 3)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                  child: Text(
+                    '+${items.length - 3} produk lainnya',
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.orange.shade600),
+                  ),
+                )
+              else
+                const SizedBox(height: 4),
+            ],
+          ),
+        ),
+      );
     });
   }
 
