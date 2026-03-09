@@ -6,6 +6,7 @@ import '../../../data/models/order_model.dart';
 import '../../../data/models/product_model.dart';
 import '../../../data/models/table_model.dart';
 import '../../../data/models/price_level_model.dart';
+import '../../../data/providers/storage_provider.dart';
 import '../../../data/repositories/category_repository.dart';
 import '../../../data/repositories/order_repository.dart';
 import '../../../data/repositories/price_level_repository.dart';
@@ -168,9 +169,16 @@ class OrderController extends GetxController {
   }
 
   Future<void> loadSettings() async {
-    // Tax and service charge loaded in PaymentController; defaults here
-    taxPercent.value = 0;
-    serviceChargePercent.value = 0;
+    try {
+      final db = Get.find<DatabaseProvider>();
+      final tax = await db.getSetting('tax_percent');
+      final sc = await db.getSetting('service_charge_percent');
+      taxPercent.value = double.tryParse(tax ?? '0') ?? 0;
+      serviceChargePercent.value = double.tryParse(sc ?? '0') ?? 0;
+    } catch (e) {
+      taxPercent.value = 0;
+      serviceChargePercent.value = 0;
+    }
   }
 
   // ── Filtered products ─────────────────────────────────────────────────────

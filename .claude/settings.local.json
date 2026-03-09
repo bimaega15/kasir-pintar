@@ -7,7 +7,16 @@
       "Bash(flutter analyze --no-pub lib/app/modules/kitchen/views/kitchen_view.dart lib/app/modules/home/views/home_view.dart)",
       "Bash(flutter analyze --no-pub lib/app/modules/order/views/order_type_view.dart lib/app/modules/receipt/views/receipt_view.dart)",
       "Bash(flutter clean)",
-      "Bash(flutter analyze lib/app/modules/pos/views/pos_view.dart lib/app/modules/order/controllers/order_controller.dart lib/app/modules/products/controllers/products_controller.dart lib/app/modules/products/views/add_edit_product_view.dart)"
+      "Bash(flutter analyze lib/app/modules/pos/views/pos_view.dart lib/app/modules/order/controllers/order_controller.dart lib/app/modules/products/controllers/products_controller.dart lib/app/modules/products/views/add_edit_product_view.dart)",
+      "Bash(flutter analyze lib/app/modules/pos/views/pos_view.dart lib/app/modules/pos/views/widgets/product_card.dart)",
+      "Bash(grep -v \"^$\")",
+      "Bash(flutter analyze lib/app/modules/order/controllers/order_controller.dart)",
+      "Bash(flutter analyze lib/app/modules/products/controllers/products_controller.dart lib/app/modules/products/views/add_edit_product_view.dart)",
+      "Bash(grep -rn \"stock\" lib/app/data/repositories/*.dart)",
+      "Bash(flutter analyze lib/app/modules/stock/ lib/app/data/models/stock_movement_model.dart lib/app/data/repositories/stock_repository.dart)",
+      "Bash(flutter analyze lib/)",
+      "Bash(flutter analyze lib/app/modules/stock/views/stock_opname_detail_view.dart)",
+      "Bash(flutter analyze lib/app/modules/stock/views/stock_card_view.dart)"
     ]
   }
 }

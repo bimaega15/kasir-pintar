@@ -105,6 +105,7 @@ class PosView extends GetView<OrderController> {
   Widget _buildPriceLevelBar() {
     return Obx(() {
       final levels = controller.priceLevels;
+      final currentLevelId = controller.activePriceLevelId.value; // register dependency di sini
       if (levels.length <= 1) return const SizedBox.shrink();
       return Container(
         height: 40,
@@ -116,7 +117,7 @@ class PosView extends GetView<OrderController> {
           separatorBuilder: (_, __) => const SizedBox(width: 6),
           itemBuilder: (_, i) {
             final level = levels[i];
-            final selected = controller.activePriceLevelId.value == level.id;
+            final selected = currentLevelId == level.id;
             return GestureDetector(
               onTap: () => controller.setActivePriceLevel(level.id),
               child: AnimatedContainer(
@@ -220,6 +221,13 @@ class PosView extends GetView<OrderController> {
   Widget _buildProductGrid() {
     return Obx(() {
       final list = controller.filteredProducts;
+      // Register level dependencies di sini (bukan di dalam itemBuilder)
+      final levelId = controller.activePriceLevelId.value;
+      final levels = controller.priceLevels;
+      final activeLevel = levels.isNotEmpty
+          ? levels.firstWhereOrNull((l) => l.id == levelId)
+          : null;
+      final showLabel = levels.length > 1 && activeLevel != null;
       if (list.isEmpty) {
         return const Center(
           child: Column(
@@ -243,10 +251,18 @@ class PosView extends GetView<OrderController> {
           mainAxisSpacing: 10,
         ),
         itemCount: list.length,
-        itemBuilder: (context, i) => ProductCard(
-          product: list[i],
-          onTap: () => controller.addToCart(list[i]),
-        ),
+        itemBuilder: (context, i) {
+          final product = list[i];
+          final displayPrice = activeLevel != null
+              ? product.getPriceForLevel(levelId)
+              : null;
+          return ProductCard(
+            product: product,
+            onTap: () => controller.addToCart(product),
+            displayPrice: displayPrice,
+            levelLabel: showLabel ? activeLevel.name : null,
+          );
+        },
       );
     });
   }

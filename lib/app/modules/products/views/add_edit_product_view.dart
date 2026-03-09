@@ -203,19 +203,20 @@ class AddEditProductView extends GetView<ProductsController> {
 
   Widget _buildPriceLevelsSection() {
     return Obx(() {
-      final levels = controller.availablePriceLevels;
-      if (levels.isEmpty) return const SizedBox.shrink();
+      final nonDefaultLevels =
+          controller.availablePriceLevels.where((l) => !l.isDefault).toList();
+      if (nonDefaultLevels.isEmpty) return const SizedBox.shrink();
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionLabel('Harga Per Level (opsional)'),
+          _sectionLabel('Harga Level Lainnya (opsional)'),
           const SizedBox(height: 4),
           Text(
-            'Kosongkan jika sama dengan harga utama',
+            'Kosongkan jika sama dengan Harga (Rp) di atas',
             style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
           ),
           const SizedBox(height: 10),
-          ...levels.map((level) {
+          ...nonDefaultLevels.map((level) {
             final ctrl = controller.levelPriceControllers[level.id];
             if (ctrl == null) return const SizedBox.shrink();
             return Padding(
@@ -224,7 +225,7 @@ class AddEditProductView extends GetView<ProductsController> {
                 controller: ctrl,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
-                  labelText: level.name + (level.isDefault ? ' (default)' : ''),
+                  labelText: 'Harga ${level.name}',
                   hintText: '0',
                   prefixText: 'Rp ',
                   prefixIcon: const Icon(Icons.sell_outlined),

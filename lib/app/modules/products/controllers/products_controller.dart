@@ -199,16 +199,23 @@ class ProductsController extends GetxController {
     selectedCategoryId.value = product.categoryId;
     selectedEmoji.value = product.emoji;
 
-    // Populate level price controllers from existing product data
+    // Populate level price controllers for non-default levels only
+    // (default level price = product.price, shown in the main Harga field)
+    final defaultIds = availablePriceLevels
+        .where((l) => l.isDefault)
+        .map((l) => l.id)
+        .toSet();
     for (final entry in product.priceLevels) {
+      if (defaultIds.contains(entry.priceLevelId)) continue;
       final ctrl = levelPriceControllers[entry.priceLevelId];
       if (ctrl != null) {
         ctrl.text = entry.price.toStringAsFixed(0);
       }
     }
-    // Clear controllers for levels that are not in the product
+    // Clear controllers for levels not in the product (or default)
     final productLevelIds = product.priceLevels.map((e) => e.priceLevelId).toSet();
     for (final id in levelPriceControllers.keys) {
+      if (defaultIds.contains(id)) continue;
       if (!productLevelIds.contains(id)) {
         levelPriceControllers[id]?.clear();
       }
@@ -251,19 +258,30 @@ class ProductsController extends GetxController {
       return;
     }
 
-    // Build price level entries from controllers
+    // Build price level entries:
+    // - Default level → always uses the main price field
+    // - Non-default levels → use their controller if filled, otherwise skip (fallback to base price)
     final levelEntries = <ProductPriceLevelEntry>[];
     for (final level in availablePriceLevels) {
-      final ctrl = levelPriceControllers[level.id];
-      final levelPrice = double.tryParse(
-              ctrl?.text.replaceAll('.', '').replaceAll(',', '') ?? '') ??
-          0;
-      if (levelPrice > 0) {
+      if (level.isDefault) {
+        // Always store the base price for the default level
         levelEntries.add(ProductPriceLevelEntry(
           priceLevelId: level.id,
           priceLevelName: level.name,
-          price: levelPrice,
+          price: price,
         ));
+      } else {
+        final ctrl = levelPriceControllers[level.id];
+        final levelPrice = double.tryParse(
+                ctrl?.text.replaceAll('.', '').replaceAll(',', '') ?? '') ??
+            0;
+        if (levelPrice > 0) {
+          levelEntries.add(ProductPriceLevelEntry(
+            priceLevelId: level.id,
+            priceLevelName: level.name,
+            price: levelPrice,
+          ));
+        }
       }
     }
 

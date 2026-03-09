@@ -5,6 +5,7 @@ import '../../../utils/constants/app_colors.dart';
 import '../../categories/controllers/categories_controller.dart';
 import '../../price_levels/controllers/price_levels_controller.dart';
 import '../../products/controllers/products_controller.dart';
+import '../../stock/controllers/stock_controller.dart';
 import '../../tables/controllers/tables_controller.dart';
 
 class MasterPageContent extends StatelessWidget {
@@ -147,6 +148,61 @@ class MasterPageContent extends StatelessWidget {
                   textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                   minimumSize: const Size.fromHeight(36),
                 ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildMenuCard(
+              icon: Icons.warehouse_rounded,
+              title: 'Manajemen Stok',
+              subtitle: 'Kartu stok, penyesuaian, dan opname fisik',
+              color: Colors.orange.shade700,
+              onTap: () => Get.toNamed(AppRoutes.stockManagement),
+              actionButton: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        if (!Get.isRegistered<StockController>()) {
+                          Get.put(StockController());
+                        }
+                        Get.toNamed(AppRoutes.stockCard);
+                      },
+                      icon: const Icon(Icons.history_rounded, size: 16),
+                      label: const Text('Kartu Stok'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange.shade700,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 8),
+                        textStyle: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w600),
+                        minimumSize: const Size.fromHeight(36),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        if (!Get.isRegistered<StockController>()) {
+                          Get.put(StockController());
+                        }
+                        Get.toNamed(AppRoutes.stockOpname);
+                      },
+                      icon: const Icon(Icons.fact_check_outlined, size: 16),
+                      label: const Text('Opname'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 8),
+                        textStyle: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w600),
+                        minimumSize: const Size.fromHeight(36),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 24),

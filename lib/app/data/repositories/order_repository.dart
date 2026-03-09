@@ -4,8 +4,10 @@ import '../models/order_model.dart';
 import '../models/payment_entry_model.dart';
 import '../models/product_model.dart';
 import '../models/split_transaction_model.dart';
+import '../models/stock_movement_model.dart';
 import '../models/transaction_model.dart';
 import '../providers/storage_provider.dart';
+import 'stock_repository.dart';
 import 'transaction_repository.dart';
 
 class OrderRepository {
@@ -80,6 +82,32 @@ class OrderRepository {
 
     await txRepo.save(transaction, payments);
     await _db.insertOrderPayments(order.id, payments);
+
+    // Deduct stock for each sold item and record movement
+    final stockRepo = Get.find<StockRepository>();
+    for (final oi in order.items) {
+      final currentProducts = await _db.getProducts();
+      final product = currentProducts.cast<ProductModel?>().firstWhere(
+            (p) => p?.id == oi.productId,
+            orElse: () => null,
+          );
+      if (product == null) continue;
+      final qtyBefore = product.stock;
+      final qtyAfter = (qtyBefore - oi.quantity).clamp(0, double.maxFinite.toInt());
+      await _db.adjustProductStock(oi.productId, qtyAfter);
+      await stockRepo.addMovement(StockMovementModel(
+        productId: oi.productId,
+        productName: oi.productName,
+        productEmoji: oi.productEmoji,
+        type: StockMovementType.sale,
+        quantity: oi.quantity,
+        qtyBefore: qtyBefore,
+        qtyAfter: qtyAfter,
+        referenceId: transaction.id,
+        notes: 'Terjual - ${transaction.invoiceNumber}',
+      ));
+    }
+
     return transaction;
   }
 }

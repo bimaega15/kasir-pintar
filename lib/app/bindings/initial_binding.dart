@@ -5,6 +5,7 @@ import '../data/repositories/debt_repository.dart';
 import '../data/repositories/order_repository.dart';
 import '../data/repositories/product_repository.dart';
 import '../data/repositories/shift_repository.dart';
+import '../data/repositories/stock_repository.dart';
 import '../data/repositories/table_repository.dart';
 import '../data/repositories/transaction_repository.dart';
 import '../modules/debt/controllers/debt_controller.dart';
@@ -25,6 +26,7 @@ class InitialBinding extends Bindings {
     Get.lazyPut<TableRepository>(() => TableRepository(), fenix: true);
     Get.lazyPut<OrderRepository>(() => OrderRepository(), fenix: true);
     Get.lazyPut<ShiftRepository>(() => ShiftRepository(), fenix: true);
+    Get.lazyPut<StockRepository>(() => StockRepository(), fenix: true);
     Get.lazyPut<DebtRepository>(() => DebtRepository(), fenix: true);
     // Shared state across app
     Get.lazyPut<OrderController>(() => OrderController(), fenix: true);

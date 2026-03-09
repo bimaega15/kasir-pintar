@@ -12,4 +12,7 @@ class ProductRepository {
   Future<void> update(ProductModel product) => _db.updateProduct(product);
 
   Future<void> delete(String id) => _db.deleteProduct(id);
+
+  Future<void> adjustStock(String productId, int newQty) =>
+      _db.adjustProductStock(productId, newQty);
 }

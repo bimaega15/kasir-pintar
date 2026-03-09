@@ -13,12 +13,13 @@ import '../models/table_model.dart';
 import '../models/transaction_model.dart';
 import '../models/debt_model.dart';
 import '../models/price_level_model.dart';
+import '../models/stock_movement_model.dart';
 import '../models/void_log_model.dart';
 
 /// Provider SQLite — mendukung offline penuh tanpa jaringan.
 class DatabaseProvider extends GetxService {
   static const _dbName = 'kasir_pintar.db';
-  static const _dbVersion = 9;
+  static const _dbVersion = 10;
 
   late Database _db;
 
@@ -267,10 +268,86 @@ class DatabaseProvider extends GetxService {
       )
     ''');
 
+    batch.execute('''
+      CREATE TABLE stock_movements (
+        id           TEXT    PRIMARY KEY,
+        product_id   TEXT    NOT NULL,
+        product_name TEXT    NOT NULL,
+        product_emoji TEXT   NOT NULL DEFAULT '📦',
+        type         TEXT    NOT NULL,
+        quantity     INTEGER NOT NULL DEFAULT 0,
+        qty_before   INTEGER NOT NULL DEFAULT 0,
+        qty_after    INTEGER NOT NULL DEFAULT 0,
+        reference_id TEXT,
+        notes        TEXT    NOT NULL DEFAULT '',
+        created_at   TEXT    NOT NULL
+      )
+    ''');
+
+    batch.execute('''
+      CREATE TABLE stock_opname (
+        id          TEXT    PRIMARY KEY,
+        notes       TEXT    NOT NULL DEFAULT '',
+        status      TEXT    NOT NULL DEFAULT 'draft',
+        items_count INTEGER NOT NULL DEFAULT 0,
+        created_at  TEXT    NOT NULL,
+        completed_at TEXT
+      )
+    ''');
+
+    batch.execute('''
+      CREATE TABLE stock_opname_items (
+        id            TEXT    PRIMARY KEY,
+        opname_id     TEXT    NOT NULL,
+        product_id    TEXT    NOT NULL,
+        product_name  TEXT    NOT NULL,
+        product_emoji TEXT    NOT NULL DEFAULT '📦',
+        system_qty    INTEGER NOT NULL DEFAULT 0,
+        actual_qty    INTEGER NOT NULL DEFAULT 0,
+        notes         TEXT    NOT NULL DEFAULT ''
+      )
+    ''');
+
     await batch.commit(noResult: true);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 10) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS stock_movements (
+            id TEXT PRIMARY KEY, product_id TEXT NOT NULL,
+            product_name TEXT NOT NULL, product_emoji TEXT NOT NULL DEFAULT '📦',
+            type TEXT NOT NULL, quantity INTEGER NOT NULL DEFAULT 0,
+            qty_before INTEGER NOT NULL DEFAULT 0, qty_after INTEGER NOT NULL DEFAULT 0,
+            reference_id TEXT, notes TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL
+          )
+        ''');
+      } catch (_) {}
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS stock_opname (
+            id TEXT PRIMARY KEY, notes TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL DEFAULT 'draft',
+            items_count INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL, completed_at TEXT
+          )
+        ''');
+      } catch (_) {}
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS stock_opname_items (
+            id TEXT PRIMARY KEY, opname_id TEXT NOT NULL,
+            product_id TEXT NOT NULL, product_name TEXT NOT NULL,
+            product_emoji TEXT NOT NULL DEFAULT '📦',
+            system_qty INTEGER NOT NULL DEFAULT 0,
+            actual_qty INTEGER NOT NULL DEFAULT 0,
+            notes TEXT NOT NULL DEFAULT ''
+          )
+        ''');
+      } catch (_) {}
+    }
     if (oldVersion < 9) {
       await db.execute('''
         CREATE TABLE IF NOT EXISTS price_levels (
@@ -1327,5 +1404,82 @@ class DatabaseProvider extends GetxService {
     final date =
         '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
     return 'INV/$date/${counter.toString().padLeft(4, '0')}';
+  }
+
+  // ── Stock Movements ───────────────────────────────────────────────────────
+
+  Future<void> insertStockMovement(StockMovementModel m) async {
+    await _db.insert('stock_movements', m.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<StockMovementModel>> getStockMovements(
+      {String? productId, int limit = 100}) async {
+    final maps = await _db.query(
+      'stock_movements',
+      where: productId != null ? 'product_id = ?' : null,
+      whereArgs: productId != null ? [productId] : null,
+      orderBy: 'created_at DESC',
+      limit: limit,
+    );
+    return maps.map((m) => StockMovementModel.fromMap(m)).toList();
+  }
+
+  Future<void> adjustProductStock(String productId, int newQty) async {
+    await _db.update(
+      'products',
+      {'stock': newQty},
+      where: 'id = ?',
+      whereArgs: [productId],
+    );
+  }
+
+  // ── Stock Opname ──────────────────────────────────────────────────────────
+
+  Future<void> insertStockOpname(StockOpnameModel opname) async {
+    await _db.insert('stock_opname', opname.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<void> updateStockOpname(StockOpnameModel opname) async {
+    await _db.update(
+      'stock_opname',
+      {
+        'notes': opname.notes,
+        'status': opname.status,
+        'items_count': opname.itemsCount,
+        'completed_at': opname.completedAt?.toIso8601String(),
+      },
+      where: 'id = ?',
+      whereArgs: [opname.id],
+    );
+  }
+
+  Future<List<StockOpnameModel>> getStockOpnames() async {
+    final maps =
+        await _db.query('stock_opname', orderBy: 'created_at DESC');
+    return maps.map((m) => StockOpnameModel.fromMap(m)).toList();
+  }
+
+  Future<List<StockOpnameItemModel>> getStockOpnameItems(
+      String opnameId) async {
+    final maps = await _db.query(
+      'stock_opname_items',
+      where: 'opname_id = ?',
+      whereArgs: [opnameId],
+      orderBy: 'product_name ASC',
+    );
+    return maps.map((m) => StockOpnameItemModel.fromMap(m)).toList();
+  }
+
+  Future<void> upsertStockOpnameItem(StockOpnameItemModel item) async {
+    await _db.insert('stock_opname_items', item.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<void> deleteStockOpname(String id) async {
+    await _db.delete('stock_opname_items',
+        where: 'opname_id = ?', whereArgs: [id]);
+    await _db.delete('stock_opname', where: 'id = ?', whereArgs: [id]);
   }
 }

@@ -52,6 +52,11 @@ import '../modules/categories/views/add_edit_category_view.dart';
 import '../modules/price_levels/bindings/price_levels_binding.dart';
 import '../modules/price_levels/views/price_levels_view.dart';
 import '../modules/price_levels/views/add_edit_price_level_view.dart';
+import '../modules/stock/bindings/stock_binding.dart';
+import '../modules/stock/views/stock_card_view.dart';
+import '../modules/stock/views/stock_management_view.dart';
+import '../modules/stock/views/stock_opname_detail_view.dart';
+import '../modules/stock/views/stock_opname_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -242,6 +247,31 @@ class AppPages {
       page: () => const AddEditPriceLevelView(),
       binding: PriceLevelsBinding(),
       transition: Transition.downToUp,
+    ),
+    // ── Stock Management ──────────────────────────────────────────────────────
+    GetPage(
+      name: AppRoutes.stockManagement,
+      page: () => const StockManagementView(),
+      binding: StockBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.stockCard,
+      page: () => const StockCardView(),
+      binding: StockBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.stockOpname,
+      page: () => const StockOpnameView(),
+      binding: StockBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.stockOpnameDetail,
+      page: () => const StockOpnameDetailView(),
+      binding: StockBinding(),
+      transition: Transition.rightToLeft,
     ),
     // ── v3: Void Log ──────────────────────────────────────────────────────────
     GetPage(

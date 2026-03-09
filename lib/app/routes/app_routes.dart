@@ -40,4 +40,9 @@ abstract class AppRoutes {
   // level harga
   static const priceLevels = '/price-levels';
   static const addEditPriceLevel = '/price-levels/form';
+  // stok
+  static const stockManagement = '/stock-management';
+  static const stockCard = '/stock-card';
+  static const stockOpname = '/stock-opname';
+  static const stockOpnameDetail = '/stock-opname-detail';
 }
