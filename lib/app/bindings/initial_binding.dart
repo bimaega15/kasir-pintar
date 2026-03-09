@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import '../data/repositories/category_repository.dart';
+import '../data/repositories/customer_repository.dart';
 import '../data/repositories/price_level_repository.dart';
 import '../data/repositories/debt_repository.dart';
 import '../data/repositories/order_repository.dart';
@@ -19,6 +20,7 @@ class InitialBinding extends Bindings {
   @override
   void dependencies() {
     Get.lazyPut<CategoryRepository>(() => CategoryRepository(), fenix: true);
+    Get.lazyPut<CustomerRepository>(() => CustomerRepository(), fenix: true);
     Get.lazyPut<PriceLevelRepository>(() => PriceLevelRepository(), fenix: true);
     Get.lazyPut<ProductRepository>(() => ProductRepository(), fenix: true);
     Get.lazyPut<TransactionRepository>(() => TransactionRepository(),

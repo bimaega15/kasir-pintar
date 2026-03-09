@@ -45,4 +45,8 @@ abstract class AppRoutes {
   static const stockCard = '/stock-card';
   static const stockOpname = '/stock-opname';
   static const stockOpnameDetail = '/stock-opname-detail';
+  // pelanggan
+  static const customers = '/customers';
+  static const addEditCustomer = '/customers/form';
+  static const customerDetail = '/customers/detail';
 }

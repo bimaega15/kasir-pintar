@@ -98,7 +98,7 @@ class OrderConfirmView extends GetView<OrderController> {
           const SizedBox(height: 12),
           const Divider(height: 1),
           const SizedBox(height: 12),
-          // Customer name
+          // Customer name (free text)
           Row(
             children: [
               const Icon(
@@ -134,6 +134,58 @@ class OrderConfirmView extends GetView<OrderController> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          const Divider(height: 1),
+          const SizedBox(height: 10),
+          // Linked customer from customer database
+          GestureDetector(
+            onTap: () => controller.showCustomerPicker(Get.context!),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.people_rounded,
+                  size: 18,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Pilih Pelanggan',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      Text(
+                        controller.selectedCustomerName.value.isEmpty
+                            ? 'Ketuk untuk memilih pelanggan'
+                            : controller.selectedCustomerName.value,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: controller.selectedCustomerName.value.isEmpty
+                              ? AppColors.textSecondary
+                              : AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  controller.selectedCustomerName.value.isEmpty
+                      ? Icons.chevron_right_rounded
+                      : Icons.check_circle_rounded,
+                  size: 18,
+                  color: controller.selectedCustomerName.value.isEmpty
+                      ? AppColors.textSecondary
+                      : Colors.green,
+                ),
+              ],
+            ),
           ),
         ],
       ),

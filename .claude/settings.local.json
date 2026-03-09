@@ -16,7 +16,8 @@
       "Bash(flutter analyze lib/app/modules/stock/ lib/app/data/models/stock_movement_model.dart lib/app/data/repositories/stock_repository.dart)",
       "Bash(flutter analyze lib/)",
       "Bash(flutter analyze lib/app/modules/stock/views/stock_opname_detail_view.dart)",
-      "Bash(flutter analyze lib/app/modules/stock/views/stock_card_view.dart)"
+      "Bash(flutter analyze lib/app/modules/stock/views/stock_card_view.dart)",
+      "Bash(flutter analyze lib/app/modules/customers/ lib/app/data/models/customer_model.dart lib/app/data/repositories/customer_repository.dart)"
     ]
   }
 }

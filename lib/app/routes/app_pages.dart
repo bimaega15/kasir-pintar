@@ -57,6 +57,10 @@ import '../modules/stock/views/stock_card_view.dart';
 import '../modules/stock/views/stock_management_view.dart';
 import '../modules/stock/views/stock_opname_detail_view.dart';
 import '../modules/stock/views/stock_opname_view.dart';
+import '../modules/customers/bindings/customers_binding.dart';
+import '../modules/customers/views/customers_view.dart';
+import '../modules/customers/views/add_edit_customer_view.dart';
+import '../modules/customers/views/customer_detail_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -271,6 +275,25 @@ class AppPages {
       name: AppRoutes.stockOpnameDetail,
       page: () => const StockOpnameDetailView(),
       binding: StockBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    // ── Pelanggan ─────────────────────────────────────────────────────────────
+    GetPage(
+      name: AppRoutes.customers,
+      page: () => const CustomersView(),
+      binding: CustomersBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.addEditCustomer,
+      page: () => const AddEditCustomerView(),
+      binding: CustomersBinding(),
+      transition: Transition.downToUp,
+    ),
+    GetPage(
+      name: AppRoutes.customerDetail,
+      page: () => const CustomerDetailView(),
+      binding: CustomersBinding(),
       transition: Transition.rightToLeft,
     ),
     // ── v3: Void Log ──────────────────────────────────────────────────────────

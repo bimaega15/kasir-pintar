@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/category_model.dart';
+import '../../../data/models/customer_model.dart';
 import '../../../data/models/order_item_model.dart';
 import '../../../data/models/order_model.dart';
 import '../../../data/models/product_model.dart';
@@ -8,12 +9,14 @@ import '../../../data/models/table_model.dart';
 import '../../../data/models/price_level_model.dart';
 import '../../../data/providers/storage_provider.dart';
 import '../../../data/repositories/category_repository.dart';
+import '../../../data/repositories/customer_repository.dart';
 import '../../../data/repositories/order_repository.dart';
 import '../../../data/repositories/price_level_repository.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/table_repository.dart';
 import '../../../data/repositories/transaction_repository.dart';
 import '../../../routes/app_routes.dart';
+import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 
 class OrderController extends GetxController {
@@ -30,6 +33,8 @@ class OrderController extends GetxController {
   final guestCount = 1.obs;
   final customerName = ''.obs;
   final customerNameController = TextEditingController();
+  final selectedCustomerId = ''.obs;
+  final selectedCustomerName = ''.obs;
   final cart = <OrderItemModel>[].obs;
   final discount = 0.0.obs;
   final discountController = TextEditingController();
@@ -273,6 +278,8 @@ class OrderController extends GetxController {
     guestCount.value = 1;
     customerNameController.clear();
     customerName.value = '';
+    selectedCustomerId.value = '';
+    selectedCustomerName.value = '';
     searchController.clear();
     selectedCategory.value = 'all';
   }
@@ -414,13 +421,17 @@ class OrderController extends GetxController {
 
     final invoiceNumber = await _transactionRepo.generateInvoiceNumber();
 
+    final effectiveCustomerName = selectedCustomerName.value.isNotEmpty
+        ? selectedCustomerName.value
+        : customerName.value;
+
     final order = OrderModel(
       invoiceNumber: invoiceNumber,
       orderType: OrderType.takeAway,
       tableId: null,
       tableNumber: null,
       guestCount: 1,
-      customerName: customerName.value,
+      customerName: effectiveCustomerName,
       items: List.from(cart),
       subtotal: subtotal,
       discount: discount.value,
@@ -453,13 +464,17 @@ class OrderController extends GetxController {
 
     final invoiceNumber = await _transactionRepo.generateInvoiceNumber();
 
+    final effectiveCustomerName = selectedCustomerName.value.isNotEmpty
+        ? selectedCustomerName.value
+        : customerName.value;
+
     final order = OrderModel(
       invoiceNumber: invoiceNumber,
       orderType: orderType.value,
       tableId: selectedTable.value?.id,
       tableNumber: selectedTable.value?.number,
       guestCount: guestCount.value,
-      customerName: customerName.value,
+      customerName: effectiveCustomerName,
       items: List.from(cart),
       subtotal: subtotal,
       discount: discount.value,
@@ -520,13 +535,17 @@ class OrderController extends GetxController {
 
     final invoiceNumber = await _transactionRepo.generateInvoiceNumber();
 
+    final effectiveCustomerNameForPark = selectedCustomerName.value.isNotEmpty
+        ? selectedCustomerName.value
+        : customerName.value;
+
     final order = OrderModel(
       invoiceNumber: invoiceNumber,
       orderType: orderType.value,
       tableId: selectedTable.value?.id,
       tableNumber: selectedTable.value?.number,
       guestCount: guestCount.value,
-      customerName: customerName.value,
+      customerName: effectiveCustomerNameForPark,
       items: List.from(cart),
       kitchenStatus: KitchenStatus.parked,
       subtotal: subtotal,
@@ -583,5 +602,183 @@ class OrderController extends GetxController {
     await loadParkedCount();
 
     Get.toNamed(AppRoutes.orderConfirm);
+  }
+
+  // ── Customer picker ───────────────────────────────────────────────────────
+
+  Future<void> showCustomerPicker(BuildContext context) async {
+    final customerRepo = Get.find<CustomerRepository>();
+    final allCustomers = await customerRepo.getAll();
+
+    final searchCtrl = TextEditingController();
+    final filtered = allCustomers.obs;
+
+    searchCtrl.addListener(() {
+      final q = searchCtrl.text.toLowerCase();
+      if (q.isEmpty) {
+        filtered.assignAll(allCustomers);
+      } else {
+        filtered.assignAll(allCustomers.where((c) =>
+            c.name.toLowerCase().contains(q) || c.phone.contains(q)));
+      }
+    });
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.75,
+        maxChildSize: 0.92,
+        minChildSize: 0.4,
+        builder: (_, scrollController) => Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  const Text(
+                    'Pilih Pelanggan',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              child: TextField(
+                controller: searchCtrl,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Cari nama atau telepon...',
+                  prefixIcon: const Icon(Icons.search_rounded,
+                      color: AppColors.textSecondary),
+                  filled: true,
+                  fillColor: AppColors.background,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  isDense: true,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Obx(() {
+                final list = filtered.toList();
+                return ListView(
+                  controller: scrollController,
+                  children: [
+                    // "Tanpa Pelanggan" option at top
+                    ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor:
+                            AppColors.textSecondary.withValues(alpha: 0.15),
+                        child: const Icon(Icons.person_off_rounded,
+                            color: AppColors.textSecondary, size: 20),
+                      ),
+                      title: const Text('Tanpa Pelanggan'),
+                      subtitle: const Text('Hapus pilihan pelanggan'),
+                      onTap: () {
+                        selectedCustomerId.value = '';
+                        selectedCustomerName.value = '';
+                        Navigator.pop(ctx);
+                      },
+                    ),
+                    const Divider(height: 1),
+                    if (list.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Center(
+                          child: Text(
+                            'Pelanggan tidak ditemukan',
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                        ),
+                      )
+                    else
+                      ...list.map((CustomerModel c) {
+                        final initials = c.name
+                            .trim()
+                            .split(' ')
+                            .map((w) => w.isNotEmpty ? w[0] : '')
+                            .take(2)
+                            .join()
+                            .toUpperCase();
+                        final isSelected =
+                            selectedCustomerId.value == c.id;
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: isSelected
+                                ? AppColors.primary
+                                : AppColors.primary.withValues(alpha: 0.12),
+                            child: Text(
+                              initials,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            c.name,
+                            style: TextStyle(
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          subtitle: c.phone.isNotEmpty
+                              ? Text(c.phone,
+                                  style: const TextStyle(fontSize: 12))
+                              : null,
+                          trailing: isSelected
+                              ? const Icon(Icons.check_circle_rounded,
+                                  color: AppColors.primary)
+                              : null,
+                          onTap: () {
+                            selectedCustomerId.value = c.id;
+                            selectedCustomerName.value = c.name;
+                            Navigator.pop(ctx);
+                          },
+                        );
+                      }),
+                  ],
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    searchCtrl.dispose();
   }
 }

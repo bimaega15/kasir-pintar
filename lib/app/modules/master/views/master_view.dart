@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../categories/controllers/categories_controller.dart';
+import '../../customers/controllers/customers_controller.dart';
 import '../../price_levels/controllers/price_levels_controller.dart';
 import '../../products/controllers/products_controller.dart';
 import '../../stock/controllers/stock_controller.dart';
@@ -143,6 +144,33 @@ class MasterPageContent extends StatelessWidget {
                 label: const Text('Tambah Level'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.indigo.shade600,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  minimumSize: const Size.fromHeight(36),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildMenuCard(
+              icon: Icons.people_rounded,
+              title: 'Pelanggan',
+              subtitle: 'Kelola data pelanggan dan riwayat transaksi',
+              color: Colors.teal,
+              onTap: () => Get.toNamed(AppRoutes.customers),
+              actionButton: ElevatedButton.icon(
+                onPressed: () {
+                  if (!Get.isRegistered<CustomersController>()) {
+                    Get.put(CustomersController());
+                  }
+                  final ctrl = Get.find<CustomersController>();
+                  ctrl.prepareAdd();
+                  Get.toNamed(AppRoutes.addEditCustomer);
+                },
+                icon: const Icon(Icons.person_add_rounded, size: 18),
+                label: const Text('Tambah Pelanggan'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
