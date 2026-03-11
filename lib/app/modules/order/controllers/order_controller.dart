@@ -35,6 +35,12 @@ class OrderController extends GetxController {
   final customerNameController = TextEditingController();
   final selectedCustomerId = ''.obs;
   final selectedCustomerName = ''.obs;
+
+  // Autocomplete for customer name field
+  final searchCustomerNameQuery = ''.obs;
+  final suggestedCustomers = <CustomerModel>[].obs;
+  final selectedCustomerModel = Rx<CustomerModel?>(null);
+
   final cart = <OrderItemModel>[].obs;
   final discount = 0.0.obs;
   final discountController = TextEditingController();
@@ -72,6 +78,7 @@ class OrderController extends GetxController {
     loadSettings();
     loadParkedCount();
     loadPriceLevels();
+    loadAllCustomers();
     searchController.addListener(
       () => searchQuery.value = searchController.text,
     );
@@ -780,5 +787,130 @@ class OrderController extends GetxController {
     );
 
     searchCtrl.dispose();
+  }
+
+  // ── Customer autocomplete ──────────────────────────────────────────────────
+
+  Future<void> loadAllCustomers() async {
+    final customerRepo = Get.find<CustomerRepository>();
+    final allCustomers = await customerRepo.getAll();
+    suggestedCustomers.assignAll(allCustomers);
+  }
+
+  void searchCustomersByName(String query) {
+    searchCustomerNameQuery.value = query;
+    if (query.isEmpty) {
+      suggestedCustomers.clear();
+      selectedCustomerModel.value = null;
+      return;
+    }
+
+    final customerRepo = Get.find<CustomerRepository>();
+    customerRepo.getAll().then((allCustomers) {
+      final q = query.toLowerCase();
+      final filtered = allCustomers
+          .where((c) => c.name.toLowerCase().contains(q))
+          .take(5)
+          .toList();
+      suggestedCustomers.value = filtered;
+    });
+  }
+
+  void selectCustomerFromSuggestion(CustomerModel customer) {
+    selectedCustomerModel.value = customer;
+    customerNameController.text = customer.name;
+    customerName.value = customer.name;
+    selectedCustomerId.value = customer.id;
+    selectedCustomerName.value = customer.name;
+    searchCustomerNameQuery.value = customer.name;
+    suggestedCustomers.clear();
+  }
+
+  // Reset customer name fields for fresh start on table select view
+  void resetCustomerName() {
+    customerNameController.clear();
+    customerName.value = '';
+    selectedCustomerId.value = '';
+    selectedCustomerName.value = '';
+    selectedCustomerModel.value = null;
+    searchCustomerNameQuery.value = '';
+    suggestedCustomers.clear();
+  }
+
+  void createNewCustomerFromSearch(String name) {
+    selectedCustomerModel.value = null;
+    customerNameController.text = name;
+    customerName.value = name;
+    selectedCustomerId.value = '';
+    selectedCustomerName.value = '';
+    suggestedCustomers.clear();
+  }
+
+  // Create and save new customer directly from table select view
+  Future<void> createAndSaveNewCustomer(String name) async {
+    if (name.trim().isEmpty) {
+      Get.snackbar(
+        'Gagal',
+        'Nama pemesan tidak boleh kosong',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    try {
+      final customerRepo = Get.find<CustomerRepository>();
+
+      // Check if name already exists
+      final allCustomers = await customerRepo.getAll();
+      final nameExists = allCustomers.any(
+          (c) => c.name.toLowerCase() == name.trim().toLowerCase());
+
+      if (nameExists) {
+        Get.snackbar(
+          'Gagal',
+          'Nama pemesan "${name.trim()}" sudah terdaftar',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      final newCustomer = CustomerModel(
+        name: name.trim(),
+        phone: '',
+        address: '',
+        notes: '',
+      );
+
+      await customerRepo.save(newCustomer);
+
+      // Update controller state
+      customerNameController.text = newCustomer.name;
+      customerName.value = newCustomer.name;
+      selectedCustomerId.value = newCustomer.id;
+      selectedCustomerName.value = newCustomer.name;
+      selectedCustomerModel.value = newCustomer;
+      suggestedCustomers.clear();
+
+      // Reload customers list
+      await loadAllCustomers();
+
+      Get.snackbar(
+        'Berhasil',
+        'Pelanggan "${newCustomer.name}" berhasil ditambahkan',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Gagal menambahkan pelanggan: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 }

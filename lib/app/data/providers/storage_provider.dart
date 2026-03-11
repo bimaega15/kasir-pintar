@@ -3,6 +3,7 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import '../models/cart_item_model.dart';
 import '../models/category_model.dart';
+import '../models/customer_model.dart';
 import '../models/order_item_model.dart';
 import '../models/order_model.dart';
 import '../models/payment_entry_model.dart';
@@ -19,7 +20,7 @@ import '../models/void_log_model.dart';
 /// Provider SQLite — mendukung offline penuh tanpa jaringan.
 class DatabaseProvider extends GetxService {
   static const _dbName = 'kasir_pintar.db';
-  static const _dbVersion = 10;
+  static const _dbVersion = 11;
 
   late Database _db;
 
@@ -308,10 +309,32 @@ class DatabaseProvider extends GetxService {
       )
     ''');
 
+    batch.execute('''
+      CREATE TABLE customers (
+        id         TEXT    PRIMARY KEY,
+        name       TEXT    NOT NULL,
+        phone      TEXT    NOT NULL DEFAULT '',
+        address    TEXT    NOT NULL DEFAULT '',
+        notes      TEXT    NOT NULL DEFAULT '',
+        created_at TEXT    NOT NULL
+      )
+    ''');
+
     await batch.commit(noResult: true);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 11) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS customers (
+            id TEXT PRIMARY KEY, name TEXT NOT NULL,
+            phone TEXT NOT NULL DEFAULT '', address TEXT NOT NULL DEFAULT '',
+            notes TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL
+          )
+        ''');
+      } catch (_) {}
+    }
     if (oldVersion < 10) {
       try {
         await db.execute('''
@@ -686,6 +709,153 @@ class DatabaseProvider extends GetxService {
     'description': p.description,
     'emoji': p.emoji,
     'created_at': p.createdAt.toIso8601String(),
+  };
+
+  // ── Customers ──────────────────────────────────────────────────────────────
+
+  Future<List<CustomerModel>> getCustomers() async {
+    try {
+      final maps = await _db.query('customers', orderBy: 'created_at ASC');
+      return maps.map(_customerFromMap).toList();
+    } catch (e) {
+      print('[getCustomers] Error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> insertCustomer(CustomerModel customer) async {
+    try {
+      final map = _customerToMap(customer);
+      await _db.insert('customers', map);
+    } catch (e) {
+      print('[insertCustomer] Error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateCustomer(CustomerModel customer) async {
+    try {
+      await _db.update(
+        'customers',
+        _customerToMap(customer),
+        where: 'id = ?',
+        whereArgs: [customer.id],
+      );
+    } catch (e) {
+      print('[updateCustomer] Error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteCustomer(String id) async {
+    try {
+      await _db.delete('customers', where: 'id = ?', whereArgs: [id]);
+    } catch (e) {
+      print('[deleteCustomer] Error: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<TransactionModel>> getTransactionsByCustomerId(String customerId) async {
+    try {
+      // First get customer name
+      final customerMaps = await _db.query(
+        'customers',
+        where: 'id = ?',
+        whereArgs: [customerId],
+      );
+
+      if (customerMaps.isEmpty) {
+        return [];
+      }
+
+      final customerName = customerMaps.first['name'] as String;
+
+      // Then get all transactions with that customer name
+      final txMaps = await _db.query(
+        'transactions',
+        where: 'customer_name = ?',
+        whereArgs: [customerName],
+        orderBy: 'created_at DESC',
+      );
+
+      if (txMaps.isEmpty) return [];
+
+      // Get all transaction items
+      final txIds = txMaps.map((m) => m['id'] as String).toList();
+      final placeholders = List.filled(txIds.length, '?').join(', ');
+      final itemMaps = await _db.rawQuery(
+        'SELECT * FROM transaction_items WHERE transaction_id IN ($placeholders) ORDER BY id ASC',
+        txIds,
+      );
+
+      final itemsByTx = <String, List<CartItemModel>>{};
+      for (final item in itemMaps) {
+        final txId = item['transaction_id'] as String;
+        itemsByTx.putIfAbsent(txId, () => []).add(_cartItemFromMap(item));
+      }
+
+      return txMaps.map((m) {
+        final txId = m['id'] as String;
+        return TransactionModel(
+          id: txId,
+          invoiceNumber: m['invoice_number'] as String,
+          items: itemsByTx[txId] ?? [],
+          subtotal: (m['subtotal'] as num).toDouble(),
+          discount: (m['discount'] as num?)?.toDouble() ?? 0,
+          total: (m['total'] as num).toDouble(),
+          paymentAmount: (m['payment_amount'] as num).toDouble(),
+          change: (m['change_amount'] as num).toDouble(),
+          paymentMethod: m['payment_method'] as String? ?? 'Tunai',
+          createdAt: DateTime.parse(m['created_at'] as String),
+          cashierName: m['cashier_name'] as String? ?? 'Kasir',
+          orderType: m['order_type'] as String? ?? 'dine_in',
+          tableNumber: m['table_number'] as int?,
+          taxAmount: (m['tax_amount'] as num?)?.toDouble() ?? 0,
+          serviceChargeAmount: (m['service_charge_amount'] as num?)?.toDouble() ?? 0,
+          customerName: m['customer_name'] as String? ?? '',
+        );
+      }).toList();
+    } catch (e) {
+      print('[getTransactionsByCustomerId] Error: $e');
+      rethrow;
+    }
+  }
+
+  CustomerModel _customerFromMap(Map<String, Object?> m) {
+    try {
+      final id = m['id'] as String?;
+      final name = m['name'] as String?;
+      final phone = m['phone'] as String? ?? '';
+      final address = m['address'] as String? ?? '';
+      final notes = m['notes'] as String? ?? '';
+      final createdAtStr = m['created_at'] as String?;
+
+      if (id == null || name == null || createdAtStr == null) {
+        throw FormatException('Missing required fields in customer map: $m');
+      }
+
+      return CustomerModel(
+        id: id,
+        name: name,
+        phone: phone,
+        address: address,
+        notes: notes,
+        createdAt: DateTime.parse(createdAtStr),
+      );
+    } catch (e) {
+      print('[_customerFromMap] Error parsing map: $m with error: $e');
+      rethrow;
+    }
+  }
+
+  Map<String, Object?> _customerToMap(CustomerModel c) => {
+    'id': c.id,
+    'name': c.name,
+    'phone': c.phone,
+    'address': c.address,
+    'notes': c.notes,
+    'created_at': c.createdAt.toIso8601String(),
   };
 
   // ── Tables ────────────────────────────────────────────────────────────────

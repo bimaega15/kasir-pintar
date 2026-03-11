@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../data/models/customer_model.dart';
 import '../../../data/models/table_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
@@ -10,6 +11,11 @@ class TableSelectView extends GetView<OrderController> {
 
   @override
   Widget build(BuildContext context) {
+    // Reset customer name when entering table select view
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.resetCustomerName();
+    });
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -23,7 +29,7 @@ class TableSelectView extends GetView<OrderController> {
             .toList();
         return Column(
           children: [
-            // Customer name input
+            // Customer name autocomplete input
             Container(
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(16),
@@ -38,32 +44,7 @@ class TableSelectView extends GetView<OrderController> {
                   ),
                 ],
               ),
-              child: TextField(
-                controller: controller.customerNameController,
-                decoration: InputDecoration(
-                  labelText: 'Nama Pemesan',
-                  hintText: 'Masukkan nama pemesan',
-                  prefixIcon: const Icon(
-                    Icons.person_rounded,
-                    color: AppColors.primary,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(
-                      color: AppColors.primary,
-                      width: 2,
-                    ),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-                onChanged: (value) => controller.customerName.value = value,
-              ),
+              child: _buildCustomerAutocomplete(context),
             ),
 
             // Guest count selector
@@ -175,6 +156,277 @@ class TableSelectView extends GetView<OrderController> {
           ],
         );
       }),
+    );
+  }
+
+  Widget _buildCustomerAutocomplete(BuildContext context) {
+    return Obx(() {
+      final selectedName = controller.selectedCustomerModel.value?.name ?? '';
+      final suggestions = controller.suggestedCustomers;
+      final query = controller.searchCustomerNameQuery.value;
+      final hasMatch = suggestions.isNotEmpty;
+
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.cardShadow,
+              blurRadius: 4,
+              offset: Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Input field
+            TextField(
+              controller: controller.customerNameController,
+              textCapitalization: TextCapitalization.words,
+              onChanged: (value) => controller.searchCustomersByName(value),
+              decoration: InputDecoration(
+                labelText: 'Nama Pemesan *',
+                hintText: 'Ketik nama pemesan...',
+                prefixIcon: const Icon(Icons.person_rounded,
+                    color: AppColors.primary, size: 20),
+                suffixIcon: selectedName.isNotEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Container(
+                          margin: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Icon(
+                            Icons.check_circle,
+                            color: AppColors.success,
+                            size: 20,
+                          ),
+                        ),
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: AppColors.divider,
+                    width: 1,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: AppColors.divider,
+                    width: 1,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 2,
+                  ),
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                labelStyle: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+                hintStyle: TextStyle(
+                  color: AppColors.textSecondary.withValues(alpha: 0.5),
+                  fontSize: 13,
+                ),
+              ),
+            ),
+
+            // Suggestions dropdown
+            if (query.isNotEmpty && selectedName.isEmpty)
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(12),
+                    bottomRight: Radius.circular(12),
+                  ),
+                  border: Border(
+                    top: BorderSide(
+                      color: AppColors.divider,
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    // Suggestion list
+                    ...suggestions.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final customer = entry.value;
+                      return _buildSuggestionItem(
+                        customer: customer,
+                        onTap: () =>
+                            controller.selectCustomerFromSuggestion(customer),
+                        isFirst: index == 0,
+                        isLast: index == suggestions.length - 1,
+                      );
+                    }),
+
+                    // Add new customer button (jika tidak ada match)
+                  if (!hasMatch)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.accent.withValues(alpha: 0.08),
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(12),
+                          bottomRight: Radius.circular(12),
+                        ),
+                      ),
+                      child: InkWell(
+                        onTap: () =>
+                            controller.createAndSaveNewCustomer(query),
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(12),
+                          bottomRight: Radius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accent.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Icon(
+                                  Icons.add_rounded,
+                                  color: AppColors.accent,
+                                  size: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Gunakan Nama Baru',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.accent,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Gunakan "$query" sebagai nama pemesan',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.accent
+                                            .withValues(alpha: 0.7),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.arrow_forward_rounded,
+                                color: AppColors.accent,
+                                size: 16,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+      );
+    });
+  }
+
+  Widget _buildSuggestionItem({
+    required CustomerModel customer,
+    required VoidCallback onTap,
+    required bool isFirst,
+    required bool isLast,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            top: isFirst
+                ? BorderSide.none
+                : const BorderSide(color: AppColors.divider, width: 1),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    customer.name.isNotEmpty
+                        ? customer.name[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      customer.name,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    if (customer.phone.isNotEmpty)
+                      Text(
+                        customer.phone,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.check_circle_outline_rounded,
+                color: AppColors.textSecondary,
+                size: 18,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
