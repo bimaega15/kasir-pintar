@@ -1,23 +1,45 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
+import 'package:local_notifier/local_notifier.dart';
+import '../data/models/bahan_baku_model.dart';
 import '../data/models/product_model.dart';
 
 class NotificationService extends GetxService {
   static const _channelId = 'low_stock_channel';
   static const _channelName = 'Stok Hampir Habis';
-  static const int lowStockId = 1001;
+  static const int lowStockProductId = 1001;
+  static const int lowStockBahanBakuId = 1002;
 
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
-  static bool get isSupported =>
+  static bool get _isMobile =>
       !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+
+  static bool get _isDesktop =>
+      !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+
+  static bool get isSupported => _isMobile || _isDesktop;
 
   Future<NotificationService> init() async {
     if (!isSupported) return this;
 
+    if (_isMobile) {
+      await _initMobile();
+    } else if (_isDesktop) {
+      await _initDesktop();
+    }
+
+    _initialized = true;
+    return this;
+  }
+
+  // ── Mobile init (Android / iOS) ───────────────────────────────────────
+
+  Future<void> _initMobile() async {
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
@@ -33,7 +55,6 @@ class NotificationService extends GetxService {
       ),
     );
 
-    // Buat notification channel untuk Android
     const channel = AndroidNotificationChannel(
       _channelId,
       _channelName,
@@ -45,7 +66,6 @@ class NotificationService extends GetxService {
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
 
-    // Minta izin notifikasi Android 13+ / iOS
     await _plugin
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
@@ -54,15 +74,20 @@ class NotificationService extends GetxService {
         .resolvePlatformSpecificImplementation<
             IOSFlutterLocalNotificationsPlugin>()
         ?.requestPermissions(alert: true, badge: true);
-
-    _initialized = true;
-    return this;
   }
+
+  // ── Desktop init (Windows / macOS / Linux) ────────────────────────────
+
+  Future<void> _initDesktop() async {
+    await localNotifier.setup(appName: 'Kasir Pintar');
+  }
+
+  // ── Produk low stock notification ─────────────────────────────────────
 
   Future<void> showLowStockNotification(List<ProductModel> products) async {
     if (!_initialized || products.isEmpty) return;
 
-    final title = '⚠️ Stok Hampir Habis (${products.length} produk)';
+    final title = 'Stok Hampir Habis (${products.length} produk)';
     final body = products.length == 1
         ? '${products.first.emoji} ${products.first.name}  —  Stok: ${products.first.stock}'
         : products
@@ -70,8 +95,56 @@ class NotificationService extends GetxService {
             .map((p) => '${p.emoji} ${p.name} (${p.stock})')
             .join(', ');
 
+    if (_isMobile) {
+      await _showMobile(lowStockProductId, title, body);
+    } else if (_isDesktop) {
+      _showDesktop(title, body);
+    }
+  }
+
+  Future<void> cancelLowStockNotification() async {
+    if (!_initialized) return;
+    if (_isMobile) {
+      await _plugin.cancel(lowStockProductId);
+    }
+  }
+
+  // ── Bahan baku low stock notification ─────────────────────────────────
+
+  Future<void> showLowStockBahanBakuNotification(
+      List<BahanBakuModel> items) async {
+    if (!_initialized || items.isEmpty) return;
+
+    final title = 'Bahan Baku Menipis (${items.length} item)';
+    final body = items.length == 1
+        ? '${items.first.emoji} ${items.first.name}  —  '
+            'Stok: ${_fmtQty(items.first.stock)} ${items.first.unit} '
+            '(min: ${_fmtQty(items.first.minStock)})'
+        : items
+            .take(3)
+            .map((b) =>
+                '${b.emoji} ${b.name} (${_fmtQty(b.stock)} ${b.unit})')
+            .join(', ');
+
+    if (_isMobile) {
+      await _showMobile(lowStockBahanBakuId, title, body);
+    } else if (_isDesktop) {
+      _showDesktop(title, body);
+    }
+  }
+
+  Future<void> cancelLowStockBahanBakuNotification() async {
+    if (!_initialized) return;
+    if (_isMobile) {
+      await _plugin.cancel(lowStockBahanBakuId);
+    }
+  }
+
+  // ── Private helpers ───────────────────────────────────────────────────
+
+  Future<void> _showMobile(int id, String title, String body) async {
     await _plugin.show(
-      lowStockId,
+      id,
       title,
       body,
       NotificationDetails(
@@ -94,9 +167,14 @@ class NotificationService extends GetxService {
     );
   }
 
-  /// Hapus notifikasi stok rendah (dipanggil saat stok sudah aman)
-  Future<void> cancelLowStockNotification() async {
-    if (!_initialized) return;
-    await _plugin.cancel(lowStockId);
+  void _showDesktop(String title, String body) {
+    final notification = LocalNotification(
+      title: title,
+      body: body,
+    );
+    notification.show();
   }
+
+  String _fmtQty(double qty) =>
+      qty == qty.truncateToDouble() ? qty.toInt().toString() : qty.toStringAsFixed(1);
 }

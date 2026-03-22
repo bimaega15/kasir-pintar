@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/products_controller.dart';
@@ -146,9 +147,18 @@ class ProductsView extends GetView<ProductsController> {
           color: AppColors.background,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Center(
-          child: Text(product.emoji, style: const TextStyle(fontSize: 26)),
-        ),
+        clipBehavior: Clip.antiAlias,
+        child: product.imagePath != null &&
+                File(product.imagePath!).existsSync()
+            ? Image.file(
+                File(product.imagePath!),
+                width: 48,
+                height: 48,
+                fit: BoxFit.cover,
+              )
+            : Center(
+                child: Text(product.emoji, style: const TextStyle(fontSize: 26)),
+              ),
       ),
       title: Text(
         product.name,

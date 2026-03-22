@@ -6,6 +6,7 @@ import '../../categories/controllers/categories_controller.dart';
 import '../../customers/controllers/customers_controller.dart';
 import '../../price_levels/controllers/price_levels_controller.dart';
 import '../../products/controllers/products_controller.dart';
+import '../../bahan_baku/controllers/bahan_baku_controller.dart';
 import '../../stock/controllers/stock_controller.dart';
 import '../../tables/controllers/tables_controller.dart';
 
@@ -171,6 +172,33 @@ class MasterPageContent extends StatelessWidget {
                 label: const Text('Tambah Pelanggan'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  minimumSize: const Size.fromHeight(36),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildMenuCard(
+              icon: Icons.egg_rounded,
+              title: 'Bahan Baku',
+              subtitle: 'Kelola stok bahan baku, pembelian & pemakaian',
+              color: Colors.brown.shade600,
+              onTap: () => Get.toNamed(AppRoutes.bahanBaku),
+              actionButton: ElevatedButton.icon(
+                onPressed: () {
+                  if (!Get.isRegistered<BahanBakuController>()) {
+                    Get.put(BahanBakuController());
+                  }
+                  final ctrl = Get.find<BahanBakuController>();
+                  ctrl.prepareAdd();
+                  Get.toNamed(AppRoutes.addEditBahanBaku);
+                },
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('Tambah Bahan'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.brown.shade600,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),

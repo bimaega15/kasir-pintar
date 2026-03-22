@@ -15,12 +15,13 @@ import '../models/transaction_model.dart';
 import '../models/debt_model.dart';
 import '../models/price_level_model.dart';
 import '../models/stock_movement_model.dart';
+import '../models/bahan_baku_model.dart';
 import '../models/void_log_model.dart';
 
 /// Provider SQLite — mendukung offline penuh tanpa jaringan.
 class DatabaseProvider extends GetxService {
   static const _dbName = 'kasir_pintar.db';
-  static const _dbVersion = 11;
+  static const _dbVersion = 13;
 
   late Database _db;
 
@@ -57,6 +58,7 @@ class DatabaseProvider extends GetxService {
         stock       INTEGER NOT NULL DEFAULT 0,
         description TEXT    NOT NULL DEFAULT '',
         emoji       TEXT    NOT NULL DEFAULT '📦',
+        image_path  TEXT,
         created_at  TEXT    NOT NULL
       )
     ''');
@@ -310,6 +312,36 @@ class DatabaseProvider extends GetxService {
     ''');
 
     batch.execute('''
+      CREATE TABLE bahan_baku (
+        id         TEXT    PRIMARY KEY,
+        name       TEXT    NOT NULL,
+        unit       TEXT    NOT NULL,
+        stock      REAL    NOT NULL DEFAULT 0,
+        min_stock  REAL    NOT NULL DEFAULT 0,
+        price      REAL    NOT NULL DEFAULT 0,
+        emoji      TEXT    NOT NULL DEFAULT '📦',
+        notes      TEXT    NOT NULL DEFAULT '',
+        created_at TEXT    NOT NULL
+      )
+    ''');
+
+    batch.execute('''
+      CREATE TABLE bahan_baku_movements (
+        id              TEXT PRIMARY KEY,
+        bahan_baku_id   TEXT NOT NULL,
+        bahan_baku_name TEXT NOT NULL,
+        bahan_baku_emoji TEXT NOT NULL DEFAULT '📦',
+        type            TEXT NOT NULL,
+        quantity        REAL NOT NULL DEFAULT 0,
+        qty_before      REAL NOT NULL DEFAULT 0,
+        qty_after       REAL NOT NULL DEFAULT 0,
+        total_cost      REAL,
+        notes           TEXT NOT NULL DEFAULT '',
+        created_at      TEXT NOT NULL
+      )
+    ''');
+
+    batch.execute('''
       CREATE TABLE customers (
         id         TEXT    PRIMARY KEY,
         name       TEXT    NOT NULL,
@@ -324,6 +356,37 @@ class DatabaseProvider extends GetxService {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 13) {
+      try {
+        await db.execute('ALTER TABLE products ADD COLUMN image_path TEXT');
+      } catch (_) {}
+    }
+    if (oldVersion < 12) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS bahan_baku (
+            id TEXT PRIMARY KEY, name TEXT NOT NULL,
+            unit TEXT NOT NULL, stock REAL NOT NULL DEFAULT 0,
+            min_stock REAL NOT NULL DEFAULT 0, price REAL NOT NULL DEFAULT 0,
+            emoji TEXT NOT NULL DEFAULT '📦',
+            notes TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL
+          )
+        ''');
+      } catch (_) {}
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS bahan_baku_movements (
+            id TEXT PRIMARY KEY, bahan_baku_id TEXT NOT NULL,
+            bahan_baku_name TEXT NOT NULL,
+            bahan_baku_emoji TEXT NOT NULL DEFAULT '📦',
+            type TEXT NOT NULL, quantity REAL NOT NULL DEFAULT 0,
+            qty_before REAL NOT NULL DEFAULT 0, qty_after REAL NOT NULL DEFAULT 0,
+            total_cost REAL, notes TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL
+          )
+        ''');
+      } catch (_) {}
+    }
     if (oldVersion < 11) {
       try {
         await db.execute('''
@@ -604,6 +667,26 @@ class DatabaseProvider extends GetxService {
       }
       await batch.commit(noResult: true);
     }
+
+    final bahanBakuCount =
+        Sqflite.firstIntValue(
+          await _db.rawQuery('SELECT COUNT(*) FROM bahan_baku'),
+        ) ??
+        0;
+    if (bahanBakuCount == 0) {
+      final batch = _db.batch();
+      for (final bb in BahanBakuModel.sampleBahanBaku) {
+        batch.insert('bahan_baku', bb.toMap());
+      }
+      await batch.commit(noResult: true);
+    }
+
+    // Seed default admin account jika belum ada
+    final existingUsername = await getSetting('app_username');
+    if (existingUsername == null || existingUsername.isEmpty) {
+      await setSetting('app_username', 'rizky_syahputra');
+      await setSetting('app_password', 'admin123#');
+    }
   }
 
   // ── Products ──────────────────────────────────────────────────────────────
@@ -675,6 +758,7 @@ class DatabaseProvider extends GetxService {
       final stockValue = m['stock'];
       final description = m['description'] as String? ?? '';
       final emoji = m['emoji'] as String? ?? '📦';
+      final imagePath = m['image_path'] as String?;
       final createdAtStr = m['created_at'] as String?;
 
       if (id == null || name == null || categoryId == null || priceValue == null || stockValue == null || createdAtStr == null) {
@@ -692,6 +776,7 @@ class DatabaseProvider extends GetxService {
         stock: stock,
         description: description,
         emoji: emoji,
+        imagePath: imagePath,
         createdAt: DateTime.parse(createdAtStr),
       );
     } catch (e) {
@@ -708,6 +793,7 @@ class DatabaseProvider extends GetxService {
     'stock': p.stock,
     'description': p.description,
     'emoji': p.emoji,
+    'image_path': p.imagePath,
     'created_at': p.createdAt.toIso8601String(),
   };
 
@@ -1651,5 +1737,75 @@ class DatabaseProvider extends GetxService {
     await _db.delete('stock_opname_items',
         where: 'opname_id = ?', whereArgs: [id]);
     await _db.delete('stock_opname', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ── Bahan Baku ────────────────────────────────────────────────────────────
+
+  Future<List<BahanBakuModel>> getBahanBakuList() async {
+    final maps = await _db.query('bahan_baku', orderBy: 'name ASC');
+    return maps.map((m) => BahanBakuModel.fromMap(m)).toList();
+  }
+
+  Future<BahanBakuModel?> getBahanBakuById(String id) async {
+    final maps =
+        await _db.query('bahan_baku', where: 'id = ?', whereArgs: [id]);
+    if (maps.isEmpty) return null;
+    return BahanBakuModel.fromMap(maps.first);
+  }
+
+  Future<void> insertBahanBaku(BahanBakuModel bb) async {
+    await _db.insert('bahan_baku', bb.toMap());
+  }
+
+  Future<void> updateBahanBaku(BahanBakuModel bb) async {
+    await _db.update(
+      'bahan_baku',
+      {
+        'name': bb.name,
+        'unit': bb.unit,
+        'stock': bb.stock,
+        'min_stock': bb.minStock,
+        'price': bb.price,
+        'emoji': bb.emoji,
+        'notes': bb.notes,
+      },
+      where: 'id = ?',
+      whereArgs: [bb.id],
+    );
+  }
+
+  Future<void> updateBahanBakuStock(String id, double newStock) async {
+    await _db.update(
+      'bahan_baku',
+      {'stock': newStock},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<void> deleteBahanBaku(String id) async {
+    await _db.delete('bahan_baku_movements',
+        where: 'bahan_baku_id = ?', whereArgs: [id]);
+    await _db.delete('bahan_baku', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ── Bahan Baku Movements ──────────────────────────────────────────────────
+
+  Future<void> insertBahanBakuMovement(BahanBakuMovementModel m) async {
+    await _db.insert('bahan_baku_movements', m.toMap());
+  }
+
+  Future<List<BahanBakuMovementModel>> getBahanBakuMovements({
+    String? bahanBakuId,
+    int limit = 100,
+  }) async {
+    final maps = await _db.query(
+      'bahan_baku_movements',
+      where: bahanBakuId != null ? 'bahan_baku_id = ?' : null,
+      whereArgs: bahanBakuId != null ? [bahanBakuId] : null,
+      orderBy: 'created_at DESC',
+      limit: limit,
+    );
+    return maps.map((m) => BahanBakuMovementModel.fromMap(m)).toList();
   }
 }

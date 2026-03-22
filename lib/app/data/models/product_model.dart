@@ -11,6 +11,7 @@ class ProductModel {
   int stock;
   String description;
   String emoji;
+  String? imagePath; // path foto produk (null = pakai emoji)
   final DateTime createdAt;
 
   /// Harga per level — diisi oleh storage_provider saat load
@@ -32,6 +33,7 @@ class ProductModel {
     this.stock = 0,
     this.description = '',
     this.emoji = '📦',
+    this.imagePath,
     DateTime? createdAt,
   })  : id = id ?? _uuid.v4(),
         createdAt = createdAt ?? DateTime.now();
@@ -44,6 +46,7 @@ class ProductModel {
         stock: json['stock'] as int? ?? 0,
         description: json['description'] as String? ?? '',
         emoji: json['emoji'] as String? ?? '📦',
+        imagePath: json['imagePath'] as String?,
         createdAt: DateTime.parse(json['createdAt'] as String),
       );
 
@@ -55,6 +58,7 @@ class ProductModel {
         'stock': stock,
         'description': description,
         'emoji': emoji,
+        'imagePath': imagePath,
         'createdAt': createdAt.toIso8601String(),
       };
 
@@ -65,6 +69,8 @@ class ProductModel {
     int? stock,
     String? description,
     String? emoji,
+    String? imagePath,
+    bool clearImage = false,
   }) =>
       ProductModel(
         id: id,
@@ -74,6 +80,7 @@ class ProductModel {
         stock: stock ?? this.stock,
         description: description ?? this.description,
         emoji: emoji ?? this.emoji,
+        imagePath: clearImage ? null : (imagePath ?? this.imagePath),
         createdAt: createdAt,
       );
 

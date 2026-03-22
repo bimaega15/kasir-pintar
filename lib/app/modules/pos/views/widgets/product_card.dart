@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../data/models/product_model.dart';
 import '../../../../utils/constants/app_colors.dart';
@@ -39,7 +40,7 @@ class ProductCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Emoji area
+              // Image / Emoji area
               Expanded(
                 child: Container(
                   width: double.infinity,
@@ -48,10 +49,21 @@ class ProductCard extends StatelessWidget {
                     borderRadius:
                         const BorderRadius.vertical(top: Radius.circular(12)),
                   ),
-                  child: Center(
-                    child: Text(product.emoji,
-                        style: const TextStyle(fontSize: 38)),
-                  ),
+                  child: product.imagePath != null &&
+                          File(product.imagePath!).existsSync()
+                      ? ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(12)),
+                          child: Image.file(
+                            File(product.imagePath!),
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : Center(
+                          child: Text(product.emoji,
+                              style: const TextStyle(fontSize: 38)),
+                        ),
                 ),
               ),
               // Info

@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../data/models/bahan_baku_model.dart';
 import '../../../data/models/product_model.dart';
+import '../../../data/repositories/bahan_baku_repository.dart';
 import '../../../data/repositories/order_repository.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/transaction_repository.dart';
@@ -28,8 +31,12 @@ class HomeController extends GetxController {
   final greeting = ''.obs;
   final isLoading = false.obs;
   final lowStockProducts = <ProductModel>[].obs;
+  final lowStockBahanBaku = <BahanBakuModel>[].obs;
 
   static const int lowStockThreshold = 5;
+
+  /// Timer untuk cek stok berkala (setiap 10 menit)
+  Timer? _stockCheckTimer;
 
   @override
   void onInit() {
@@ -37,6 +44,12 @@ class HomeController extends GetxController {
     _setGreeting();
     loadStats();
     scrollController.addListener(_onScroll);
+
+    // Cek stok berkala setiap 10 menit
+    _stockCheckTimer = Timer.periodic(
+      const Duration(minutes: 10),
+      (_) => _checkStockLevels(),
+    );
   }
 
   @override
@@ -50,6 +63,7 @@ class HomeController extends GetxController {
 
   @override
   void onClose() {
+    _stockCheckTimer?.cancel();
     scrollController.dispose();
     super.onClose();
   }
@@ -77,22 +91,73 @@ class HomeController extends GetxController {
       todayRevenue.value = todayTx.fold(0.0, (sum, t) => sum + t.total);
       activeOrderCount.value = activeOrders.length;
 
-      // Deteksi stok rendah
+      // Deteksi stok rendah produk
       final lowStock = allProducts
           .where((p) => p.stock <= lowStockThreshold)
           .toList()
         ..sort((a, b) => a.stock.compareTo(b.stock));
       lowStockProducts.assignAll(lowStock);
 
-      // Kirim push notification jika ada stok rendah
-      if (lowStock.isNotEmpty && Get.isRegistered<NotificationService>()) {
-        Get.find<NotificationService>().showLowStockNotification(lowStock);
-      } else if (lowStock.isEmpty && Get.isRegistered<NotificationService>()) {
-        Get.find<NotificationService>().cancelLowStockNotification();
-      }
+      // Deteksi stok rendah bahan baku
+      await _loadLowStockBahanBaku();
+
+      // Kirim push notification
+      _sendStockNotifications(lowStock);
     } finally {
       isLoading.value = false;
     }
+  }
+
+  /// Cek stok bahan baku yang menipis
+  Future<void> _loadLowStockBahanBaku() async {
+    if (!Get.isRegistered<BahanBakuRepository>()) return;
+    try {
+      final repo = Get.find<BahanBakuRepository>();
+      final allBahanBaku = await repo.getAll();
+      final lowBB = allBahanBaku
+          .where((bb) => bb.isLowStock)
+          .toList()
+        ..sort((a, b) => (a.stock - a.minStock).compareTo(b.stock - b.minStock));
+      lowStockBahanBaku.assignAll(lowBB);
+    } catch (e) {
+      print('[HomeController] Error loading bahan baku: $e');
+    }
+  }
+
+  /// Kirim notifikasi push untuk semua stok rendah
+  void _sendStockNotifications(List<ProductModel> lowStock) {
+    if (!Get.isRegistered<NotificationService>()) return;
+    final notifService = Get.find<NotificationService>();
+
+    // Notifikasi produk
+    if (lowStock.isNotEmpty) {
+      notifService.showLowStockNotification(lowStock);
+    } else {
+      notifService.cancelLowStockNotification();
+    }
+
+    // Notifikasi bahan baku
+    if (lowStockBahanBaku.isNotEmpty) {
+      notifService.showLowStockBahanBakuNotification(lowStockBahanBaku);
+    } else {
+      notifService.cancelLowStockBahanBakuNotification();
+    }
+  }
+
+  /// Periodic check — hanya kirim notifikasi tanpa reload UI penuh
+  Future<void> _checkStockLevels() async {
+    try {
+      final allProducts = await _productRepo.getAll();
+      final lowStock = allProducts
+          .where((p) => p.stock <= lowStockThreshold)
+          .toList()
+        ..sort((a, b) => a.stock.compareTo(b.stock));
+      lowStockProducts.assignAll(lowStock);
+
+      await _loadLowStockBahanBaku();
+
+      _sendStockNotifications(lowStock);
+    } catch (_) {}
   }
 
   void _setGreeting() {

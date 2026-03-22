@@ -24,6 +24,7 @@ class HomeView extends GetView<HomeController> {
               delegate: SliverChildListDelegate([
                 _buildShiftBanner(),
                 _buildLowStockBanner(),
+                _buildLowStockBahanBakuBanner(),
                 _buildStatsGrid(),
                 const SizedBox(height: 24),
                 _buildQuickAccessSection(),
@@ -520,6 +521,109 @@ class HomeView extends GetView<HomeController> {
       );
     });
   }
+
+  Widget _buildLowStockBahanBakuBanner() {
+    return Obx(() {
+      final items = controller.lowStockBahanBaku;
+      if (items.isEmpty) return const SizedBox.shrink();
+
+      return GestureDetector(
+        onTap: () => Get.toNamed(AppRoutes.bahanBaku),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.red.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.red.shade300),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded,
+                        color: Colors.red.shade700, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Bahan Baku Menipis (${items.length} item)',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red.shade800,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Kelola →',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.red.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, indent: 14, endIndent: 14),
+              ...items.take(3).map((bb) => Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    child: Row(
+                      children: [
+                        Text(bb.emoji, style: const TextStyle(fontSize: 18)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            bb.name,
+                            style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textPrimary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade100,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${_fmtQty(bb.stock)}/${_fmtQty(bb.minStock)} ${bb.unit}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red.shade700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+              if (items.length > 3)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                  child: Text(
+                    '+${items.length - 3} bahan baku lainnya',
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.red.shade600),
+                  ),
+                )
+              else
+                const SizedBox(height: 4),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  String _fmtQty(double qty) =>
+      qty == qty.truncateToDouble() ? qty.toInt().toString() : qty.toStringAsFixed(1);
 
   Widget _buildStatsGrid() {
     return Obx(() => GridView.count(

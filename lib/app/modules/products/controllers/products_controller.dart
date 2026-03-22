@@ -1,5 +1,9 @@
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import '../../../data/models/category_model.dart';
 import '../../../data/models/price_level_model.dart';
 import '../../../data/models/product_model.dart';
@@ -25,6 +29,7 @@ class ProductsController extends GetxController {
   final descController = TextEditingController();
   final selectedCategoryId = 'food'.obs;
   final selectedEmoji = '📦'.obs;
+  final selectedImagePath = Rxn<String>(); // null = no image selected
 
   /// Level harga yang tersedia (dimuat sekali)
   final availablePriceLevels = <PriceLevelModel>[].obs;
@@ -163,6 +168,7 @@ class ProductsController extends GetxController {
     final firstReal = formCategories.isNotEmpty ? formCategories.first.id : 'other';
     selectedCategoryId.value = firstReal;
     selectedEmoji.value = '📦';
+    selectedImagePath.value = null;
 
     // Safely reset controllers
     try {
@@ -198,6 +204,7 @@ class ProductsController extends GetxController {
     }
     selectedCategoryId.value = product.categoryId;
     selectedEmoji.value = product.emoji;
+    selectedImagePath.value = product.imagePath;
 
     // Populate level price controllers for non-default levels only
     // (default level price = product.price, shown in the main Harga field)
@@ -238,6 +245,34 @@ class ProductsController extends GetxController {
     
     // Create new controllers
     // This is a fallback, shouldn't normally happen
+  }
+
+  // ── Image Picking ──────────────────────────────────────────────────────
+
+  Future<void> pickImage() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final sourcePath = result.files.single.path;
+    if (sourcePath == null) return;
+
+    // Copy image to app's persistent directory
+    final appDir = await getApplicationDocumentsDirectory();
+    final imgDir = Directory(p.join(appDir.path, 'product_images'));
+    if (!await imgDir.exists()) await imgDir.create(recursive: true);
+
+    final ext = p.extension(sourcePath);
+    final fileName = 'product_${DateTime.now().millisecondsSinceEpoch}$ext';
+    final destPath = p.join(imgDir.path, fileName);
+    await File(sourcePath).copy(destPath);
+
+    selectedImagePath.value = destPath;
+  }
+
+  void removeImage() {
+    selectedImagePath.value = null;
   }
 
   Future<void> saveProduct() async {
@@ -295,6 +330,7 @@ class ProductsController extends GetxController {
           stock: stock,
           description: descController.text.trim(),
           emoji: selectedEmoji.value,
+          imagePath: selectedImagePath.value,
         );
         await _productRepo.add(product);
         await _priceLevelRepo.saveProductPriceLevels(product.id, levelEntries);
@@ -306,7 +342,8 @@ class ProductsController extends GetxController {
           ..price = price
           ..stock = stock
           ..description = descController.text.trim()
-          ..emoji = selectedEmoji.value;
+          ..emoji = selectedEmoji.value
+          ..imagePath = selectedImagePath.value;
         await _productRepo.update(editingProduct!);
         await _priceLevelRepo.saveProductPriceLevels(
             editingProduct!.id, levelEntries);

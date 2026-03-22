@@ -57,6 +57,10 @@ import '../modules/stock/views/stock_card_view.dart';
 import '../modules/stock/views/stock_management_view.dart';
 import '../modules/stock/views/stock_opname_detail_view.dart';
 import '../modules/stock/views/stock_opname_view.dart';
+import '../modules/bahan_baku/bindings/bahan_baku_binding.dart';
+import '../modules/bahan_baku/views/bahan_baku_view.dart';
+import '../modules/bahan_baku/views/add_edit_bahan_baku_view.dart';
+import '../modules/bahan_baku/views/bahan_baku_detail_view.dart';
 import '../modules/customers/bindings/customers_binding.dart';
 import '../modules/customers/views/customers_view.dart';
 import '../modules/customers/views/add_edit_customer_view.dart';
@@ -275,6 +279,25 @@ class AppPages {
       name: AppRoutes.stockOpnameDetail,
       page: () => const StockOpnameDetailView(),
       binding: StockBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    // ── Bahan Baku ────────────────────────────────────────────────────────────
+    GetPage(
+      name: AppRoutes.bahanBaku,
+      page: () => const BahanBakuView(),
+      binding: BahanBakuBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.addEditBahanBaku,
+      page: () => const AddEditBahanBakuView(),
+      binding: BahanBakuBinding(),
+      transition: Transition.downToUp,
+    ),
+    GetPage(
+      name: AppRoutes.bahanBakuDetail,
+      page: () => const BahanBakuDetailView(),
+      binding: BahanBakuBinding(),
       transition: Transition.rightToLeft,
     ),
     // ── Pelanggan ─────────────────────────────────────────────────────────────

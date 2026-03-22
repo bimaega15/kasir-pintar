@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/products_controller.dart';
@@ -36,6 +37,12 @@ class AddEditProductView extends GetView<ProductsController> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Photo picker
+            _sectionLabel('Foto Produk (opsional)'),
+            const SizedBox(height: 8),
+            _buildImagePicker(),
+            const SizedBox(height: 20),
+
             // Emoji picker
             _sectionLabel('Ikon Produk'),
             const SizedBox(height: 8),
@@ -134,6 +141,100 @@ class AddEditProductView extends GetView<ProductsController> {
           color: AppColors.textSecondary,
         ),
       );
+
+  Widget _buildImagePicker() {
+    return Obx(() {
+      final path = controller.selectedImagePath.value;
+      final hasImage = path != null && File(path).existsSync();
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.divider),
+        ),
+        child: hasImage
+            ? Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.file(
+                      File(path),
+                      height: 160,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => controller.pickImage(),
+                          icon: const Icon(Icons.refresh_rounded, size: 18),
+                          label: const Text('Ganti Foto'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => controller.removeImage(),
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          label: const Text('Hapus Foto'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.error,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              )
+            : GestureDetector(
+                onTap: () => controller.pickImage(),
+                child: Container(
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: AppColors.divider,
+                      style: BorderStyle.solid,
+                    ),
+                  ),
+                  child: const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add_a_photo_rounded,
+                            size: 36, color: AppColors.textSecondary),
+                        SizedBox(height: 8),
+                        Text(
+                          'Tap untuk pilih foto',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Jika tidak ada foto, ikon emoji akan digunakan',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+      );
+    });
+  }
 
   Widget _buildEmojiPicker() {
     return Obx(() => Container(
