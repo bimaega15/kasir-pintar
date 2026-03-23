@@ -8,6 +8,9 @@ class EmployeeRepository {
   Future<List<EmployeeModel>> getAll({bool activeOnly = false}) =>
       _db.getEmployees(activeOnly: activeOnly);
 
+  Future<List<EmployeeModel>> getAllFromAppUsers() =>
+      _db.getAppUsersAsEmployees();
+
   Future<void> add(EmployeeModel employee) => _db.insertEmployee(employee);
 
   Future<void> update(EmployeeModel employee) => _db.updateEmployee(employee);

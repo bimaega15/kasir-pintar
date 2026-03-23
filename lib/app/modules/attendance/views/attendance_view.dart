@@ -5,8 +5,6 @@ import '../../../data/models/attendance_model.dart';
 import '../../../data/models/employee_model.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
-import '../../../routes/app_routes.dart';
-
 class AttendanceView extends GetView<AttendanceController> {
   const AttendanceView({super.key});
 
@@ -18,13 +16,6 @@ class AttendanceView extends GetView<AttendanceController> {
         title: const Text('Presensi Karyawan'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.people_rounded),
-            tooltip: 'Kelola Karyawan',
-            onPressed: () => Get.toNamed(AppRoutes.manageEmployees),
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -160,15 +151,9 @@ class AttendanceView extends GetView<AttendanceController> {
                   size: 64,
                   color: AppColors.textSecondary.withValues(alpha: 0.4)),
               const SizedBox(height: 12),
-              const Text('Belum ada karyawan',
+              const Text('Belum ada pengguna terdaftar',
                   style: TextStyle(
                       fontSize: 16, color: AppColors.textSecondary)),
-              const SizedBox(height: 8),
-              ElevatedButton.icon(
-                onPressed: () => Get.toNamed(AppRoutes.manageEmployees),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Tambah Karyawan'),
-              ),
             ],
           ),
         );

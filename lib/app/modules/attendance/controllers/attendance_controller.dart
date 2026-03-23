@@ -4,20 +4,22 @@ import '../../../data/models/attendance_model.dart';
 import '../../../data/models/employee_model.dart';
 import '../../../data/repositories/attendance_repository.dart';
 import '../../../data/repositories/employee_repository.dart';
-import '../../../routes/app_routes.dart';
+import '../../../services/user_session.dart';
+import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 
 class AttendanceController extends GetxController {
   final _attendanceRepo = Get.find<AttendanceRepository>();
   final _employeeRepo = Get.find<EmployeeRepository>();
+  final _session = Get.find<UserSession>();
 
-  // ── Attendance state ──────────────────────────────────────────────────────
+  // ── State ─────────────────────────────────────────────────────────────────
   final selectedDate = DateTime.now().obs;
   final attendances = <AttendanceModel>[].obs;
   final employees = <EmployeeModel>[].obs;
   final isLoading = false.obs;
 
-  // Summary counts for selected date
+  // Summary counts
   final countHadir = 0.obs;
   final countTerlambat = 0.obs;
   final countIzin = 0.obs;
@@ -25,11 +27,8 @@ class AttendanceController extends GetxController {
   final countAlpa = 0.obs;
   final countBelumAbsen = 0.obs;
 
-  // ── Employee management state ─────────────────────────────────────────────
-  final formKey = GlobalKey<FormState>();
-  final nameController = TextEditingController();
-  final phoneController = TextEditingController();
-  final selectedRole = EmployeeModel.roles.first.obs;
+  String get currentUsername => _session.currentUsername.value;
+  bool get isAdmin => _session.isAdmin;
 
   @override
   void onInit() {
@@ -40,7 +39,7 @@ class AttendanceController extends GetxController {
   Future<void> loadData() async {
     isLoading.value = true;
     try {
-      employees.assignAll(await _employeeRepo.getAll(activeOnly: true));
+      employees.assignAll(await _employeeRepo.getAllFromAppUsers());
       await _loadAttendancesForDate(selectedDate.value);
     } finally {
       isLoading.value = false;
@@ -69,7 +68,6 @@ class AttendanceController extends GetxController {
             .length;
   }
 
-  // Returns the attendance record for an employee on the selected date, or null
   AttendanceModel? attendanceFor(String employeeId) {
     try {
       return attendances.firstWhere((a) => a.employeeId == employeeId);
@@ -88,16 +86,240 @@ class AttendanceController extends GetxController {
     }
   }
 
-  // ── Attendance form / bottom-sheet ────────────────────────────────────────
+  // ── Attendance sheet entry point ──────────────────────────────────────────
 
   void showAttendanceSheet(BuildContext context, EmployeeModel employee) {
+    final isSelf = employee.id == currentUsername;
+
+    if (!isSelf && !isAdmin) {
+      Get.snackbar(
+        'Tidak Diizinkan',
+        'Kamu hanya bisa mengatur presensimu sendiri',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange.shade100,
+        colorText: Colors.orange.shade900,
+      );
+      return;
+    }
+
+    if (isSelf) {
+      _showSelfSheet(context, employee);
+    } else {
+      _showAdminSheet(context, employee);
+    }
+  }
+
+  // ── Self-service sheet (check-in / check-out) ─────────────────────────────
+
+  void _showSelfSheet(BuildContext context, EmployeeModel employee) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) {
+          final existing = attendanceFor(employee.id);
+          final now = DateTime.now();
+          final nowStr =
+              '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+          final hasIn = existing?.checkIn != null;
+          final hasOut = existing?.checkOut != null;
+
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              left: 20,
+              right: 20,
+              top: 12,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Header
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor:
+                          AppColors.primary.withValues(alpha: 0.12),
+                      child: Text(
+                        employee.name.isNotEmpty
+                            ? employee.name[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          employee.name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '${employee.role}  ·  ${CurrencyHelper.formatDate(selectedDate.value)}',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey.shade500),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Current time chip
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.access_time_rounded,
+                          size: 16, color: AppColors.primary),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Waktu sekarang: $nowStr',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Existing time info
+                if (hasIn || hasOut)
+                  Row(
+                    children: [
+                      if (hasIn)
+                        Expanded(
+                          child: _timeTile('Masuk', existing!.checkIn!,
+                              Icons.login_rounded, Colors.green),
+                        ),
+                      if (hasIn && hasOut) const SizedBox(width: 8),
+                      if (hasOut)
+                        Expanded(
+                          child: _timeTile('Keluar', existing!.checkOut!,
+                              Icons.logout_rounded, Colors.orange),
+                        ),
+                    ],
+                  ),
+                if (hasIn || hasOut) const SizedBox(height: 16),
+
+                // Action buttons
+                if (!hasIn) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await _saveAttendance(
+                          employee: employee,
+                          existing: existing,
+                          status: AttendanceStatus.hadir,
+                          checkIn: nowStr,
+                          checkOut: null,
+                          notes: '',
+                        );
+                        if (ctx.mounted) Navigator.of(ctx).pop();
+                      },
+                      icon: const Icon(Icons.login_rounded),
+                      label: const Text('Check In Sekarang'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ] else if (!hasOut) ...[
+                  _statusInfo('Sudah check in pukul ${existing!.checkIn}',
+                      Colors.green, Icons.check_circle_rounded),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await _saveAttendance(
+                          employee: employee,
+                          existing: existing,
+                          status: existing.status,
+                          checkIn: existing.checkIn,
+                          checkOut: nowStr,
+                          notes: existing.notes,
+                        );
+                        if (ctx.mounted) Navigator.of(ctx).pop();
+                      },
+                      icon: const Icon(Icons.logout_rounded),
+                      label: const Text('Check Out Sekarang'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  _statusInfo(
+                      'Presensi hari ini sudah lengkap ✓',
+                      Colors.blue,
+                      Icons.verified_rounded),
+                ],
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ── Admin full-form sheet ─────────────────────────────────────────────────
+
+  void _showAdminSheet(BuildContext context, EmployeeModel employee) {
     final existing = attendanceFor(employee.id);
-    final statusObs = (existing?.status ?? AttendanceStatus.hadir).obs;
+    final statusObs =
+        (existing?.status ?? AttendanceStatus.hadir).obs;
     final checkInCtrl =
         TextEditingController(text: existing?.checkIn ?? '');
     final checkOutCtrl =
         TextEditingController(text: existing?.checkOut ?? '');
-    final notesCtrl = TextEditingController(text: existing?.notes ?? '');
+    final notesCtrl =
+        TextEditingController(text: existing?.notes ?? '');
 
     showModalBottomSheet(
       context: context,
@@ -127,19 +349,17 @@ class AttendanceController extends GetxController {
                 ),
               ),
               const SizedBox(height: 16),
-              Text(
-                employee.name,
-                style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                employee.role,
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-              ),
+              Text(employee.name,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(employee.role,
+                  style: TextStyle(
+                      fontSize: 13, color: Colors.grey.shade600)),
               const SizedBox(height: 4),
               Text(
                 CurrencyHelper.formatDate(selectedDate.value),
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                style: TextStyle(
+                    fontSize: 12, color: Colors.grey.shade500),
               ),
               const SizedBox(height: 16),
               const Text('Status Kehadiran',
@@ -173,8 +393,7 @@ class AttendanceController extends GetxController {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color:
-                                  selected ? Colors.white : color,
+                              color: selected ? Colors.white : color,
                             ),
                           ),
                         ),
@@ -196,8 +415,8 @@ class AttendanceController extends GetxController {
                         contentPadding: EdgeInsets.symmetric(
                             horizontal: 12, vertical: 10),
                       ),
-                      onTap: () =>
-                          _pickTime(ctx, checkInCtrl, existing?.checkIn),
+                      onTap: () => _pickTime(
+                          ctx, checkInCtrl, existing?.checkIn),
                       readOnly: true,
                     ),
                   ),
@@ -214,8 +433,8 @@ class AttendanceController extends GetxController {
                         contentPadding: EdgeInsets.symmetric(
                             horizontal: 12, vertical: 10),
                       ),
-                      onTap: () =>
-                          _pickTime(ctx, checkOutCtrl, existing?.checkOut),
+                      onTap: () => _pickTime(
+                          ctx, checkOutCtrl, existing?.checkOut),
                       readOnly: true,
                     ),
                   ),
@@ -228,8 +447,8 @@ class AttendanceController extends GetxController {
                   labelText: 'Catatan (opsional)',
                   prefixIcon: Icon(Icons.notes_rounded, size: 18),
                   border: OutlineInputBorder(),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
                 ),
                 maxLines: 2,
               ),
@@ -259,7 +478,8 @@ class AttendanceController extends GetxController {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1565C0),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                   ),
@@ -280,7 +500,8 @@ class AttendanceController extends GetxController {
                         style: TextStyle(color: Colors.red)),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.red),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
@@ -294,8 +515,12 @@ class AttendanceController extends GetxController {
     );
   }
 
+  // ── Shared helpers ────────────────────────────────────────────────────────
+
   Future<void> _pickTime(
-      BuildContext context, TextEditingController ctrl, String? initial) async {
+      BuildContext context,
+      TextEditingController ctrl,
+      String? initial) async {
     TimeOfDay initialTime = TimeOfDay.now();
     if (initial != null && initial.contains(':')) {
       final parts = initial.split(':');
@@ -303,10 +528,8 @@ class AttendanceController extends GetxController {
           hour: int.tryParse(parts[0]) ?? 0,
           minute: int.tryParse(parts[1]) ?? 0);
     }
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initialTime,
-    );
+    final picked =
+        await showTimePicker(context: context, initialTime: initialTime);
     if (picked != null) {
       ctrl.text =
           '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
@@ -358,94 +581,6 @@ class AttendanceController extends GetxController {
         snackPosition: SnackPosition.BOTTOM);
   }
 
-  // ── Employee CRUD ─────────────────────────────────────────────────────────
-
-  void openAddEmployee() {
-    _resetEmployeeForm();
-    Get.toNamed(AppRoutes.addEditEmployee);
-  }
-
-  void openEditEmployee(EmployeeModel emp) {
-    nameController.text = emp.name;
-    phoneController.text = emp.phone;
-    selectedRole.value = emp.role;
-    Get.toNamed(AppRoutes.addEditEmployee, arguments: emp);
-  }
-
-  Future<void> saveEmployee() async {
-    if (!formKey.currentState!.validate()) return;
-    final existing = Get.arguments as EmployeeModel?;
-
-    if (existing != null) {
-      await _employeeRepo.update(existing.copyWith(
-        name: nameController.text.trim(),
-        role: selectedRole.value,
-        phone: phoneController.text.trim(),
-      ));
-    } else {
-      await _employeeRepo.add(EmployeeModel.create(
-        name: nameController.text.trim(),
-        role: selectedRole.value,
-        phone: phoneController.text.trim(),
-      ));
-    }
-    Get.back();
-    await loadData();
-    Get.snackbar(
-      existing != null ? 'Karyawan Diperbarui' : 'Karyawan Ditambahkan',
-      existing != null
-          ? 'Data karyawan berhasil diperbarui'
-          : '${nameController.text.trim()} berhasil ditambahkan',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.green.shade100,
-      colorText: Colors.green.shade900,
-    );
-  }
-
-  Future<void> toggleEmployeeActive(EmployeeModel emp) async {
-    await _employeeRepo.update(emp.copyWith(isActive: !emp.isActive));
-    await loadData();
-  }
-
-  Future<void> deleteEmployee(EmployeeModel emp) async {
-    final confirmed = await Get.dialog<bool>(
-      AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Hapus Karyawan'),
-        content: Text(
-            'Hapus karyawan "${emp.name}"? Seluruh data presensinya juga akan dihapus.'),
-        actions: [
-          TextButton(
-              onPressed: () => Get.back(result: false),
-              child: const Text('Batal')),
-          ElevatedButton(
-            onPressed: () => Get.back(result: true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      await _employeeRepo.delete(emp.id);
-      await loadData();
-      Get.snackbar('Dihapus', '${emp.name} berhasil dihapus',
-          snackPosition: SnackPosition.BOTTOM);
-    }
-  }
-
-  void _resetEmployeeForm() {
-    nameController.clear();
-    phoneController.clear();
-    selectedRole.value = EmployeeModel.roles.first;
-  }
-
   Color _statusColor(AttendanceStatus s) {
     switch (s) {
       case AttendanceStatus.hadir:
@@ -461,10 +596,55 @@ class AttendanceController extends GetxController {
     }
   }
 
-  @override
-  void onClose() {
-    nameController.dispose();
-    phoneController.dispose();
-    super.onClose();
+  Widget _timeTile(
+      String label, String time, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: TextStyle(fontSize: 10, color: color)),
+              Text(time,
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: color)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusInfo(String msg, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(msg,
+                style: TextStyle(
+                    color: color, fontWeight: FontWeight.w500)),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -2184,6 +2184,24 @@ class DatabaseProvider extends GetxService {
     return maps.map((m) => EmployeeModel.fromMap(m)).toList();
   }
 
+  /// Load all registered app_users as EmployeeModel (username = id & name).
+  Future<List<EmployeeModel>> getAppUsersAsEmployees() async {
+    final maps = await _db.query('app_users', orderBy: 'created_at ASC');
+    return maps.map((m) {
+      final username = m['username'] as String;
+      final role = m['role'] as String? ?? 'kasir';
+      return EmployeeModel(
+        id: username,
+        name: username,
+        role: role == 'admin' ? 'Admin' : 'Kasir',
+        phone: '',
+        isActive: true,
+        createdAt: DateTime.tryParse(m['created_at'] as String? ?? '') ??
+            DateTime.now(),
+      );
+    }).toList();
+  }
+
   Future<void> insertEmployee(EmployeeModel employee) async {
     await _db.insert('employees', employee.toMap());
   }
