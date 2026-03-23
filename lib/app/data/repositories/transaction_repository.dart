@@ -9,6 +9,17 @@ class TransactionRepository {
 
   Future<List<TransactionModel>> getAll() => _db.getTransactions();
 
+  Future<List<TransactionModel>> getFiltered({
+    String? cashierName,
+    DateTime? shiftStart,
+    DateTime? shiftEnd,
+  }) =>
+      _db.getTransactions(
+        cashierName: cashierName,
+        shiftStart: shiftStart,
+        shiftEnd: shiftEnd,
+      );
+
   Future<void> save(TransactionModel transaction,
           [List<PaymentEntry> paymentEntries = const []]) =>
       _db.insertTransaction(transaction, paymentEntries);

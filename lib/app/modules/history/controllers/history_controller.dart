@@ -4,6 +4,8 @@ import '../../../data/models/transaction_model.dart';
 import '../../../data/models/void_log_model.dart';
 import '../../../data/providers/storage_provider.dart';
 import '../../../data/repositories/transaction_repository.dart';
+import '../../../services/user_session.dart';
+import '../../shift/controllers/shift_controller.dart';
 
 class HistoryController extends GetxController {
   final _transactionRepo = Get.find<TransactionRepository>();
@@ -32,7 +34,19 @@ class HistoryController extends GetxController {
   Future<void> loadTransactions() async {
     isLoading.value = true;
     try {
-      final list = await _transactionRepo.getAll();
+      final session = Get.find<UserSession>();
+      final List<TransactionModel> list;
+      if (session.isKasir) {
+        final shiftCtrl = Get.isRegistered<ShiftController>()
+            ? Get.find<ShiftController>()
+            : null;
+        list = await _transactionRepo.getFiltered(
+          cashierName: session.currentUsername.value,
+          shiftStart: shiftCtrl?.activeShift.value?.openedAt,
+        );
+      } else {
+        list = await _transactionRepo.getAll();
+      }
       transactions.assignAll(list);
     } finally {
       isLoading.value = false;

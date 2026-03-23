@@ -6,11 +6,13 @@ import '../../../data/models/product_model.dart';
 import '../../../data/repositories/bahan_baku_repository.dart';
 import '../../../data/repositories/order_repository.dart';
 import '../../../data/repositories/product_repository.dart';
+import '../../../data/models/transaction_model.dart';
 import '../../../data/repositories/transaction_repository.dart';
 import '../../../services/check_version_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../utils/helpers/currency_helper.dart';
 import '../../shift/controllers/shift_controller.dart';
+import '../../../services/user_session.dart';
 
 class HomeController extends GetxController {
   final _productRepo = Get.find<ProductRepository>();
@@ -75,15 +77,30 @@ class HomeController extends GetxController {
   Future<void> loadStats() async {
     isLoading.value = true;
     try {
+      final session = Get.find<UserSession>();
       final allProducts = await _productRepo.getAll();
-      final allTx = await _transactionRepo.getAll();
+
+      final List<TransactionModel> allTx;
+      if (session.isKasir) {
+        final shift = shiftCtrl.activeShift.value;
+        allTx = await _transactionRepo.getFiltered(
+          cashierName: session.currentUsername.value,
+          shiftStart: shift?.openedAt,
+        );
+      } else {
+        allTx = await _transactionRepo.getAll();
+      }
+
       final activeOrders = await _orderRepo.getActive();
 
       final now = DateTime.now();
-      final todayTx = allTx.where((t) =>
-          t.createdAt.year == now.year &&
-          t.createdAt.month == now.month &&
-          t.createdAt.day == now.day).toList();
+      // For kasir: all shift-filtered tx count as "today"; for admin: filter by date
+      final todayTx = session.isKasir
+          ? allTx
+          : allTx.where((t) =>
+              t.createdAt.year == now.year &&
+              t.createdAt.month == now.month &&
+              t.createdAt.day == now.day).toList();
 
       totalProducts.value = allProducts.length;
       totalTransactions.value = allTx.length;

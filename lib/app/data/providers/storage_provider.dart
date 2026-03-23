@@ -1344,19 +1344,40 @@ class DatabaseProvider extends GetxService {
 
   // ── Transactions ──────────────────────────────────────────────────────────
 
-  Future<List<TransactionModel>> getTransactions({String? datePrefix}) async {
+  Future<List<TransactionModel>> getTransactions({
+    String? datePrefix,
+    String? cashierName,
+    DateTime? shiftStart,
+    DateTime? shiftEnd,
+  }) async {
     final List<Map<String, Object?>> txMaps;
 
+    final whereParts = <String>[];
+    final whereArgs = <dynamic>[];
+
     if (datePrefix != null) {
-      txMaps = await _db.query(
-        'transactions',
-        where: 'created_at LIKE ?',
-        whereArgs: ['$datePrefix%'],
-        orderBy: 'created_at DESC',
-      );
-    } else {
-      txMaps = await _db.query('transactions', orderBy: 'created_at DESC');
+      whereParts.add('created_at LIKE ?');
+      whereArgs.add('$datePrefix%');
     }
+    if (cashierName != null) {
+      whereParts.add('cashier_name = ?');
+      whereArgs.add(cashierName);
+    }
+    if (shiftStart != null) {
+      whereParts.add('created_at >= ?');
+      whereArgs.add(shiftStart.toIso8601String());
+    }
+    if (shiftEnd != null) {
+      whereParts.add('created_at <= ?');
+      whereArgs.add(shiftEnd.toIso8601String());
+    }
+
+    txMaps = await _db.query(
+      'transactions',
+      where: whereParts.isEmpty ? null : whereParts.join(' AND '),
+      whereArgs: whereArgs.isEmpty ? null : whereArgs,
+      orderBy: 'created_at DESC',
+    );
 
     if (txMaps.isEmpty) return [];
 

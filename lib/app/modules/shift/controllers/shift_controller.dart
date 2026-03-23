@@ -4,6 +4,7 @@ import '../../../data/models/shift_model.dart';
 import '../../../data/repositories/shift_repository.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/helpers/currency_helper.dart';
+import '../../../services/user_session.dart';
 
 // ── Data classes for closing report ──────────────────────────────────────────
 
@@ -84,6 +85,9 @@ class ShiftController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    // Pre-fill cashier name with the logged-in user
+    final session = Get.find<UserSession>();
+    cashierNameController.text = session.currentUsername.value;
     loadActiveShift();
   }
 
