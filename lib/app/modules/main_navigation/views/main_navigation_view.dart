@@ -168,10 +168,18 @@ class _KasirPageContentState extends State<KasirPageContent> {
   @override
   void initState() {
     super.initState();
-    _homeCtrl = Get.find<HomeController>();
-    _kitchenCtrl = Get.find<KitchenController>();
-    _orderCtrl = Get.find<OrderController>();
-    _debtCtrl = Get.find<DebtController>();
+    _homeCtrl = Get.isRegistered<HomeController>()
+        ? Get.find<HomeController>()
+        : Get.put(HomeController());
+    _kitchenCtrl = Get.isRegistered<KitchenController>()
+        ? Get.find<KitchenController>()
+        : Get.put(KitchenController());
+    _orderCtrl = Get.isRegistered<OrderController>()
+        ? Get.find<OrderController>()
+        : Get.put(OrderController());
+    _debtCtrl = Get.isRegistered<DebtController>()
+        ? Get.find<DebtController>()
+        : Get.put(DebtController());
     // Refresh data when kasir page opens
     _homeCtrl.loadStats();
     _kitchenCtrl.loadOrders();

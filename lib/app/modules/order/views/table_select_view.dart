@@ -443,6 +443,19 @@ class TableSelectView extends GetView<OrderController> {
       final isSelected = controller.selectedTable.value?.id == table.id;
       return GestureDetector(
         onTap: () {
+          final typedName = controller.customerNameController.text.trim();
+          final isConfirmed = controller.selectedCustomerModel.value != null;
+          if (typedName.isNotEmpty && !isConfirmed) {
+            Get.snackbar(
+              'Nama Belum Dikonfirmasi',
+              'Pilih pelanggan dari daftar atau tekan tombol + untuk menambahkan nama pemesan',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: Colors.orange.shade100,
+              colorText: Colors.orange.shade900,
+              duration: const Duration(seconds: 3),
+            );
+            return;
+          }
           controller.selectedTable.value = table;
           Get.toNamed(AppRoutes.pos);
         },

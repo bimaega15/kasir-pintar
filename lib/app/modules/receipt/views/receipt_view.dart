@@ -12,6 +12,7 @@ import '../../../routes/app_routes.dart';
 import '../../../services/printer_service.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
+import '../../main_navigation/controllers/main_navigation_controller.dart';
 
 class ReceiptView extends StatefulWidget {
   const ReceiptView({super.key});
@@ -609,7 +610,39 @@ class _ReceiptViewState extends State<ReceiptView> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Get.offAllNamed(AppRoutes.main);
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (Get.isRegistered<MainNavigationController>(
+                                tag: MainNavigationController.TAG)) {
+                              Get.find<MainNavigationController>(
+                                      tag: MainNavigationController.TAG)
+                                  .changeIndex(4);
+                            }
+                          });
+                        },
+                        icon: const Icon(Icons.point_of_sale_rounded, size: 20),
+                        label: const Text(
+                          'Menu Kasir',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(
+                            color: AppColors.primary,
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () {

@@ -354,6 +354,8 @@ class OrderController extends GetxController {
             Future<void> onSearchChanged(String query) async {
               pickedCustomer = null;
               selectedCustomerId.value = '';
+              selectedCustomerName.value = '';
+              selectedCustomerModel.value = null;
               if (query.trim().isEmpty) {
                 setState(() { suggestions = []; showSuggestions = false; });
                 return;
@@ -563,7 +565,7 @@ class OrderController extends GetxController {
 
     final invoiceNumber = await _transactionRepo.generateInvoiceNumber();
 
-    final effectiveCustomerName = selectedCustomerName.value.isNotEmpty
+    final effectiveCustomerName = selectedCustomerId.value.isNotEmpty
         ? selectedCustomerName.value
         : customerName.value;
 
@@ -606,7 +608,7 @@ class OrderController extends GetxController {
 
     final invoiceNumber = await _transactionRepo.generateInvoiceNumber();
 
-    final effectiveCustomerName = selectedCustomerName.value.isNotEmpty
+    final effectiveCustomerName = selectedCustomerId.value.isNotEmpty
         ? selectedCustomerName.value
         : customerName.value;
 
@@ -954,6 +956,8 @@ class OrderController extends GetxController {
     if (query.isEmpty) {
       suggestedCustomers.clear();
       selectedCustomerModel.value = null;
+      selectedCustomerId.value = '';
+      selectedCustomerName.value = '';
       return;
     }
 
