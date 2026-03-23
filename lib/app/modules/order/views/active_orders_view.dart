@@ -6,6 +6,7 @@ import '../../../data/providers/storage_provider.dart';
 import '../../../data/repositories/order_repository.dart';
 import '../../../data/repositories/table_repository.dart';
 import '../../../routes/app_routes.dart';
+import '../../../services/printer_service.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 
@@ -261,6 +262,17 @@ class _ActiveOrdersViewState extends State<ActiveOrdersView> {
               ),
             ),
             const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.print_rounded, color: AppColors.primary),
+              title: const Text('Cetak ke Dapur'),
+              subtitle: const Text('Kirim ulang tiket pesanan ke printer dapur'),
+              onTap: () {
+                Navigator.pop(context);
+                if (Get.isRegistered<PrinterService>()) {
+                  Get.find<PrinterService>().printKitchenOrder(order);
+                }
+              },
+            ),
             if (order.kitchenStatus != KitchenStatus.onHold)
               ListTile(
                 leading: const Icon(Icons.pause_circle_outline_rounded,

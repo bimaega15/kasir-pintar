@@ -16,6 +16,11 @@ class PrinterController extends GetxController {
   // Paper width setting
   late final selectedPaperWidth = Rx<PaperWidth>(_service.paperWidth);
 
+  // Cash drawer settings
+  RxBool get cashDrawerEnabled => _service.cashDrawerEnabled;
+  RxBool get cashDrawerAutoOpen => _service.cashDrawerAutoOpen;
+  RxInt get cashDrawerPin => _service.cashDrawerPin;
+
   @override
   void onInit() {
     super.onInit();
@@ -35,4 +40,12 @@ class PrinterController extends GetxController {
     selectedPaperWidth.value = width;
     await _service.setPaperWidth(width);
   }
+
+  Future<void> setCashDrawerEnabled(bool v) => _service.setCashDrawerEnabled(v);
+
+  Future<void> setCashDrawerAutoOpen(bool v) => _service.setCashDrawerAutoOpen(v);
+
+  Future<void> setCashDrawerPin(int pin) => _service.setCashDrawerPin(pin);
+
+  Future<void> openCashDrawer() => _service.openCashDrawer();
 }

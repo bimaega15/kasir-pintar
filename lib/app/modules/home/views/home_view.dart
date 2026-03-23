@@ -87,6 +87,16 @@ class HomeView extends GetView<HomeController> {
                 Get.find<MainNavigationController>(tag: MainNavigationController.TAG).changeIndex(3);
               },
             ),
+            _buildQuickAccessCard(
+              icon: Icons.confirmation_number_rounded,
+              label: 'Cetak Antrian',
+              onTap: () => Get.toNamed(AppRoutes.queue),
+            ),
+            _buildQuickAccessCard(
+              icon: Icons.badge_rounded,
+              label: 'Presensi',
+              onTap: () => Get.toNamed(AppRoutes.attendance),
+            ),
           ],
         ),
       ],

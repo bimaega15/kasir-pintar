@@ -25,6 +25,7 @@ abstract class AppRoutes {
   static const parkedOrders = '/orders/parked';
   // hutang / dp
   static const debtList = '/debts';
+  static const debtReport = '/report/hutang';
   // v3 — shift + void log
   static const openShift = '/shift/open';
   static const closeShift = '/shift/close';
@@ -53,8 +54,23 @@ abstract class AppRoutes {
   static const salesReport = '/report/sales';
   static const revenueReport = '/report/revenue';
   static const profitLossReport = '/report/profit-loss';
+  static const productPerformanceReport = '/report/product-performance';
+  // laporan closing & ganti shift
+  static const closingReport = '/shift/closing-report';
+  static const shiftHandover = '/shift/handover';
+  // antrian
+  static const queue = '/queue';
+  // ekspor impor
+  static const exportImport = '/export-import';
   // pelanggan
   static const customers = '/customers';
   static const addEditCustomer = '/customers/form';
   static const customerDetail = '/customers/detail';
+  // pengeluaran operasional
+  static const expense = '/expense';
+  static const addEditExpense = '/expense/form';
+  // presensi karyawan
+  static const attendance = '/attendance';
+  static const manageEmployees = '/attendance/employees';
+  static const addEditEmployee = '/attendance/employees/form';
 }

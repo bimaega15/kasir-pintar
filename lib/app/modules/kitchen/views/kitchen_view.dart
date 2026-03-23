@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/kitchen_controller.dart';
 import '../../../data/models/order_model.dart';
+import '../../../services/printer_service.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 
@@ -166,6 +167,16 @@ class KitchenView extends GetView<KitchenController> {
                 Text(
                   CurrencyHelper.formatTime(order.createdAt),
                   style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: () {
+                    if (Get.isRegistered<PrinterService>()) {
+                      Get.find<PrinterService>().printKitchenOrder(order);
+                    }
+                  },
+                  child: const Icon(Icons.print_rounded,
+                      color: Colors.white70, size: 18),
                 ),
               ],
             ),

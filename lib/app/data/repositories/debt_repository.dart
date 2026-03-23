@@ -22,4 +22,6 @@ class DebtRepository {
   Future<void> delete(String id) => _db.deleteDebt(id);
 
   Future<double> getTotalOutstanding() => _db.getTotalOutstandingDebt();
+
+  Future<Map<String, dynamic>> getStats() => _db.getDebtStats();
 }

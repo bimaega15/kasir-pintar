@@ -60,6 +60,110 @@ class ReportPageContent extends StatelessWidget {
               );
             }),
             const SizedBox(height: 24),
+            // Analytics Reports Section
+            const Text(
+              'Laporan Analitik',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Laporan Penjualan
+            Obx(() {
+              final ctrl = Get.find<ReportController>();
+              return _buildReportCard(
+                icon: Icons.shopping_cart_checkout_rounded,
+                title: 'Laporan Penjualan',
+                subtitle: 'Analisis detail produk terjual & metode pembayaran',
+                color: AppColors.success,
+                count: ctrl.totalItemsSold.value.toString(),
+                onTap: () {
+                  ctrl.loadStats();
+                  Get.toNamed(AppRoutes.salesReport);
+                },
+              );
+            }),
+            const SizedBox(height: 16),
+            // Laporan Omset
+            Obx(() {
+              final ctrl = Get.find<ReportController>();
+              return _buildReportCard(
+                icon: Icons.trending_up_rounded,
+                title: 'Laporan Omset',
+                subtitle: 'Total pendapatan, diskon, pajak & pendapatan bersih',
+                color: AppColors.accent,
+                count: ctrl.periodLabel,
+                onTap: () {
+                  ctrl.loadStats();
+                  Get.toNamed(AppRoutes.revenueReport);
+                },
+              );
+            }),
+            const SizedBox(height: 16),
+            // Laporan Laba Rugi
+            Obx(() {
+              final ctrl = Get.find<ReportController>();
+              return _buildReportCard(
+                icon: Icons.bar_chart_rounded,
+                title: 'Laporan Laba Rugi',
+                subtitle: 'Analisis keuntungan, biaya produksi & margin laba',
+                color: AppColors.primary,
+                count: ctrl.profitMargin.value.toStringAsFixed(1),
+                onTap: () {
+                  ctrl.loadStats();
+                  Get.toNamed(AppRoutes.profitLossReport);
+                },
+              );
+            }),
+            const SizedBox(height: 16),
+            // Laporan Performa Produk
+            Obx(() {
+              final ctrl = Get.find<ReportController>();
+              return _buildReportCard(
+                icon: Icons.trending_up_rounded,
+                title: 'Laporan Performa Produk',
+                subtitle: 'Ranking produk, kontribusi revenue & analisis stok',
+                color: AppColors.primaryLight,
+                count: ctrl.productPerformance.length.toString(),
+                onTap: () {
+                  ctrl.loadStats();
+                  Get.toNamed(AppRoutes.productPerformanceReport);
+                },
+              );
+            }),
+            const SizedBox(height: 16),
+            // Pengeluaran Operasional
+            _buildReportCard(
+              icon: Icons.money_off_rounded,
+              title: 'Pengeluaran Operasional',
+              subtitle: 'Catat & pantau biaya operasional bisnis',
+              color: Colors.red,
+              count: '',
+              onTap: () => Get.toNamed(AppRoutes.expense),
+            ),
+            const SizedBox(height: 16),
+            // Presensi Karyawan
+            _buildReportCard(
+              icon: Icons.badge_rounded,
+              title: 'Presensi Karyawan',
+              subtitle: 'Catat kehadiran & kelola data karyawan',
+              color: Colors.teal,
+              count: '',
+              onTap: () => Get.toNamed(AppRoutes.attendance),
+            ),
+            const SizedBox(height: 16),
+            // Laporan Hutang & Piutang
+            _buildReportCard(
+              icon: Icons.account_balance_wallet_rounded,
+              title: 'Laporan Hutang & Piutang',
+              subtitle: 'Analisis sisa hutang, aging piutang & debitur terbesar',
+              color: Colors.red,
+              count: '',
+              onTap: () => Get.toNamed(AppRoutes.debtReport),
+            ),
+            const SizedBox(height: 24),
             // Stats Cards
             Obx(() {
               final ctrl = Get.find<ReportController>();

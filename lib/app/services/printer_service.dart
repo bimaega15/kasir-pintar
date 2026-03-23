@@ -3,6 +3,7 @@ import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../data/models/order_model.dart';
 import '../data/models/transaction_model.dart';
 import '../data/providers/storage_provider.dart';
 import '../utils/helpers/currency_helper.dart';
@@ -12,6 +13,9 @@ class PrinterService extends GetxService {
   static const _printerMacKey = 'printer_mac';
   static const _printerNameKey = 'printer_name';
   static const _paperWidthKey = 'printer_paper_width';
+  static const _drawerEnabledKey = 'cash_drawer_enabled';
+  static const _drawerAutoOpenKey = 'cash_drawer_auto_open';
+  static const _drawerPinKey = 'cash_drawer_pin';
 
   // Hanya diinisialisasi di Android — plugin tidak support platform lain
   BlueThermalPrinter? _printer;
@@ -27,6 +31,11 @@ class PrinterService extends GetxService {
   PaperWidth _paperWidth = PaperWidth.mm80;
   PaperWidth get paperWidth => _paperWidth;
 
+  // Cash drawer settings
+  final cashDrawerEnabled = false.obs;
+  final cashDrawerAutoOpen = true.obs;
+  final cashDrawerPin = 0.obs; // 0 = pin 2 (drawer 1), 1 = pin 5 (drawer 2)
+
   @override
   void onInit() {
     super.onInit();
@@ -35,6 +44,7 @@ class PrinterService extends GetxService {
       _printer = BlueThermalPrinter.instance;
       _loadSavedPrinter();
       _loadPaperWidth();
+      _loadCashDrawerSettings();
     } catch (e) {
       print('[PrinterService] Error initializing blue thermal printer: $e');
       _printer = null;
@@ -72,6 +82,91 @@ class PrinterService extends GetxService {
       final db = Get.find<DatabaseProvider>();
       await db.setSetting(_paperWidthKey, width.name);
     } catch (_) {}
+  }
+
+  // ── Cash Drawer ────────────────────────────────────────────────────────────
+
+  Future<void> _loadCashDrawerSettings() async {
+    try {
+      final db = Get.find<DatabaseProvider>();
+      final enabled = await db.getSetting(_drawerEnabledKey);
+      final autoOpen = await db.getSetting(_drawerAutoOpenKey);
+      final pin = await db.getSetting(_drawerPinKey);
+      if (enabled != null) cashDrawerEnabled.value = enabled == 'true';
+      if (autoOpen != null) cashDrawerAutoOpen.value = autoOpen == 'true';
+      if (pin != null) cashDrawerPin.value = int.tryParse(pin) ?? 0;
+    } catch (_) {}
+  }
+
+  Future<void> setCashDrawerEnabled(bool value) async {
+    cashDrawerEnabled.value = value;
+    try {
+      await Get.find<DatabaseProvider>().setSetting(_drawerEnabledKey, value.toString());
+    } catch (_) {}
+  }
+
+  Future<void> setCashDrawerAutoOpen(bool value) async {
+    cashDrawerAutoOpen.value = value;
+    try {
+      await Get.find<DatabaseProvider>().setSetting(_drawerAutoOpenKey, value.toString());
+    } catch (_) {}
+  }
+
+  Future<void> setCashDrawerPin(int pin) async {
+    cashDrawerPin.value = pin;
+    try {
+      await Get.find<DatabaseProvider>().setSetting(_drawerPinKey, pin.toString());
+    } catch (_) {}
+  }
+
+  /// Buka laci uang via ESC/POS command ke printer Bluetooth.
+  /// [silent] = true → tidak tampilkan snackbar (untuk auto-open saat transaksi).
+  Future<void> openCashDrawer({bool silent = false}) async {
+    if (!Platform.isAndroid || _printer == null) return;
+    if (!cashDrawerEnabled.value) return;
+
+    await checkConnection();
+    if (!isConnected.value) {
+      if (!silent) {
+        Get.snackbar(
+          'Printer Tidak Terhubung',
+          'Hubungkan printer Bluetooth agar laci uang dapat dibuka otomatis',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 3),
+        );
+      }
+      return;
+    }
+
+    try {
+      // ESC/POS: ESC p m t1 t2
+      // m  = pin: 0x00 (drawer 1 / pin 2) atau 0x01 (drawer 2 / pin 5)
+      // t1 = pulse on-time  × 2ms, 25 = 50ms
+      // t2 = pulse off-time × 2ms, 100 = 200ms (nilai ≤ 127 agar aman UTF-8)
+      final cmd = String.fromCharCodes([27, 112, cashDrawerPin.value, 25, 100]);
+      await _printer!.write(cmd);
+
+      if (!silent) {
+        Get.snackbar(
+          'Laci Dibuka',
+          'Laci uang berhasil dibuka',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.shade100,
+          colorText: Colors.green.shade900,
+          duration: const Duration(seconds: 2),
+        );
+      }
+    } catch (e) {
+      if (!silent) {
+        Get.snackbar(
+          'Gagal Membuka Laci',
+          'Error: $e',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade900,
+        );
+      }
+    }
   }
 
   // ── Permissions ────────────────────────────────────────────────────────────
@@ -392,6 +487,197 @@ class PrinterService extends GetxService {
       Get.snackbar(
         'Cetak Berhasil',
         'Struk berhasil dicetak',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.shade100,
+        colorText: Colors.green.shade900,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Gagal Cetak',
+        'Error: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade900,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ── Print Kitchen Order ────────────────────────────────────────────────────
+
+  /// Cetak tiket pesanan ke printer dapur.
+  /// [silent] = true → tidak tampilkan snackbar error saat printer tidak terhubung
+  /// (digunakan saat auto-print dari sendToKitchen).
+  Future<void> printKitchenOrder(OrderModel order, {bool silent = false}) async {
+    if (!Platform.isAndroid || _printer == null) {
+      if (!silent) {
+        Get.snackbar(
+          'Tidak Didukung',
+          'Fitur cetak hanya tersedia di Android',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
+      return;
+    }
+
+    await checkConnection();
+    if (!isConnected.value) {
+      if (!silent) {
+        Get.snackbar(
+          'Printer Tidak Terhubung',
+          'Hubungkan printer Bluetooth terlebih dahulu di menu Printer',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 3),
+        );
+      }
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      final formatter = ThermalReceiptFormatter(paperWidth: _paperWidth);
+      final now = order.createdAt;
+      final timeStr =
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+      final dateStr =
+          '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+
+      // ── Header ──
+      await _printer!.printCustom(formatter.line(char: '='), 1, 1);
+      await _printer!.printCustom(formatter.center('*** DAPUR ***'), 2, 1);
+      await _printer!.printCustom(formatter.line(char: '='), 1, 1);
+
+      // Invoice & waktu
+      await _printer!.printCustom(
+        formatter.leftRight('INV: ${order.invoiceNumber}', timeStr),
+        1,
+        0,
+      );
+      await _printer!.printCustom('Tgl: $dateStr', 1, 0);
+
+      // Jenis pesanan & meja
+      final orderTypeLabel =
+          order.orderType == OrderType.dineIn ? 'Dine In' : 'Take Away';
+      final tableInfo = order.tableNumber != null
+          ? '$orderTypeLabel | Meja ${order.tableNumber}'
+          : orderTypeLabel;
+      await _printer!.printCustom(tableInfo, 1, 0);
+
+      // Nama pelanggan (jika ada)
+      if (order.customerName.isNotEmpty) {
+        await _printer!.printCustom('Pelanggan: ${order.customerName}', 1, 0);
+      }
+
+      await _printer!.printCustom(formatter.line(char: '-'), 1, 1);
+
+      // ── Daftar item ──
+      for (int i = 0; i < order.items.length; i++) {
+        final item = order.items[i];
+        final nameLabel = '${i + 1}. ${item.productName}';
+        final qtyLabel = 'x${item.quantity}';
+        await _printer!.printCustom(
+          formatter.leftRight(nameLabel, qtyLabel),
+          2,
+          0,
+        );
+        // Catatan khusus
+        if (item.note.isNotEmpty) {
+          await _printer!.printCustom('   >> ${item.note}', 1, 0);
+        }
+      }
+
+      await _printer!.printCustom(formatter.line(char: '='), 1, 1);
+
+      // Jumlah item
+      final totalItems =
+          order.items.fold<int>(0, (sum, i) => sum + i.quantity);
+      await _printer!.printCustom(
+        formatter.center('Total: $totalItems item'),
+        1,
+        1,
+      );
+      await _printer!.printCustom(formatter.line(char: '='), 1, 1);
+      await _printer!.printNewLine();
+      await _printer!.printNewLine();
+      await _printer!.paperCut();
+
+      if (!silent) {
+        Get.snackbar(
+          'Cetak Berhasil',
+          'Pesanan ${order.invoiceNumber} dicetak ke dapur',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.shade100,
+          colorText: Colors.green.shade900,
+        );
+      }
+    } catch (e) {
+      if (!silent) {
+        Get.snackbar(
+          'Gagal Cetak',
+          'Error: $e',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade900,
+        );
+      }
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ── Print Queue Number ──────────────────────────────────────────────────────
+
+  Future<void> printQueueNumber(int number) async {
+    if (!Platform.isAndroid || _printer == null) {
+      Get.snackbar(
+        'Tidak Didukung',
+        'Fitur cetak hanya tersedia di Android',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    await checkConnection();
+    if (!isConnected.value) {
+      Get.snackbar(
+        'Printer Tidak Terhubung',
+        'Hubungkan printer Bluetooth terlebih dahulu di menu Printer',
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 3),
+      );
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      final formatter = ThermalReceiptFormatter(paperWidth: _paperWidth);
+      final now = DateTime.now();
+      final dateStr =
+          '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}'
+          '  ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+      await _printer!.printCustom(formatter.line(char: '='), 1, 1);
+      await _printer!.printCustom(formatter.center('NOMOR ANTRIAN'), 2, 1);
+      await _printer!.printCustom(formatter.line(char: '='), 1, 1);
+      await _printer!.printNewLine();
+
+      // Nomor antrian ukuran besar
+      final numStr = number.toString().padLeft(3, '0');
+      await _printer!.printCustom(formatter.center(numStr), 3, 1);
+
+      await _printer!.printNewLine();
+      await _printer!.printCustom(formatter.line(char: '-'), 1, 1);
+      await _printer!.printCustom(formatter.center(dateStr), 1, 1);
+      await _printer!.printCustom(formatter.center('Terima kasih!'), 1, 1);
+      await _printer!.printCustom(formatter.line(char: '='), 1, 1);
+      await _printer!.printNewLine();
+      await _printer!.printNewLine();
+      await _printer!.paperCut();
+
+      Get.snackbar(
+        'Cetak Berhasil',
+        'Nomor antrian $numStr berhasil dicetak',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.shade100,
         colorText: Colors.green.shade900,

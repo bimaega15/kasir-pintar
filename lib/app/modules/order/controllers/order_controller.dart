@@ -16,6 +16,7 @@ import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/table_repository.dart';
 import '../../../data/repositories/transaction_repository.dart';
 import '../../../routes/app_routes.dart';
+import '../../../services/printer_service.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 
@@ -497,6 +498,11 @@ class OrderController extends GetxController {
     // Mark table as occupied
     if (selectedTable.value != null) {
       await _tableRepo.setOccupied(selectedTable.value!.id, order.id);
+    }
+
+    // Auto-cetak ke printer dapur (silent — tidak blokir jika printer tidak terhubung)
+    if (Get.isRegistered<PrinterService>()) {
+      Get.find<PrinterService>().printKitchenOrder(order, silent: true);
     }
 
     Get.snackbar(

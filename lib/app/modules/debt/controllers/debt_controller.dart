@@ -4,6 +4,46 @@ import '../../../data/models/debt_model.dart';
 import '../../../data/repositories/debt_repository.dart';
 import '../../../utils/helpers/currency_helper.dart';
 
+class DebtReportStats {
+  final int totalCount;
+  final double totalAmount;
+  final double totalRemaining;
+  final int unpaidCount;
+  final int partialCount;
+  final int paidCount;
+  final double unpaidAmount;
+  final double partialAmount;
+  final double paidAmount;
+  // Aging
+  final double age07;
+  final double age730;
+  final double ageOver30;
+  final int age07Count;
+  final int age730Count;
+  final int ageOver30Count;
+  // Top debtors
+  final List<Map<String, dynamic>> topDebtors;
+
+  const DebtReportStats({
+    this.totalCount = 0,
+    this.totalAmount = 0,
+    this.totalRemaining = 0,
+    this.unpaidCount = 0,
+    this.partialCount = 0,
+    this.paidCount = 0,
+    this.unpaidAmount = 0,
+    this.partialAmount = 0,
+    this.paidAmount = 0,
+    this.age07 = 0,
+    this.age730 = 0,
+    this.ageOver30 = 0,
+    this.age07Count = 0,
+    this.age730Count = 0,
+    this.ageOver30Count = 0,
+    this.topDebtors = const [],
+  });
+}
+
 class DebtController extends GetxController {
   final _repo = Get.find<DebtRepository>();
 
@@ -12,6 +52,8 @@ class DebtController extends GetxController {
   final unpaidCount = 0.obs;
   final isLoading = false.obs;
   final showPaidDebts = false.obs;
+  final reportStats = const DebtReportStats().obs;
+  final isLoadingReport = false.obs;
 
   @override
   void onInit() {
@@ -95,6 +137,36 @@ class DebtController extends GetxController {
           wasFullyPaid ? Colors.green.shade900 : Colors.blue.shade900,
       duration: const Duration(seconds: 3),
     );
+  }
+
+  Future<void> loadReport() async {
+    isLoadingReport.value = true;
+    try {
+      final raw = await _repo.getStats();
+      final s = raw['summary'] as Map<String, dynamic>;
+      final a = raw['aging'] as Map<String, dynamic>;
+      final t = raw['top_debtors'] as List<Map<String, dynamic>>;
+      reportStats.value = DebtReportStats(
+        totalCount: (s['total_count'] as num?)?.toInt() ?? 0,
+        totalAmount: (s['total_amount'] as num?)?.toDouble() ?? 0,
+        totalRemaining: (s['total_remaining'] as num?)?.toDouble() ?? 0,
+        unpaidCount: (s['unpaid_count'] as num?)?.toInt() ?? 0,
+        partialCount: (s['partial_count'] as num?)?.toInt() ?? 0,
+        paidCount: (s['paid_count'] as num?)?.toInt() ?? 0,
+        unpaidAmount: (s['unpaid_amount'] as num?)?.toDouble() ?? 0,
+        partialAmount: (s['partial_amount'] as num?)?.toDouble() ?? 0,
+        paidAmount: (s['paid_amount'] as num?)?.toDouble() ?? 0,
+        age07: (a['age_0_7'] as num?)?.toDouble() ?? 0,
+        age730: (a['age_7_30'] as num?)?.toDouble() ?? 0,
+        ageOver30: (a['age_over_30'] as num?)?.toDouble() ?? 0,
+        age07Count: (a['age_0_7_count'] as num?)?.toInt() ?? 0,
+        age730Count: (a['age_7_30_count'] as num?)?.toInt() ?? 0,
+        ageOver30Count: (a['age_over_30_count'] as num?)?.toInt() ?? 0,
+        topDebtors: t,
+      );
+    } finally {
+      isLoadingReport.value = false;
+    }
   }
 
   Future<void> deleteDebt(String id) async {

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:local_notifier/local_notifier.dart';
@@ -15,6 +15,7 @@ class NotificationService extends GetxService {
 
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+  bool _desktopNotificationsSupported = false;
 
   static bool get _isMobile =>
       !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -27,13 +28,18 @@ class NotificationService extends GetxService {
   Future<NotificationService> init() async {
     if (!isSupported) return this;
 
-    if (_isMobile) {
-      await _initMobile();
-    } else if (_isDesktop) {
-      await _initDesktop();
+    try {
+      if (_isMobile) {
+        await _initMobile();
+        _initialized = true;
+      } else if (_isDesktop) {
+        await _initDesktop();
+        _initialized = true;
+      }
+    } catch (e) {
+      debugPrint('❌ NotificationService initialization failed: $e');
+      _initialized = false;
     }
-
-    _initialized = true;
     return this;
   }
 
@@ -79,7 +85,14 @@ class NotificationService extends GetxService {
   // ── Desktop init (Windows / macOS / Linux) ────────────────────────────
 
   Future<void> _initDesktop() async {
-    await localNotifier.setup(appName: 'Kasir Pintar');
+    try {
+      await localNotifier.setup(appName: 'Kasir Pintar');
+      _desktopNotificationsSupported = true;
+      debugPrint('✓ Desktop notifications initialized successfully');
+    } catch (e) {
+      debugPrint('⚠️ Desktop notifications not available: $e');
+      _desktopNotificationsSupported = false;
+    }
   }
 
   // ── Produk low stock notification ─────────────────────────────────────
@@ -168,11 +181,20 @@ class NotificationService extends GetxService {
   }
 
   void _showDesktop(String title, String body) {
-    final notification = LocalNotification(
-      title: title,
-      body: body,
-    );
-    notification.show();
+    if (!_desktopNotificationsSupported) {
+      debugPrint('ℹ️ Desktop notifications not available on this platform');
+      return;
+    }
+
+    try {
+      final notification = LocalNotification(
+        title: title,
+        body: body,
+      );
+      notification.show();
+    } catch (e) {
+      debugPrint('⚠️ Failed to show desktop notification: $e');
+    }
   }
 
   String _fmtQty(double qty) =>

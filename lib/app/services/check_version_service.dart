@@ -213,7 +213,7 @@ class CheckVersionService {
 
   static Future<AppVersionInfo?> _fetchVersionInfo() async {
     try {
-      final response = await Dio().get<Map<String, dynamic>>(
+      final response = await Dio().get<dynamic>(
         _versionCheckUrl,
         options: Options(
           receiveTimeout: const Duration(seconds: 5),
@@ -221,8 +221,18 @@ class CheckVersionService {
           responseType: ResponseType.json,
         ),
       );
-      if (response.statusCode == 200 && response.data != null && response.data!.isNotEmpty) {
-        return AppVersionInfo.fromJson(response.data!);
+      
+      if (response.statusCode == 200 && response.data != null) {
+        // Validasi tipe data response — harus Map
+        if (response.data is! Map<String, dynamic>) {
+          debugPrint('[CheckVersionService] Invalid response type: ${response.data.runtimeType}. Expected Map<String, dynamic>');
+          return null;
+        }
+        
+        final json = response.data as Map<String, dynamic>;
+        if (json.isEmpty) return null;
+        
+        return AppVersionInfo.fromJson(json);
       }
     } catch (e) {
       debugPrint('[CheckVersionService] fetchVersionInfo error: $e');

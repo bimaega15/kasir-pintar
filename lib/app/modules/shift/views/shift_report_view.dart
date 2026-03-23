@@ -4,6 +4,7 @@ import '../controllers/shift_controller.dart';
 import '../../../data/models/shift_model.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
+import '../../../routes/app_routes.dart';
 
 class ShiftReportView extends StatefulWidget {
   const ShiftReportView({super.key});
@@ -158,6 +159,25 @@ class _ShiftReportViewState extends State<ShiftReportView> {
                   fontStyle: FontStyle.italic),
             ),
           ],
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () =>
+                  Get.toNamed(AppRoutes.closingReport, arguments: shift),
+              icon: const Icon(Icons.assessment_rounded, size: 16),
+              label: const Text('Lihat Laporan Closing'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: BorderSide(
+                    color: AppColors.primary.withValues(alpha: 0.4)),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+                textStyle: const TextStyle(fontSize: 12),
+              ),
+            ),
+          ),
         ],
       ),
     );

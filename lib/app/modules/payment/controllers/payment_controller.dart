@@ -10,6 +10,7 @@ import '../../../data/repositories/order_repository.dart';
 import '../../../data/repositories/table_repository.dart';
 import '../../../modules/debt/controllers/debt_controller.dart';
 import '../../../routes/app_routes.dart';
+import '../../../services/printer_service.dart';
 import '../../../utils/helpers/currency_helper.dart';
 
 class PaymentController extends GetxController {
@@ -98,6 +99,18 @@ class PaymentController extends GetxController {
   void updateEntryAmount(int index, String value) {
     entries[index].amount = CurrencyHelper.parseRupiah(value);
     entries.refresh();
+  }
+
+  /// Buka laci uang jika ada pembayaran Tunai dan fitur diaktifkan.
+  void _tryOpenDrawer(List<PaymentEntry> paidEntries) {
+    final hasCash = paidEntries.any((e) => e.method == 'Tunai');
+    if (!hasCash) return;
+    try {
+      final printer = Get.find<PrinterService>();
+      if (printer.cashDrawerEnabled.value && printer.cashDrawerAutoOpen.value) {
+        printer.openCashDrawer(silent: true);
+      }
+    } catch (_) {}
   }
 
   double get totalPaid => entries.fold(0.0, (s, e) => s + e.amount);
@@ -222,6 +235,7 @@ class PaymentController extends GetxController {
       if (order.tableId != null) {
         await _tableRepo.setAvailable(order.tableId!);
       }
+      _tryOpenDrawer(consolidatedEntries);
       Get.offAllNamed(AppRoutes.receipt, arguments: transaction);
     } catch (e) {
       Get.snackbar('Error', 'Gagal memproses pembayaran: $e',
@@ -274,6 +288,8 @@ class PaymentController extends GetxController {
         Get.find<DebtController>().loadDebts();
       }
 
+      // Buka laci jika ada DP tunai
+      if (amountPaid > 0) _tryOpenDrawer(paymentEntries);
       Get.offAllNamed(AppRoutes.receipt, arguments: transaction);
     } catch (e) {
       Get.snackbar('Error', 'Gagal memproses hutang: $e',
@@ -303,6 +319,7 @@ class PaymentController extends GetxController {
       if (order.tableId != null) {
         await _tableRepo.setAvailable(order.tableId!);
       }
+      _tryOpenDrawer(List.from(entries));
       Get.offAllNamed(AppRoutes.receipt, arguments: transaction);
     } catch (e) {
       Get.snackbar('Error', 'Gagal memproses pembayaran: $e',

@@ -68,6 +68,15 @@ class SettingsView extends GetView<SettingsController> {
                 color: Colors.green,
                 onTap: () => controller.checkForUpdates(),
               ),
+              const SizedBox(height: 12),
+              // Ekspor / Impor
+              _buildMenuCard(
+                icon: Icons.import_export_rounded,
+                title: 'Ekspor / Impor Data',
+                subtitle: 'Backup dan restore data via file Excel (.xlsx)',
+                color: Colors.teal,
+                onTap: () => Get.toNamed(AppRoutes.exportImport),
+              ),
               const SizedBox(height: 24),
               // Form Settings
               const Divider(),

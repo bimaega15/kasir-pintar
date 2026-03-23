@@ -40,7 +40,10 @@ import '../modules/shift/bindings/shift_binding.dart';
 import '../modules/shift/views/open_shift_view.dart';
 import '../modules/shift/views/close_shift_view.dart';
 import '../modules/shift/views/shift_report_view.dart';
+import '../modules/shift/views/closing_report_view.dart';
+import '../modules/shift/views/shift_handover_view.dart';
 import '../modules/debt/views/debt_list_view.dart';
+import '../modules/debt/views/debt_report_view.dart';
 import '../modules/void_log/views/void_log_view.dart';
 import '../modules/void_log/views/void_log_detail_view.dart';
 import '../modules/login/bindings/login_binding.dart';
@@ -65,6 +68,21 @@ import '../modules/customers/bindings/customers_binding.dart';
 import '../modules/customers/views/customers_view.dart';
 import '../modules/customers/views/add_edit_customer_view.dart';
 import '../modules/customers/views/customer_detail_view.dart';
+import '../modules/report/views/sales_report_view.dart';
+import '../modules/report/views/revenue_report_view.dart';
+import '../modules/report/views/profit_loss_report_view.dart';
+import '../modules/report/views/product_performance_report_view.dart';
+import '../modules/queue/bindings/queue_binding.dart';
+import '../modules/queue/views/queue_view.dart';
+import '../modules/export_import/bindings/export_import_binding.dart';
+import '../modules/export_import/views/export_import_view.dart';
+import '../modules/expense/bindings/expense_binding.dart';
+import '../modules/expense/views/expense_view.dart';
+import '../modules/expense/views/add_edit_expense_view.dart';
+import '../modules/attendance/bindings/attendance_binding.dart';
+import '../modules/attendance/views/attendance_view.dart';
+import '../modules/attendance/views/manage_employees_view.dart';
+import '../modules/attendance/views/add_edit_employee_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -177,6 +195,11 @@ class AppPages {
       page: () => const DebtListView(),
       transition: Transition.rightToLeft,
     ),
+    GetPage(
+      name: AppRoutes.debtReport,
+      page: () => const DebtReportView(),
+      transition: Transition.rightToLeft,
+    ),
     // ── v2: Kitchen ───────────────────────────────────────────────────────────
     GetPage(
       name: AppRoutes.kitchen,
@@ -214,6 +237,18 @@ class AppPages {
     GetPage(
       name: AppRoutes.shiftReport,
       page: () => const ShiftReportView(),
+      binding: ShiftBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.closingReport,
+      page: () => const ClosingReportView(),
+      binding: ShiftBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.shiftHandover,
+      page: () => const ShiftHandoverView(),
       binding: ShiftBinding(),
       transition: Transition.rightToLeft,
     ),
@@ -319,6 +354,45 @@ class AppPages {
       binding: CustomersBinding(),
       transition: Transition.rightToLeft,
     ),
+    // ── Laporan (Reports) ─────────────────────────────────────────────────────
+    GetPage(
+      name: AppRoutes.salesReport,
+      page: () => const SalesReportView(),
+      binding: ReportBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.revenueReport,
+      page: () => const RevenueReportView(),
+      binding: ReportBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.profitLossReport,
+      page: () => const ProfitLossReportView(),
+      binding: ReportBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.productPerformanceReport,
+      page: () => const ProductPerformanceReportView(),
+      binding: ReportBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    // ── Antrian ───────────────────────────────────────────────────────────────
+    GetPage(
+      name: AppRoutes.queue,
+      page: () => const QueueView(),
+      binding: QueueBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    // ── Ekspor / Impor ────────────────────────────────────────────────────────
+    GetPage(
+      name: AppRoutes.exportImport,
+      page: () => const ExportImportView(),
+      binding: ExportImportBinding(),
+      transition: Transition.rightToLeft,
+    ),
     // ── v3: Void Log ──────────────────────────────────────────────────────────
     GetPage(
       name: AppRoutes.voidLog,
@@ -332,6 +406,38 @@ class AppPages {
         return VoidLogDetailView(log: log);
       },
       transition: Transition.rightToLeft,
+    ),
+    // ── Pengeluaran Operasional ───────────────────────────────────────────────
+    GetPage(
+      name: AppRoutes.expense,
+      page: () => const ExpenseView(),
+      binding: ExpenseBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.addEditExpense,
+      page: () => const AddEditExpenseView(),
+      binding: ExpenseBinding(),
+      transition: Transition.downToUp,
+    ),
+    // ── Presensi Karyawan ─────────────────────────────────────────────────────
+    GetPage(
+      name: AppRoutes.attendance,
+      page: () => const AttendanceView(),
+      binding: AttendanceBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.manageEmployees,
+      page: () => const ManageEmployeesView(),
+      binding: AttendanceBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.addEditEmployee,
+      page: () => const AddEditEmployeeView(),
+      binding: AttendanceBinding(),
+      transition: Transition.downToUp,
     ),
   ];
 }

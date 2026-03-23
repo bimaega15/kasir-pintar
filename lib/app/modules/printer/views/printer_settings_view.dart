@@ -25,6 +25,7 @@ class PrinterSettingsView extends GetView<PrinterController> {
                 _buildStatusCard(),
                 _buildActionsBar(),
                 _buildPaperWidthSettings(),
+                _buildCashDrawerSettings(),
                 const Padding(
                   padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
                   child: Align(
@@ -193,6 +194,165 @@ class PrinterSettingsView extends GetView<PrinterController> {
         ],
       ),
     );
+  }
+
+  Widget _buildCashDrawerSettings() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.cardShadow,
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header row: enable toggle ──
+            Obx(() => SwitchListTile.adaptive(
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  secondary: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: (controller.cashDrawerEnabled.value
+                              ? AppColors.primary
+                              : AppColors.textSecondary)
+                          .withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.point_of_sale_rounded,
+                      color: controller.cashDrawerEnabled.value
+                          ? AppColors.primary
+                          : AppColors.textSecondary,
+                      size: 22,
+                    ),
+                  ),
+                  title: const Text(
+                    'Laci Uang (Cash Drawer)',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    'Kirim perintah ESC/POS ke printer untuk membuka laci',
+                    style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  ),
+                  value: controller.cashDrawerEnabled.value,
+                  activeTrackColor: AppColors.primary,
+                  onChanged: controller.setCashDrawerEnabled,
+                )),
+            // ── Sub-settings (visible only when enabled) ──
+            Obx(() {
+              if (!controller.cashDrawerEnabled.value) {
+                return const SizedBox.shrink();
+              }
+              return Column(
+                children: [
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  // Auto-open on Tunai toggle
+                  SwitchListTile.adaptive(
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                    title: const Text(
+                      'Buka otomatis saat pembayaran Tunai',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    subtitle: const Text(
+                      'Laci terbuka setelah transaksi tunai selesai',
+                      style:
+                          TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                    value: controller.cashDrawerAutoOpen.value,
+                    activeTrackColor: AppColors.primary,
+                    onChanged: controller.setCashDrawerAutoOpen,
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  // Drawer pin selector
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Port Laci',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            _drawerPinChip(
+                                label: 'Laci 1 (Pin 2)',
+                                pin: 0),
+                            const SizedBox(width: 8),
+                            _drawerPinChip(
+                                label: 'Laci 2 (Pin 5)',
+                                pin: 1),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  // Manual open button
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Obx(() => SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: controller.isConnected.value
+                                ? controller.openCashDrawer
+                                : null,
+                            icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                            label: const Text('Buka Laci Sekarang'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 11),
+                              disabledBackgroundColor: Colors.grey.shade200,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                              textStyle: const TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        )),
+                  ),
+                ],
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _drawerPinChip({required String label, required int pin}) {
+    return Obx(() {
+      final selected = controller.cashDrawerPin.value == pin;
+      return ChoiceChip(
+        label: Text(label, style: const TextStyle(fontSize: 12)),
+        selected: selected,
+        onSelected: (_) => controller.setCashDrawerPin(pin),
+        selectedColor: AppColors.primary.withValues(alpha: 0.2),
+        side: BorderSide(
+          color: selected ? AppColors.primary : Colors.grey.shade300,
+        ),
+      );
+    });
   }
 
   Widget _buildDeviceList() {

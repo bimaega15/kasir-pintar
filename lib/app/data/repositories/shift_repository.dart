@@ -21,4 +21,10 @@ class ShiftRepository {
 
   Future<double> getTunaiRevenueSince(DateTime since) =>
       _db.getTunaiRevenueSince(since);
+
+  Future<Map<String, dynamic>> getShiftStats({
+    required DateTime openedAt,
+    DateTime? closedAt,
+  }) =>
+      _db.getShiftStats(openedAt: openedAt, closedAt: closedAt);
 }

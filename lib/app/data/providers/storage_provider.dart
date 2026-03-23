@@ -17,11 +17,14 @@ import '../models/price_level_model.dart';
 import '../models/stock_movement_model.dart';
 import '../models/bahan_baku_model.dart';
 import '../models/void_log_model.dart';
+import '../models/expense_model.dart';
+import '../models/employee_model.dart';
+import '../models/attendance_model.dart';
 
 /// Provider SQLite — mendukung offline penuh tanpa jaringan.
 class DatabaseProvider extends GetxService {
   static const _dbName = 'kasir_pintar.db';
-  static const _dbVersion = 13;
+  static const _dbVersion = 15;
 
   late Database _db;
 
@@ -352,10 +355,90 @@ class DatabaseProvider extends GetxService {
       )
     ''');
 
+    batch.execute('''
+      CREATE TABLE operational_expenses (
+        id             TEXT    PRIMARY KEY,
+        category       TEXT    NOT NULL,
+        description    TEXT    NOT NULL DEFAULT '',
+        amount         REAL    NOT NULL,
+        payment_method TEXT    NOT NULL DEFAULT 'Tunai',
+        date           TEXT    NOT NULL,
+        created_by     TEXT    NOT NULL DEFAULT 'Kasir',
+        notes          TEXT    NOT NULL DEFAULT '',
+        created_at     TEXT    NOT NULL
+      )
+    ''');
+
+    batch.execute('''
+      CREATE TABLE employees (
+        id         TEXT    PRIMARY KEY,
+        name       TEXT    NOT NULL,
+        role       TEXT    NOT NULL DEFAULT 'Kasir',
+        phone      TEXT    NOT NULL DEFAULT '',
+        is_active  INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT    NOT NULL
+      )
+    ''');
+
+    batch.execute('''
+      CREATE TABLE attendances (
+        id            TEXT    PRIMARY KEY,
+        employee_id   TEXT    NOT NULL,
+        employee_name TEXT    NOT NULL,
+        employee_role TEXT    NOT NULL DEFAULT '',
+        date          TEXT    NOT NULL,
+        status        TEXT    NOT NULL DEFAULT 'hadir',
+        check_in      TEXT,
+        check_out     TEXT,
+        notes         TEXT    NOT NULL DEFAULT '',
+        created_at    TEXT    NOT NULL,
+        UNIQUE(employee_id, date)
+      )
+    ''');
+
     await batch.commit(noResult: true);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 15) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS employees (
+            id TEXT PRIMARY KEY, name TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'Kasir',
+            phone TEXT NOT NULL DEFAULT '',
+            is_active INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT NOT NULL
+          )
+        ''');
+      } catch (_) {}
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS attendances (
+            id TEXT PRIMARY KEY,
+            employee_id TEXT NOT NULL, employee_name TEXT NOT NULL,
+            employee_role TEXT NOT NULL DEFAULT '',
+            date TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'hadir',
+            check_in TEXT, check_out TEXT,
+            notes TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL,
+            UNIQUE(employee_id, date)
+          )
+        ''');
+      } catch (_) {}
+    }
+    if (oldVersion < 14) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS operational_expenses (
+            id TEXT PRIMARY KEY, category TEXT NOT NULL,
+            description TEXT NOT NULL DEFAULT '', amount REAL NOT NULL,
+            payment_method TEXT NOT NULL DEFAULT 'Tunai',
+            date TEXT NOT NULL, created_by TEXT NOT NULL DEFAULT 'Kasir',
+            notes TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL
+          )
+        ''');
+      } catch (_) {}
+    }
     if (oldVersion < 13) {
       try {
         await db.execute('ALTER TABLE products ADD COLUMN image_path TEXT');
@@ -1435,6 +1518,73 @@ class DatabaseProvider extends GetxService {
     return (result.first['total'] as num?)?.toDouble() ?? 0.0;
   }
 
+  Future<Map<String, dynamic>> getShiftStats({
+    required DateTime openedAt,
+    DateTime? closedAt,
+  }) async {
+    final end = closedAt ?? DateTime.now();
+    final startIso = openedAt.toIso8601String();
+    final endIso = end.toIso8601String();
+
+    final aggResult = await _db.rawQuery('''
+      SELECT COUNT(*) as tx_count,
+             COALESCE(SUM(total), 0) as revenue,
+             COALESCE(SUM(subtotal), 0) as subtotal_sum,
+             COALESCE(SUM(discount), 0) as discount_sum,
+             COALESCE(SUM(tax_amount), 0) as tax_sum,
+             COALESCE(SUM(service_charge_amount), 0) as sc_sum
+      FROM transactions
+      WHERE created_at >= ? AND created_at <= ?
+    ''', [startIso, endIso]);
+
+    final paymentResult = await _db.rawQuery('''
+      SELECT payment_method,
+             COALESCE(SUM(total), 0) as total,
+             COUNT(*) as count
+      FROM transactions
+      WHERE created_at >= ? AND created_at <= ?
+      GROUP BY payment_method
+      ORDER BY total DESC
+    ''', [startIso, endIso]);
+
+    final productResult = await _db.rawQuery('''
+      SELECT ti.product_name, ti.product_emoji,
+             SUM(ti.quantity) as qty,
+             SUM(CAST(ti.quantity AS REAL) * ti.product_price) as total
+      FROM transaction_items ti
+      INNER JOIN transactions t ON t.id = ti.transaction_id
+      WHERE t.created_at >= ? AND t.created_at <= ?
+      GROUP BY ti.product_name, ti.product_emoji
+      ORDER BY qty DESC
+      LIMIT 10
+    ''', [startIso, endIso]);
+
+    final agg = aggResult.first;
+    return {
+      'tx_count': agg['tx_count'] as int,
+      'revenue': (agg['revenue'] as num).toDouble(),
+      'subtotal': (agg['subtotal_sum'] as num).toDouble(),
+      'discount': (agg['discount_sum'] as num).toDouble(),
+      'tax': (agg['tax_sum'] as num).toDouble(),
+      'service_charge': (agg['sc_sum'] as num).toDouble(),
+      'payments': paymentResult
+          .map((r) => {
+                'method': r['payment_method'] as String,
+                'total': (r['total'] as num).toDouble(),
+                'count': r['count'] as int,
+              })
+          .toList(),
+      'products': productResult
+          .map((r) => {
+                'name': r['product_name'] as String,
+                'emoji': r['product_emoji'] as String? ?? '📦',
+                'qty': r['qty'] as int,
+                'total': (r['total'] as num).toDouble(),
+              })
+          .toList(),
+    };
+  }
+
   // ── Void Logs ─────────────────────────────────────────────────────────────
 
   Future<void> insertVoidLog(VoidLogModel log) async {
@@ -1528,6 +1678,52 @@ class DatabaseProvider extends GetxService {
       "SELECT SUM(remaining_amount) as total FROM debts WHERE status != 'paid'",
     );
     return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+  }
+
+  Future<Map<String, dynamic>> getDebtStats() async {
+    final summary = await _db.rawQuery('''
+      SELECT
+        COUNT(*) as total_count,
+        COALESCE(SUM(total_amount), 0) as total_amount,
+        COALESCE(SUM(remaining_amount), 0) as total_remaining,
+        COALESCE(SUM(CASE WHEN status = 'unpaid' THEN 1 ELSE 0 END), 0) as unpaid_count,
+        COALESCE(SUM(CASE WHEN status = 'partial' THEN 1 ELSE 0 END), 0) as partial_count,
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END), 0) as paid_count,
+        COALESCE(SUM(CASE WHEN status = 'unpaid' THEN remaining_amount ELSE 0 END), 0) as unpaid_amount,
+        COALESCE(SUM(CASE WHEN status = 'partial' THEN remaining_amount ELSE 0 END), 0) as partial_amount,
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN total_amount ELSE 0 END), 0) as paid_amount
+      FROM debts
+    ''');
+
+    final aging = await _db.rawQuery('''
+      SELECT
+        COALESCE(SUM(CASE WHEN julianday('now') - julianday(created_at) < 7
+          THEN remaining_amount ELSE 0 END), 0) as age_0_7,
+        COALESCE(SUM(CASE WHEN julianday('now') - julianday(created_at) >= 7
+          AND julianday('now') - julianday(created_at) < 30
+          THEN remaining_amount ELSE 0 END), 0) as age_7_30,
+        COALESCE(SUM(CASE WHEN julianday('now') - julianday(created_at) >= 30
+          THEN remaining_amount ELSE 0 END), 0) as age_over_30,
+        COUNT(CASE WHEN julianday('now') - julianday(created_at) < 7 THEN 1 END) as age_0_7_count,
+        COUNT(CASE WHEN julianday('now') - julianday(created_at) >= 7
+          AND julianday('now') - julianday(created_at) < 30 THEN 1 END) as age_7_30_count,
+        COUNT(CASE WHEN julianday('now') - julianday(created_at) >= 30 THEN 1 END) as age_over_30_count
+      FROM debts WHERE status != 'paid'
+    ''');
+
+    final topDebtors = await _db.rawQuery('''
+      SELECT customer_name, invoice_number, total_amount, remaining_amount, status, created_at
+      FROM debts
+      WHERE status != 'paid'
+      ORDER BY remaining_amount DESC
+      LIMIT 10
+    ''');
+
+    return {
+      'summary': summary.first,
+      'aging': aging.first,
+      'top_debtors': topDebtors,
+    };
   }
 
   // ── Price Levels ──────────────────────────────────────────────────────────
@@ -1807,5 +2003,190 @@ class DatabaseProvider extends GetxService {
       limit: limit,
     );
     return maps.map((m) => BahanBakuMovementModel.fromMap(m)).toList();
+  }
+
+  // ── Operational Expenses ──────────────────────────────────────────────────
+
+  Future<List<ExpenseModel>> getExpenses({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    String? where;
+    List<dynamic>? whereArgs;
+    if (startDate != null && endDate != null) {
+      where = 'date >= ? AND date <= ?';
+      whereArgs = [
+        startDate.toIso8601String(),
+        endDate.toIso8601String(),
+      ];
+    }
+    final maps = await _db.query(
+      'operational_expenses',
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: 'date DESC, created_at DESC',
+    );
+    return maps.map((m) => ExpenseModel.fromMap(m)).toList();
+  }
+
+  Future<void> insertExpense(ExpenseModel expense) async {
+    await _db.insert('operational_expenses', expense.toMap());
+  }
+
+  Future<void> updateExpense(ExpenseModel expense) async {
+    await _db.update(
+      'operational_expenses',
+      expense.toMap(),
+      where: 'id = ?',
+      whereArgs: [expense.id],
+    );
+  }
+
+  Future<void> deleteExpense(String id) async {
+    await _db.delete('operational_expenses', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<double> getTotalExpenses({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    String whereClause = '';
+    List<dynamic> whereArgs = [];
+    if (startDate != null && endDate != null) {
+      whereClause = 'WHERE date >= ? AND date <= ?';
+      whereArgs = [startDate.toIso8601String(), endDate.toIso8601String()];
+    }
+    final result = await _db.rawQuery(
+      'SELECT COALESCE(SUM(amount), 0) as total FROM operational_expenses $whereClause',
+      whereArgs.isEmpty ? null : whereArgs,
+    );
+    return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+  }
+
+  Future<Map<String, double>> getExpensesByCategory({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    String whereClause = '';
+    List<dynamic> whereArgs = [];
+    if (startDate != null && endDate != null) {
+      whereClause = 'WHERE date >= ? AND date <= ?';
+      whereArgs = [startDate.toIso8601String(), endDate.toIso8601String()];
+    }
+    final result = await _db.rawQuery(
+      'SELECT category, COALESCE(SUM(amount), 0) as total FROM operational_expenses $whereClause GROUP BY category ORDER BY total DESC',
+      whereArgs.isEmpty ? null : whereArgs,
+    );
+    return {for (final r in result) r['category'] as String: (r['total'] as num).toDouble()};
+  }
+
+  // ── Employees ─────────────────────────────────────────────────────────────
+
+  Future<List<EmployeeModel>> getEmployees({bool activeOnly = false}) async {
+    final maps = await _db.query(
+      'employees',
+      where: activeOnly ? 'is_active = 1' : null,
+      orderBy: 'name ASC',
+    );
+    return maps.map((m) => EmployeeModel.fromMap(m)).toList();
+  }
+
+  Future<void> insertEmployee(EmployeeModel employee) async {
+    await _db.insert('employees', employee.toMap());
+  }
+
+  Future<void> updateEmployee(EmployeeModel employee) async {
+    await _db.update(
+      'employees',
+      employee.toMap(),
+      where: 'id = ?',
+      whereArgs: [employee.id],
+    );
+  }
+
+  Future<void> deleteEmployee(String id) async {
+    await _db.delete('employees', where: 'id = ?', whereArgs: [id]);
+    await _db.delete('attendances', where: 'employee_id = ?', whereArgs: [id]);
+  }
+
+  // ── Attendances ───────────────────────────────────────────────────────────
+
+  Future<List<AttendanceModel>> getAttendancesByDate(DateTime date) async {
+    final dayStart = DateTime(date.year, date.month, date.day).toIso8601String();
+    final dayEnd = DateTime(date.year, date.month, date.day, 23, 59, 59).toIso8601String();
+    final maps = await _db.query(
+      'attendances',
+      where: 'date >= ? AND date <= ?',
+      whereArgs: [dayStart, dayEnd],
+      orderBy: 'employee_name ASC',
+    );
+    return maps.map((m) => AttendanceModel.fromMap(m)).toList();
+  }
+
+  Future<List<AttendanceModel>> getAttendancesByEmployee(
+      String employeeId, {DateTime? startDate, DateTime? endDate}) async {
+    String? where;
+    List<dynamic>? whereArgs;
+    if (startDate != null && endDate != null) {
+      where = 'employee_id = ? AND date >= ? AND date <= ?';
+      whereArgs = [
+        employeeId,
+        startDate.toIso8601String(),
+        endDate.toIso8601String(),
+      ];
+    } else {
+      where = 'employee_id = ?';
+      whereArgs = [employeeId];
+    }
+    final maps = await _db.query(
+      'attendances',
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: 'date DESC',
+    );
+    return maps.map((m) => AttendanceModel.fromMap(m)).toList();
+  }
+
+  Future<AttendanceModel?> getAttendanceByEmployeeDate(
+      String employeeId, DateTime date) async {
+    final dayStart = DateTime(date.year, date.month, date.day).toIso8601String();
+    final dayEnd = DateTime(date.year, date.month, date.day, 23, 59, 59).toIso8601String();
+    final maps = await _db.query(
+      'attendances',
+      where: 'employee_id = ? AND date >= ? AND date <= ?',
+      whereArgs: [employeeId, dayStart, dayEnd],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return AttendanceModel.fromMap(maps.first);
+  }
+
+  Future<void> insertAttendance(AttendanceModel a) async {
+    await _db.insert('attendances', a.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<void> updateAttendance(AttendanceModel a) async {
+    await _db.update(
+      'attendances',
+      a.toMap(),
+      where: 'id = ?',
+      whereArgs: [a.id],
+    );
+  }
+
+  Future<void> deleteAttendance(String id) async {
+    await _db.delete('attendances', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<Map<String, int>> getAttendanceSummary(
+      {required DateTime startDate, required DateTime endDate}) async {
+    final result = await _db.rawQuery(
+      '''SELECT status, COUNT(*) as count FROM attendances
+         WHERE date >= ? AND date <= ?
+         GROUP BY status''',
+      [startDate.toIso8601String(), endDate.toIso8601String()],
+    );
+    return {for (final r in result) r['status'] as String: r['count'] as int};
   }
 }

@@ -45,6 +45,12 @@ class ReportController extends GetxController {
   final bahanBakuPurchases = 0.0.obs;
   final bahanBakuUsageCost = 0.0.obs;
 
+  // ── Product Performance data ──────────────────────────────────────────
+  final productPerformance = <ProductPerformanceEntry>[].obs;
+  final topPerformingProducts = <ProductPerformanceEntry>[].obs;
+  final lowPerformingProducts = <ProductPerformanceEntry>[].obs;
+  final bestProfitMarginProducts = <ProductPerformanceEntry>[].obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -123,6 +129,7 @@ class ReportController extends GetxController {
     _calculateSalesReport();
     _calculateRevenueReport();
     _calculateProfitLoss();
+    _calculateProductPerformance();
   }
 
   // ── Filter Transactions by Date Range ─────────────────────────────────
@@ -259,6 +266,75 @@ class ReportController extends GetxController {
         : 0;
   }
 
+  // ── Product Performance Calculations ───────────────────────────────────
+
+  void _calculateProductPerformance() {
+    final txList = filteredTransactions;
+
+    // Build product performance map
+    final perfMap = <String, ProductPerformanceEntry>{};
+    int totalTransactionCount = 0;
+
+    for (final tx in txList) {
+      totalTransactionCount++;
+      for (final item in tx.items) {
+        final key = item.product.id;
+        if (perfMap.containsKey(key)) {
+          perfMap[key]!.quantity += item.quantity;
+          perfMap[key]!.totalRevenue += item.subtotal;
+          perfMap[key]!.transactionCount += 1;
+        } else {
+          perfMap[key] = ProductPerformanceEntry(
+            productId: item.product.id,
+            productName: item.product.name,
+            productEmoji: item.product.emoji,
+            quantity: item.quantity,
+            totalRevenue: item.subtotal,
+            unitPrice: item.product.price,
+            transactionCount: 1,
+            currentStock: item.product.stock,
+          );
+        }
+      }
+    }
+
+    // Calculate derived metrics
+    for (final entry in perfMap.values) {
+      entry.avgQuantityPerTransaction =
+          entry.quantity / (entry.transactionCount > 0 ? entry.transactionCount : 1);
+      entry.revenuePct =
+          totalSalesAmount.value > 0 ? (entry.totalRevenue / totalSalesAmount.value) * 100 : 0;
+      entry.contributionScore = (entry.totalRevenue / (totalSalesAmount.value > 0 ? totalSalesAmount.value : 1)) *
+          100 * // revenue weight
+          (entry.transactionCount / (totalTransactionCount > 0 ? totalTransactionCount : 1)); // frequency weight
+    }
+
+    // Sort by various metrics
+    final allProducts = perfMap.values.toList();
+    allProducts.sort((a, b) => b.totalRevenue.compareTo(a.totalRevenue));
+    productPerformance.assignAll(allProducts);
+
+    // Top performers (top 5 by revenue)
+    topPerformingProducts.assignAll(
+      allProducts.take(5).toList(),
+    );
+
+    // Low performers (bottom 5 by revenue)
+    lowPerformingProducts.assignAll(
+      allProducts.length > 5
+          ? allProducts.reversed.take(5).toList().reversed.toList()
+          : allProducts.where((p) => p.totalRevenue < 100000).toList(),
+    );
+
+    // Interesting: products with good margins or unique patterns
+    // For now, we'll highlight products with highest avg quantity per transaction
+    var marginalProducts = allProducts.toList()
+      ..sort((a, b) => b.avgQuantityPerTransaction.compareTo(a.avgQuantityPerTransaction));
+    bestProfitMarginProducts.assignAll(
+      marginalProducts.take(5).toList(),
+    );
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────
 
   String get periodLabel {
@@ -310,4 +386,46 @@ class DailyRevenueEntry {
     required this.amount,
     required this.transactionCount,
   });
+}
+
+class ProductPerformanceEntry {
+  final String productId;
+  final String productName;
+  final String productEmoji;
+  int quantity;
+  double totalRevenue;
+  final double unitPrice;
+  int transactionCount;
+  final int currentStock;
+  
+  // Calculated metrics
+  late double avgQuantityPerTransaction;
+  late double revenuePct;
+  late double contributionScore;
+
+  ProductPerformanceEntry({
+    required this.productId,
+    required this.productName,
+    required this.productEmoji,
+    required this.quantity,
+    required this.totalRevenue,
+    required this.unitPrice,
+    required this.transactionCount,
+    required this.currentStock,
+  });
+
+  // Performance tier based on revenue
+  String get performanceTier {
+    if (totalRevenue >= 5000000) return 'Star';
+    if (totalRevenue >= 2000000) return 'Core';
+    if (totalRevenue >= 500000) return 'Supporting';
+    return 'Emerging';
+  }
+
+  // Stock status
+  String get stockStatus {
+    if (currentStock == 0) return 'Out of Stock';
+    if (currentStock < 5) return 'Low Stock';
+    return 'In Stock';
+  }
 }

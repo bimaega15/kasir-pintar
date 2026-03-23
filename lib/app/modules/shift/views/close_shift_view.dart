@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../controllers/shift_controller.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
+import '../../../routes/app_routes.dart';
 
 class CloseShiftView extends GetView<ShiftController> {
   const CloseShiftView({super.key});
@@ -206,6 +207,24 @@ class CloseShiftView extends GetView<ShiftController> {
                       ),
                     ),
                   )),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => Get.toNamed(AppRoutes.shiftHandover),
+                  icon: const Icon(Icons.swap_horiz_rounded),
+                  label: const Text('Ganti Shift (Serah Terima)'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    textStyle: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
             ],
           ),
         );
