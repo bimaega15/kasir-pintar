@@ -39,6 +39,8 @@ class _MainNavigationViewState extends State<MainNavigationView> {
 
   @override
   Widget build(BuildContext context) {
+    final isKasir = Get.find<UserSession>().isKasir;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Obx(() => Stack(
@@ -47,7 +49,6 @@ class _MainNavigationViewState extends State<MainNavigationView> {
             index: _ctrl.currentIndex.value,
             children: _pages,
           ),
-          // Spacer at bottom to prevent content overlap with navbar
           const Positioned(
             bottom: 0,
             left: 0,
@@ -56,6 +57,38 @@ class _MainNavigationViewState extends State<MainNavigationView> {
           ),
         ],
       )),
+      // Admin-only: FAB Kasir di tengah menonjol ke atas
+      floatingActionButton: isKasir
+          ? null
+          : Obx(() {
+              final isActive = _ctrl.currentIndex.value == 4;
+              return FloatingActionButton(
+                onPressed: () => _ctrl.changeIndex(4),
+                backgroundColor: AppColors.primary,
+                elevation: isActive ? 2 : 6,
+                shape: const CircleBorder(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.point_of_sale_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Kasir',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: _buildCustomBottomBar(),
     );
   }
@@ -66,46 +99,60 @@ class _MainNavigationViewState extends State<MainNavigationView> {
       final stackIdx = _ctrl.currentIndex.value;
       final isKasirActive = stackIdx == 4;
 
-      return BottomAppBar(
-        color: Colors.white,
-        elevation: 8,
-        child: SizedBox(
-          height: 56,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: isKasir
-                ? [
-                    // Kasir: Home | Kasir | Report | Setting
-                    _navItem(Icons.home_rounded, 'Home',
-                        !isKasirActive && stackIdx == 0,
-                        () => _ctrl.changeIndex(0)),
-                    _kasirNavItem(isKasirActive),
-                    _navItem(Icons.assessment_rounded, 'Report',
-                        !isKasirActive && stackIdx == 2,
-                        () => _ctrl.changeIndex(2)),
-                    _navItem(Icons.settings_rounded, 'Setting',
-                        !isKasirActive && stackIdx == 3,
-                        () => _ctrl.changeIndex(3)),
-                  ]
-                : [
-                    // Admin: Home | Master | Kasir | Report | Setting
-                    _navItem(Icons.home_rounded, 'Home',
-                        !isKasirActive && stackIdx == 0,
-                        () => _ctrl.changeIndex(0)),
-                    _navItem(Icons.inventory_2_rounded, 'Master',
-                        !isKasirActive && stackIdx == 1,
-                        () => _ctrl.changeIndex(1)),
-                    _kasirNavItem(isKasirActive),
-                    _navItem(Icons.assessment_rounded, 'Report',
-                        !isKasirActive && stackIdx == 2,
-                        () => _ctrl.changeIndex(2)),
-                    _navItem(Icons.settings_rounded, 'Setting',
-                        !isKasirActive && stackIdx == 3,
-                        () => _ctrl.changeIndex(3)),
-                  ],
+      if (isKasir) {
+        // Kasir role: 4 item inline, tanpa FAB
+        return BottomAppBar(
+          color: Colors.white,
+          elevation: 8,
+          child: SizedBox(
+            height: 56,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _navItem(Icons.home_rounded, 'Home',
+                    !isKasirActive && stackIdx == 0,
+                    () => _ctrl.changeIndex(0)),
+                _kasirNavItem(isKasirActive),
+                _navItem(Icons.assessment_rounded, 'Report',
+                    !isKasirActive && stackIdx == 2,
+                    () => _ctrl.changeIndex(2)),
+                _navItem(Icons.settings_rounded, 'Setting',
+                    !isKasirActive && stackIdx == 3,
+                    () => _ctrl.changeIndex(3)),
+              ],
+            ),
           ),
-        ),
-      );
+        );
+      } else {
+        // Admin role: notch di tengah untuk FAB Kasir
+        return BottomAppBar(
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 8.0,
+          color: Colors.white,
+          elevation: 8,
+          child: SizedBox(
+            height: 56,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _navItem(Icons.home_rounded, 'Home',
+                    !isKasirActive && stackIdx == 0,
+                    () => _ctrl.changeIndex(0)),
+                _navItem(Icons.inventory_2_rounded, 'Master',
+                    !isKasirActive && stackIdx == 1,
+                    () => _ctrl.changeIndex(1)),
+                const Expanded(child: SizedBox()), // ruang untuk FAB
+                _navItem(Icons.assessment_rounded, 'Report',
+                    !isKasirActive && stackIdx == 2,
+                    () => _ctrl.changeIndex(2)),
+                _navItem(Icons.settings_rounded, 'Setting',
+                    !isKasirActive && stackIdx == 3,
+                    () => _ctrl.changeIndex(3)),
+              ],
+            ),
+          ),
+        );
+      }
     });
   }
 
