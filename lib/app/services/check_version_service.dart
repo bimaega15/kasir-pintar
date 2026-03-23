@@ -226,13 +226,17 @@ class CheckVersionService {
       if (response.statusCode == 200 && response.data != null) {
         dynamic data = response.data;
 
-        // Server returned raw String (wrong Content-Type) — parse manually
+        // Server returned raw String (wrong Content-Type) — try to parse
         if (data is String) {
-          data = jsonDecode(data);
+          try {
+            data = jsonDecode(data);
+          } catch (_) {
+            // Not valid JSON (e.g. server returned "OK" or plain text)
+            return null;
+          }
         }
 
         if (data is! Map<String, dynamic>) {
-          debugPrint('[CheckVersionService] Invalid response type: ${data.runtimeType}. Expected Map<String, dynamic>');
           return null;
         }
 

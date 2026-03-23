@@ -7,6 +7,7 @@ import '../../../../utils/helpers/currency_helper.dart';
 class ProductCard extends StatelessWidget {
   final ProductModel product;
   final VoidCallback onTap;
+  final VoidCallback? onDecrease;
   final double? displayPrice;
   final String? levelLabel;
   final int quantity;
@@ -15,6 +16,7 @@ class ProductCard extends StatelessWidget {
     super.key,
     required this.product,
     required this.onTap,
+    this.onDecrease,
     this.displayPrice,
     this.levelLabel,
     this.quantity = 0,
@@ -164,17 +166,15 @@ class ProductCard extends StatelessWidget {
                   ),
                 ],
               ),
-              // Quantity badge — top right corner
+              // Quantity control — top right corner: [-] N [+]
               if (isActive)
                 Positioned(
-                  top: -6,
-                  right: -6,
+                  top: -8,
+                  right: -8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
                           color: AppColors.primary.withValues(alpha: 0.4),
@@ -183,13 +183,38 @@ class ProductCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: Text(
-                      '${quantity}x',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: onDecrease,
+                          behavior: HitTestBehavior.opaque,
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 4),
+                            child: Icon(Icons.remove,
+                                color: Colors.white, size: 12),
+                          ),
+                        ),
+                        Text(
+                          '$quantity',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: outOfStock ? null : onTap,
+                          behavior: HitTestBehavior.opaque,
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 4),
+                            child: Icon(Icons.add,
+                                color: Colors.white, size: 12),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

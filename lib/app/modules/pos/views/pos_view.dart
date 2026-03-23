@@ -337,6 +337,7 @@ class PosView extends GetView<OrderController> {
           return ProductCard(
             product: product,
             onTap: () => controller.addToCart(product),
+            onDecrease: () => controller.decreaseQty(product.id),
             displayPrice: displayPrice,
             levelLabel: showLabel ? activeLevel.name : null,
             quantity: cart
