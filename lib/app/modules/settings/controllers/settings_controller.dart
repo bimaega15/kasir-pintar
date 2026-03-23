@@ -202,12 +202,10 @@ class SettingsController extends GetxController {
 
   Future<void> logout() async {
     try {
-      // Clear session role
+      // Hapus session aktif (bukan kredensial admin)
       Get.find<UserSession>().clearSession();
-
-      // Clear saved local credentials
-      await _db.setSetting('app_username', '');
-      await _db.setSetting('app_password', '');
+      await _db.setSetting('session_username', '');
+      await _db.setSetting('session_role', '');
 
       // Sign out from Firebase if logged in via Google
       try {

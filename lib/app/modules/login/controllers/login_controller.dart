@@ -49,6 +49,8 @@ class LoginController extends GetxController {
       final adminPassword = await _db.getSetting('app_password') ?? '';
 
       if (trimmedUsername == adminUsername && password == adminPassword) {
+        await _db.setSetting('session_username', trimmedUsername);
+        await _db.setSetting('session_role', 'admin');
         Get.find<UserSession>().setSession(username: trimmedUsername, role: 'admin');
         Get.offAllNamed(AppRoutes.main);
         return;
@@ -57,10 +59,10 @@ class LoginController extends GetxController {
       // 2. Cek akun kasir (disimpan di tabel app_users)
       final kasirUser = await _db.getAppUserByUsername(trimmedUsername);
       if (kasirUser != null && kasirUser['password'] == password) {
-        Get.find<UserSession>().setSession(
-          username: trimmedUsername,
-          role: kasirUser['role'] as String? ?? 'kasir',
-        );
+        final role = kasirUser['role'] as String? ?? 'kasir';
+        await _db.setSetting('session_username', trimmedUsername);
+        await _db.setSetting('session_role', role);
+        Get.find<UserSession>().setSession(username: trimmedUsername, role: role);
         Get.offAllNamed(AppRoutes.main);
         return;
       }

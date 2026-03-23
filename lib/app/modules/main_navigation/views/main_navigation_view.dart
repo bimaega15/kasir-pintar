@@ -63,6 +63,47 @@ class _MainNavigationViewState extends State<MainNavigationView> {
   }
 
   Widget _buildCustomBottomBar() {
+    // Item lists
+    const kasirItems = [
+      BottomNavigationBarItem(
+        icon: Icon(Icons.home_rounded, size: 24),
+        activeIcon: Icon(Icons.home_rounded, size: 28),
+        label: 'Home',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.assessment_rounded, size: 24),
+        activeIcon: Icon(Icons.assessment_rounded, size: 28),
+        label: 'Report',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.settings_rounded, size: 24),
+        activeIcon: Icon(Icons.settings_rounded, size: 28),
+        label: 'Setting',
+      ),
+    ];
+    const adminItems = [
+      BottomNavigationBarItem(
+        icon: Icon(Icons.home_rounded, size: 24),
+        activeIcon: Icon(Icons.home_rounded, size: 28),
+        label: 'Home',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.inventory_2_rounded, size: 24),
+        activeIcon: Icon(Icons.inventory_2_rounded, size: 28),
+        label: 'Master',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.assessment_rounded, size: 24),
+        activeIcon: Icon(Icons.assessment_rounded, size: 28),
+        label: 'Report',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.settings_rounded, size: 24),
+        activeIcon: Icon(Icons.settings_rounded, size: 28),
+        label: 'Setting',
+      ),
+    ];
+
     return Container(
       decoration: BoxDecoration(
         boxShadow: [
@@ -75,62 +116,46 @@ class _MainNavigationViewState extends State<MainNavigationView> {
         color: Colors.white,
       ),
       child: Obx(() {
-        final isKasirActive = _ctrl.currentIndex.value == 4;
+        final isKasir = Get.find<UserSession>().isKasir;
+        final stackIdx = _ctrl.currentIndex.value;
+        final isKasirActive = stackIdx == 4;
+
+        // Stack index → nav index (reverse mapping)
+        int navIdx;
+        if (isKasir) {
+          // Kasir nav: Home=0, Report=1(stack 2), Setting=2(stack 3)
+          if (stackIdx == 2) {
+            navIdx = 1;
+          } else if (stackIdx == 3) {
+            navIdx = 2;
+          } else {
+            navIdx = 0;
+          }
+        } else {
+          navIdx = isKasirActive ? 0 : stackIdx;
+        }
+
         return BottomNavigationBar(
-          currentIndex: isKasirActive ? 0 : _ctrl.currentIndex.value,
-          onTap: (index) {
-            // Index 1 = Master — hanya admin yang boleh akses
-            if (index == 1 && Get.find<UserSession>().isKasir) {
-              Get.snackbar(
-                'Akses Ditolak',
-                'Menu Master Data hanya dapat diakses oleh Admin',
-                snackPosition: SnackPosition.BOTTOM,
-                duration: const Duration(seconds: 2),
-                margin: const EdgeInsets.all(16),
-              );
-              return;
-            }
-            _ctrl.changeIndex(index);
+          currentIndex: isKasirActive ? 0 : navIdx,
+          onTap: (navIndex) {
+            // Nav index → stack index (forward mapping)
+            final target = isKasir
+                ? [0, 2, 3][navIndex] // Home→0, Report→2, Setting→3
+                : navIndex;           // Admin: 1:1
+            _ctrl.changeIndex(target);
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
-          selectedItemColor: isKasirActive ? AppColors.textSecondary : AppColors.primary,
+          selectedItemColor:
+              isKasirActive ? AppColors.textSecondary : AppColors.primary,
           unselectedItemColor: AppColors.textSecondary,
           selectedLabelStyle: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 11,
           ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 11,
-          ),
+          unselectedLabelStyle: const TextStyle(fontSize: 11),
           elevation: 0,
-          items: [
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.home_rounded, size: 24),
-              activeIcon: Icon(Icons.home_rounded, size: 28),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Obx(() {
-                final isKasir = Get.find<UserSession>().isKasir;
-                return Icon(Icons.inventory_2_rounded,
-                    size: 24,
-                    color: isKasir ? Colors.grey.shade400 : null);
-              }),
-              activeIcon: const Icon(Icons.inventory_2_rounded, size: 28),
-              label: 'Master',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.assessment_rounded, size: 24),
-              activeIcon: Icon(Icons.assessment_rounded, size: 28),
-              label: 'Report',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.settings_rounded, size: 24),
-              activeIcon: Icon(Icons.settings_rounded, size: 28),
-              label: 'Setting',
-            ),
-          ],
+          items: isKasir ? kasirItems : adminItems,
         );
       }),
     );
