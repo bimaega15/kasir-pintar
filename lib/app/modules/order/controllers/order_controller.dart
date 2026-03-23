@@ -16,6 +16,7 @@ import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/table_repository.dart';
 import '../../../data/repositories/transaction_repository.dart';
 import '../../../routes/app_routes.dart';
+import '../../main_navigation/controllers/main_navigation_controller.dart';
 import '../../../services/printer_service.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
@@ -330,88 +331,221 @@ class OrderController extends GetxController {
   }
 
   void showTakeAwayCustomerSheet(BuildContext context) {
+    final customerRepo = Get.find<CustomerRepository>();
+    customerNameController.clear();
+    customerName.value = '';
+    selectedCustomerId.value = '';
+    selectedCustomerName.value = '';
+    selectedCustomerModel.value = null;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          left: 20,
-          right: 20,
-          top: 20,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Detail Pesanan Take Away',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: customerNameController,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Nama Pemesan (opsional)',
-                prefixIcon: Icon(Icons.person_rounded),
-                hintText: 'Contoh: Budi',
+      builder: (ctx) {
+        List<CustomerModel> suggestions = [];
+        bool showSuggestions = false;
+        CustomerModel? pickedCustomer;
+
+        return StatefulBuilder(
+          builder: (ctx, setState) {
+            Future<void> onSearchChanged(String query) async {
+              pickedCustomer = null;
+              selectedCustomerId.value = '';
+              if (query.trim().isEmpty) {
+                setState(() { suggestions = []; showSuggestions = false; });
+                return;
+              }
+              final all = await customerRepo.getAll();
+              final q = query.toLowerCase();
+              final filtered = all
+                  .where((c) => c.name.toLowerCase().contains(q))
+                  .take(6)
+                  .toList();
+              setState(() { suggestions = filtered; showSuggestions = true; });
+            }
+
+            Future<void> addNewCustomer() async {
+              final name = customerNameController.text.trim();
+              if (name.isEmpty) return;
+              final newCust = CustomerModel(name: name);
+              await customerRepo.save(newCust);
+              pickedCustomer = newCust;
+              selectedCustomerId.value = newCust.id;
+              selectedCustomerName.value = newCust.name;
+              selectedCustomerModel.value = newCust;
+              setState(() { suggestions = []; showSuggestions = false; });
+              Get.snackbar(
+                'Pelanggan Ditambahkan',
+                '"$name" berhasil disimpan ke data pelanggan',
+                snackPosition: SnackPosition.BOTTOM,
+                backgroundColor: Colors.green.shade100,
+                colorText: Colors.green.shade900,
+                duration: const Duration(seconds: 2),
+              );
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                left: 20,
+                right: 20,
+                top: 20,
               ),
-              onChanged: (v) => customerName.value = v,
-            ),
-            const SizedBox(height: 16),
-            Obx(() => Row(
-                  children: [
-                    const Text('Jumlah Pax:',
-                        style: TextStyle(fontWeight: FontWeight.w600)),
-                    const SizedBox(width: 12),
-                    IconButton(
-                      icon: const Icon(Icons.remove_circle_outline),
-                      onPressed: () {
-                        if (guestCount.value > 1) guestCount.value--;
-                      },
-                    ),
-                    Text('${guestCount.value}',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
-                    IconButton(
-                      icon: const Icon(Icons.add_circle_outline),
-                      onPressed: () => guestCount.value++,
-                    ),
-                  ],
-                )),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      Get.toNamed(AppRoutes.pos);
-                    },
-                    child: const Text('Lewati'),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Detail Pesanan Take Away',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      customerName.value = customerNameController.text;
-                      Navigator.pop(ctx);
-                      Get.toNamed(AppRoutes.pos);
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: customerNameController,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: InputDecoration(
+                      labelText: 'Nama Pemesan (opsional)',
+                      prefixIcon: const Icon(Icons.person_rounded),
+                      hintText: 'Ketik untuk cari pelanggan...',
+                      suffixIcon: pickedCustomer != null
+                          ? const Icon(Icons.check_circle_rounded,
+                              color: Colors.green)
+                          : customerNameController.text.trim().isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.person_add_rounded,
+                                      color: Colors.green),
+                                  tooltip: 'Tambah sebagai pelanggan baru',
+                                  onPressed: addNewCustomer,
+                                )
+                              : null,
+                      border: const OutlineInputBorder(),
+                    ),
+                    onChanged: (v) {
+                      customerName.value = v;
+                      onSearchChanged(v);
                     },
-                    child: const Text('Lanjut'),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-          ],
-        ),
-      ),
+                  // Suggestions dropdown — only shown when there are matches
+                  if (showSuggestions && suggestions.isNotEmpty)
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 220),
+                      margin: const EdgeInsets.only(top: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.grey.shade200),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ListView(
+                        shrinkWrap: true,
+                        padding: EdgeInsets.zero,
+                        children: suggestions.map((c) => ListTile(
+                          dense: true,
+                          leading: CircleAvatar(
+                            radius: 16,
+                            backgroundColor:
+                                AppColors.primary.withValues(alpha: 0.1),
+                            child: Text(
+                              c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                          title: Text(c.name),
+                          subtitle: c.phone.isNotEmpty
+                              ? Text(c.phone,
+                                  style: const TextStyle(fontSize: 11))
+                              : null,
+                          onTap: () {
+                            customerNameController.text = c.name;
+                            customerName.value = c.name;
+                            pickedCustomer = c;
+                            selectedCustomerId.value = c.id;
+                            selectedCustomerName.value = c.name;
+                            selectedCustomerModel.value = c;
+                            setState(() { showSuggestions = false; });
+                          },
+                        )).toList(),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  Obx(() => Row(
+                        children: [
+                          const Text('Jumlah Pax:',
+                              style: TextStyle(fontWeight: FontWeight.w600)),
+                          const SizedBox(width: 12),
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: () {
+                              if (guestCount.value > 1) guestCount.value--;
+                            },
+                          ),
+                          Text('${guestCount.value}',
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold)),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline),
+                            onPressed: () => guestCount.value++,
+                          ),
+                        ],
+                      )),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            Get.toNamed(AppRoutes.pos);
+                          },
+                          child: const Text('Lewati'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            final typedName = customerNameController.text.trim();
+                            // If name is typed but not confirmed from list/added
+                            if (typedName.isNotEmpty && pickedCustomer == null) {
+                              Get.snackbar(
+                                'Pilih Pelanggan',
+                                'Pilih pelanggan dari daftar atau tambahkan sebagai pelanggan baru terlebih dahulu',
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: Colors.orange.shade100,
+                                colorText: Colors.orange.shade900,
+                                duration: const Duration(seconds: 3),
+                              );
+                              return;
+                            }
+                            customerName.value = typedName;
+                            Navigator.pop(ctx);
+                            Get.toNamed(AppRoutes.pos);
+                          },
+                          child: const Text('Lanjut'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -518,8 +652,7 @@ class OrderController extends GetxController {
     await loadProducts();
     await loadTables();
 
-    // Navigate back to main navigation wrapper to maintain bottom nav bar
-    Get.offAllNamed(AppRoutes.main);
+    _goToKasirTab();
   }
 
   // ── Parked orders ─────────────────────────────────────────────────────────
@@ -584,7 +717,19 @@ class OrderController extends GetxController {
     clearCart();
     await loadParkedCount();
 
+    _goToKasirTab();
+  }
+
+  void _goToKasirTab() {
     Get.offAllNamed(AppRoutes.main);
+    // Set index after navigation completes so the fresh controller is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.isRegistered<MainNavigationController>(
+          tag: MainNavigationController.TAG)) {
+        Get.find<MainNavigationController>(tag: MainNavigationController.TAG)
+            .changeIndex(4);
+      }
+    });
   }
 
   Future<void> resumeParkedOrder(OrderModel order) async {
@@ -636,6 +781,7 @@ class OrderController extends GetxController {
       }
     });
 
+    if (!context.mounted) return;
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,

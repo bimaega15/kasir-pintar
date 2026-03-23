@@ -98,46 +98,48 @@ class OrderConfirmView extends GetView<OrderController> {
           const SizedBox(height: 12),
           const Divider(height: 1),
           const SizedBox(height: 12),
-          // Customer name (free text)
-          Row(
-            children: [
-              const Icon(
-                Icons.person_rounded,
-                size: 18,
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Nama Pemesan',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    Text(
-                      controller.customerName.value.isEmpty
-                          ? '(Belum diisi)'
-                          : controller.customerName.value,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: controller.customerName.value.isEmpty
-                            ? AppColors.textSecondary
-                            : AppColors.textPrimary,
-                      ),
-                    ),
-                  ],
+          // Show "Nama Pemesan" only when no linked customer (free-text only)
+          if (controller.selectedCustomerId.value.isEmpty) ...[
+            Row(
+              children: [
+                const Icon(
+                  Icons.person_rounded,
+                  size: 18,
+                  color: AppColors.primary,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          const Divider(height: 1),
-          const SizedBox(height: 10),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Nama Pemesan',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      Text(
+                        controller.customerName.value.isEmpty
+                            ? '(Belum diisi)'
+                            : controller.customerName.value,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: controller.customerName.value.isEmpty
+                              ? AppColors.textSecondary
+                              : AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            const Divider(height: 1),
+            const SizedBox(height: 10),
+          ],
           // Linked customer from customer database
           GestureDetector(
             onTap: () => controller.showCustomerPicker(Get.context!),
@@ -154,7 +156,7 @@ class OrderConfirmView extends GetView<OrderController> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Pilih Pelanggan',
+                        'Pelanggan',
                         style: TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,

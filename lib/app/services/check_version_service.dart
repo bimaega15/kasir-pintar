@@ -16,6 +16,7 @@
 // dan FileProvider (lihat file_paths.xml).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -223,16 +224,20 @@ class CheckVersionService {
       );
       
       if (response.statusCode == 200 && response.data != null) {
-        // Validasi tipe data response — harus Map
-        if (response.data is! Map<String, dynamic>) {
-          debugPrint('[CheckVersionService] Invalid response type: ${response.data.runtimeType}. Expected Map<String, dynamic>');
+        dynamic data = response.data;
+
+        // Server returned raw String (wrong Content-Type) — parse manually
+        if (data is String) {
+          data = jsonDecode(data);
+        }
+
+        if (data is! Map<String, dynamic>) {
+          debugPrint('[CheckVersionService] Invalid response type: ${data.runtimeType}. Expected Map<String, dynamic>');
           return null;
         }
-        
-        final json = response.data as Map<String, dynamic>;
-        if (json.isEmpty) return null;
-        
-        return AppVersionInfo.fromJson(json);
+
+        if (data.isEmpty) return null;
+        return AppVersionInfo.fromJson(data);
       }
     } catch (e) {
       debugPrint('[CheckVersionService] fetchVersionInfo error: $e');

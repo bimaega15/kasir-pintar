@@ -57,136 +57,93 @@ class _MainNavigationViewState extends State<MainNavigationView> {
         ],
       )),
       bottomNavigationBar: _buildCustomBottomBar(),
-      floatingActionButton: _buildKasirButton(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
   Widget _buildCustomBottomBar() {
-    // Item lists
-    const kasirItems = [
-      BottomNavigationBarItem(
-        icon: Icon(Icons.home_rounded, size: 24),
-        activeIcon: Icon(Icons.home_rounded, size: 28),
-        label: 'Home',
-      ),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.assessment_rounded, size: 24),
-        activeIcon: Icon(Icons.assessment_rounded, size: 28),
-        label: 'Report',
-      ),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.settings_rounded, size: 24),
-        activeIcon: Icon(Icons.settings_rounded, size: 28),
-        label: 'Setting',
-      ),
-    ];
-    const adminItems = [
-      BottomNavigationBarItem(
-        icon: Icon(Icons.home_rounded, size: 24),
-        activeIcon: Icon(Icons.home_rounded, size: 28),
-        label: 'Home',
-      ),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.inventory_2_rounded, size: 24),
-        activeIcon: Icon(Icons.inventory_2_rounded, size: 28),
-        label: 'Master',
-      ),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.assessment_rounded, size: 24),
-        activeIcon: Icon(Icons.assessment_rounded, size: 28),
-        label: 'Report',
-      ),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.settings_rounded, size: 24),
-        activeIcon: Icon(Icons.settings_rounded, size: 28),
-        label: 'Setting',
-      ),
-    ];
+    return Obx(() {
+      final isKasir = Get.find<UserSession>().isKasir;
+      final stackIdx = _ctrl.currentIndex.value;
+      final isKasirActive = stackIdx == 4;
 
-    return Container(
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
+      return BottomAppBar(
         color: Colors.white,
-      ),
-      child: Obx(() {
-        final isKasir = Get.find<UserSession>().isKasir;
-        final stackIdx = _ctrl.currentIndex.value;
-        final isKasirActive = stackIdx == 4;
-
-        // Stack index → nav index (reverse mapping)
-        int navIdx;
-        if (isKasir) {
-          // Kasir nav: Home=0, Report=1(stack 2), Setting=2(stack 3)
-          if (stackIdx == 2) {
-            navIdx = 1;
-          } else if (stackIdx == 3) {
-            navIdx = 2;
-          } else {
-            navIdx = 0;
-          }
-        } else {
-          navIdx = isKasirActive ? 0 : stackIdx;
-        }
-
-        return BottomNavigationBar(
-          currentIndex: isKasirActive ? 0 : navIdx,
-          onTap: (navIndex) {
-            // Nav index → stack index (forward mapping)
-            final target = isKasir
-                ? [0, 2, 3][navIndex] // Home→0, Report→2, Setting→3
-                : navIndex;           // Admin: 1:1
-            _ctrl.changeIndex(target);
-          },
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor:
-              isKasirActive ? AppColors.textSecondary : AppColors.primary,
-          unselectedItemColor: AppColors.textSecondary,
-          selectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 11,
+        elevation: 8,
+        child: SizedBox(
+          height: 56,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: isKasir
+                ? [
+                    // Kasir: Home | Kasir | Report | Setting
+                    _navItem(Icons.home_rounded, 'Home',
+                        !isKasirActive && stackIdx == 0,
+                        () => _ctrl.changeIndex(0)),
+                    _kasirNavItem(isKasirActive),
+                    _navItem(Icons.assessment_rounded, 'Report',
+                        !isKasirActive && stackIdx == 2,
+                        () => _ctrl.changeIndex(2)),
+                    _navItem(Icons.settings_rounded, 'Setting',
+                        !isKasirActive && stackIdx == 3,
+                        () => _ctrl.changeIndex(3)),
+                  ]
+                : [
+                    // Admin: Home | Master | Kasir | Report | Setting
+                    _navItem(Icons.home_rounded, 'Home',
+                        !isKasirActive && stackIdx == 0,
+                        () => _ctrl.changeIndex(0)),
+                    _navItem(Icons.inventory_2_rounded, 'Master',
+                        !isKasirActive && stackIdx == 1,
+                        () => _ctrl.changeIndex(1)),
+                    _kasirNavItem(isKasirActive),
+                    _navItem(Icons.assessment_rounded, 'Report',
+                        !isKasirActive && stackIdx == 2,
+                        () => _ctrl.changeIndex(2)),
+                    _navItem(Icons.settings_rounded, 'Setting',
+                        !isKasirActive && stackIdx == 3,
+                        () => _ctrl.changeIndex(3)),
+                  ],
           ),
-          unselectedLabelStyle: const TextStyle(fontSize: 11),
-          elevation: 0,
-          items: isKasir ? kasirItems : adminItems,
-        );
-      }),
-    );
+        ),
+      );
+    });
   }
 
-  Widget _buildKasirButton() {
-    return GestureDetector(
-      onTap: () => _ctrl.changeIndex(4),
-      child: Container(
-        width: 55,
-        height: 55,
-        decoration: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: BorderRadius.circular(27.5),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.4),
-              blurRadius: 15,
-              spreadRadius: 2,
-              offset: const Offset(0, 5),
+  Widget _navItem(IconData icon, String label, bool isActive, VoidCallback onTap) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: isActive ? 28 : 24,
+              color: isActive ? AppColors.primary : AppColors.textSecondary,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                color: isActive ? AppColors.primary : AppColors.textSecondary,
+              ),
             ),
           ],
         ),
-        child: Center(
-          child: Obx(() => Icon(
-            Icons.point_of_sale_rounded,
-            color: Colors.white,
-            size: _ctrl.currentIndex.value == 4 ? 24 : 20,
-          )),
-        ),
       ),
+    );
+  }
+
+  Widget _kasirNavItem(bool isActive) {
+    return _navItem(
+      Icons.point_of_sale_rounded,
+      'Kasir',
+      isActive,
+      () => _ctrl.changeIndex(4),
     );
   }
 }

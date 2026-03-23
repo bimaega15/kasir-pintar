@@ -6,6 +6,7 @@ import '../../../utils/constants/app_colors.dart';
 import 'barcode_scanner_view.dart';
 import 'widgets/product_card.dart';
 import 'widgets/cart_panel.dart';
+import '../../../utils/helpers/currency_helper.dart';
 
 class PosView extends GetView<OrderController> {
   const PosView({super.key});
@@ -73,7 +74,7 @@ class PosView extends GetView<OrderController> {
               : const SizedBox()),
         ],
       ),
-      body: isWide ? _buildWideLayout() : _buildNarrowLayout(),
+      body: isWide ? _buildWideLayout() : _buildNarrowLayout(context),
     );
   }
 
@@ -87,8 +88,83 @@ class PosView extends GetView<OrderController> {
     );
   }
 
-  Widget _buildNarrowLayout() {
-    return _buildProductPanel();
+  Widget _buildNarrowLayout(BuildContext context) {
+    return Stack(
+      children: [
+        _buildProductPanel(),
+        Positioned(
+          bottom: 16,
+          left: 16,
+          right: 16,
+          child: Obx(() {
+            if (controller.cart.isEmpty) return const SizedBox.shrink();
+            return _buildFloatingCartBar(context);
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFloatingCartBar(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showCartBottomSheet(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.45),
+              blurRadius: 20,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Item count badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${controller.totalItems}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '${controller.totalItems} item dipilih',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            Text(
+              CurrencyHelper.formatRupiah(controller.total),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Icon(Icons.arrow_forward_ios_rounded,
+                color: Colors.white, size: 14),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildProductPanel() {
@@ -224,6 +300,8 @@ class PosView extends GetView<OrderController> {
       // Register level dependencies di sini (bukan di dalam itemBuilder)
       final levelId = controller.activePriceLevelId.value;
       final levels = controller.priceLevels;
+      // Snapshot cart so itemBuilder has reactive dependency on it
+      final cart = controller.cart.toList();
       final activeLevel = levels.isNotEmpty
           ? levels.firstWhereOrNull((l) => l.id == levelId)
           : null;
@@ -243,7 +321,7 @@ class PosView extends GetView<OrderController> {
         );
       }
       return GridView.builder(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
           maxCrossAxisExtent: 180,
           childAspectRatio: 0.75,
@@ -261,6 +339,9 @@ class PosView extends GetView<OrderController> {
             onTap: () => controller.addToCart(product),
             displayPrice: displayPrice,
             levelLabel: showLabel ? activeLevel.name : null,
+            quantity: cart
+                .firstWhereOrNull((i) => i.productId == product.id)
+                ?.quantity ?? 0,
           );
         },
       );

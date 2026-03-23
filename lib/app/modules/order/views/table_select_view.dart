@@ -206,7 +206,15 @@ class TableSelectView extends GetView<OrderController> {
                           ),
                         ),
                       )
-                    : null,
+                    : query.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.person_add_rounded,
+                                color: Colors.green),
+                            tooltip: 'Tambah sebagai pelanggan baru',
+                            onPressed: () =>
+                                controller.createAndSaveNewCustomer(query),
+                          )
+                        : null,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(

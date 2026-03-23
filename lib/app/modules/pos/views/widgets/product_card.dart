@@ -9,6 +9,7 @@ class ProductCard extends StatelessWidget {
   final VoidCallback onTap;
   final double? displayPrice;
   final String? levelLabel;
+  final int quantity;
 
   const ProductCard({
     super.key,
@@ -16,131 +17,182 @@ class ProductCard extends StatelessWidget {
     required this.onTap,
     this.displayPrice,
     this.levelLabel,
+    this.quantity = 0,
   });
 
   @override
   Widget build(BuildContext context) {
     final outOfStock = product.stock == 0;
+    final isActive = quantity > 0;
     return GestureDetector(
       onTap: outOfStock ? null : onTap,
       child: AnimatedOpacity(
         opacity: outOfStock ? 0.5 : 1.0,
         duration: const Duration(milliseconds: 200),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isActive
+                ? AppColors.primary.withValues(alpha: 0.04)
+                : Colors.white,
             borderRadius: BorderRadius.circular(12),
-            boxShadow: const [
-              BoxShadow(
-                  color: AppColors.cardShadow,
-                  blurRadius: 6,
-                  offset: Offset(0, 2))
-            ],
+            border: isActive
+                ? Border.all(color: AppColors.primary, width: 2)
+                : Border.all(color: Colors.transparent, width: 2),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2))
+                  ]
+                : const [
+                    BoxShadow(
+                        color: AppColors.cardShadow,
+                        blurRadius: 6,
+                        offset: Offset(0, 2))
+                  ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              // Image / Emoji area
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(12)),
-                  ),
-                  child: product.imagePath != null &&
-                          File(product.imagePath!).existsSync()
-                      ? ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(12)),
-                          child: Image.file(
-                            File(product.imagePath!),
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                        )
-                      : Center(
-                          child: Text(product.emoji,
-                              style: const TextStyle(fontSize: 38)),
-                        ),
-                ),
-              ),
-              // Info
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product.name,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+              // Card content
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Image / Emoji area
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(10)),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      child: product.imagePath != null &&
+                              File(product.imagePath!).existsSync()
+                          ? ClipRRect(
+                              borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(10)),
+                              child: Image.file(
+                                File(product.imagePath!),
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : Center(
+                              child: Text(product.emoji,
+                                  style: const TextStyle(fontSize: 38)),
+                            ),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                  ),
+                  // Info
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            CurrencyHelper.formatRupiah(
-                                displayPrice ?? product.price),
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                            ),
+                        Text(
+                          product.name,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        if (levelLabel != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              levelLabel!,
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primary,
+                        const SizedBox(height: 4),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                CurrencyHelper.formatRupiah(
+                                    displayPrice ?? product.price),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
                               ),
                             ),
-                          ),
+                            if (levelLabel != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 5, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary
+                                      .withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  levelLabel!,
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.inventory_2_outlined,
+                              size: 11,
+                              color: product.stock < 5
+                                  ? AppColors.error
+                                  : AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              outOfStock ? 'Habis' : 'Stok: ${product.stock}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: product.stock < 5
+                                    ? AppColors.error
+                                    : AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.inventory_2_outlined,
-                          size: 11,
-                          color: product.stock < 5
-                              ? AppColors.error
-                              : AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          outOfStock ? 'Habis' : 'Stok: ${product.stock}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: product.stock < 5
-                                ? AppColors.error
-                                : AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+              // Quantity badge — top right corner
+              if (isActive)
+                Positioned(
+                  top: -6,
+                  right: -6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.4),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      '${quantity}x',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
