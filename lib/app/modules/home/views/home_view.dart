@@ -40,113 +40,130 @@ class HomeView extends GetView<HomeController> {
   }
 
   Widget _buildQuickAccessSection() {
+    final session = Get.find<UserSession>();
+    final navCtrl = Get.find<MainNavigationController>(
+        tag: MainNavigationController.TAG);
+
+    final items = <_MenuItemData>[
+      _MenuItemData(
+        icon: Icons.point_of_sale_rounded,
+        label: 'Kasir',
+        color: AppColors.primary,
+        onTap: () => navCtrl.changeIndex(4),
+      ),
+      if (session.isAdmin)
+        _MenuItemData(
+          icon: Icons.inventory_2_rounded,
+          label: 'Master Data',
+          color: Colors.green.shade600,
+          onTap: () => navCtrl.changeIndex(1),
+        ),
+      _MenuItemData(
+        icon: Icons.assessment_rounded,
+        label: 'Laporan',
+        color: Colors.purple.shade600,
+        onTap: () => navCtrl.changeIndex(2),
+      ),
+      _MenuItemData(
+        icon: Icons.settings_rounded,
+        label: 'Pengaturan',
+        color: Colors.blueGrey.shade600,
+        onTap: () => navCtrl.changeIndex(3),
+      ),
+      _MenuItemData(
+        icon: Icons.history_rounded,
+        label: 'Riwayat',
+        color: Colors.indigo.shade500,
+        onTap: () => Get.toNamed(AppRoutes.history),
+      ),
+      _MenuItemData(
+        icon: Icons.people_alt_rounded,
+        label: 'Pelanggan',
+        color: Colors.teal.shade600,
+        onTap: () => Get.toNamed(AppRoutes.customers),
+      ),
+      _MenuItemData(
+        icon: Icons.confirmation_number_rounded,
+        label: 'Antrian',
+        color: Colors.orange.shade700,
+        onTap: () => Get.toNamed(AppRoutes.queue),
+      ),
+      _MenuItemData(
+        icon: Icons.badge_rounded,
+        label: 'Presensi',
+        color: Colors.cyan.shade700,
+        onTap: () => Get.toNamed(AppRoutes.attendance),
+      ),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Akses Cepat',
+          'Menu',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
             color: AppColors.textPrimary,
           ),
         ),
-        const SizedBox(height: 12),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 2.2,
-          children: [
-            _buildQuickAccessCard(
-              icon: Icons.point_of_sale_rounded,
-              label: 'Kasir',
-              onTap: () {
-                Get.find<MainNavigationController>(tag: MainNavigationController.TAG).changeIndex(4);
-              },
-            ),
-            if (Get.find<UserSession>().isAdmin)
-              _buildQuickAccessCard(
-                icon: Icons.inventory_2_rounded,
-                label: 'Master Data',
-                onTap: () {
-                  Get.find<MainNavigationController>(tag: MainNavigationController.TAG).changeIndex(1);
-                },
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
               ),
-            _buildQuickAccessCard(
-              icon: Icons.assessment_rounded,
-              label: 'Laporan',
-              onTap: () {
-                Get.find<MainNavigationController>(tag: MainNavigationController.TAG).changeIndex(2);
-              },
-            ),
-            _buildQuickAccessCard(
-              icon: Icons.settings_rounded,
-              label: 'Pengaturan',
-              onTap: () {
-                Get.find<MainNavigationController>(tag: MainNavigationController.TAG).changeIndex(3);
-              },
-            ),
-            _buildQuickAccessCard(
-              icon: Icons.confirmation_number_rounded,
-              label: 'Cetak Antrian',
-              onTap: () => Get.toNamed(AppRoutes.queue),
-            ),
-            _buildQuickAccessCard(
-              icon: Icons.badge_rounded,
-              label: 'Presensi',
-              onTap: () => Get.toNamed(AppRoutes.attendance),
-            ),
-          ],
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
+          child: GridView.count(
+            crossAxisCount: 4,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 20,
+            crossAxisSpacing: 0,
+            childAspectRatio: 0.82,
+            children: items.map((item) => _buildMenuIcon(item)).toList(),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildQuickAccessCard({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildMenuIcon(_MenuItemData item) {
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            )
-          ],
-        ),
-        child: Row(
-          children: [
-            const SizedBox(width: 12),
-            Icon(icon, color: AppColors.primary, size: 24),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
+      onTap: item.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: item.color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
             ),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 12,
-              color: AppColors.textSecondary,
+            child: Icon(item.icon, color: item.color, size: 26),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            item.label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textPrimary,
             ),
-            const SizedBox(width: 12),
-          ],
-        ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }
@@ -765,4 +782,18 @@ class HomeView extends GetView<HomeController> {
       ),
     );
   }
+}
+
+class _MenuItemData {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _MenuItemData({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
 }

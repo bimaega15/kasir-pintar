@@ -84,7 +84,6 @@ class HomeController extends GetxController {
       if (session.isKasir) {
         final shift = shiftCtrl.activeShift.value;
         allTx = await _transactionRepo.getFiltered(
-          cashierName: session.currentUsername.value,
           shiftStart: shift?.openedAt,
         );
       } else {

@@ -41,7 +41,6 @@ class HistoryController extends GetxController {
             ? Get.find<ShiftController>()
             : null;
         list = await _transactionRepo.getFiltered(
-          cashierName: session.currentUsername.value,
           shiftStart: shiftCtrl?.activeShift.value?.openedAt,
         );
       } else {
