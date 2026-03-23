@@ -11,6 +11,7 @@ import '../../home/controllers/home_controller.dart';
 import '../../kitchen/controllers/kitchen_controller.dart';
 import '../../debt/controllers/debt_controller.dart';
 import '../../order/controllers/order_controller.dart';
+import '../../../services/user_session.dart';
 
 class MainNavigationView extends StatefulWidget {
   const MainNavigationView({super.key});
@@ -78,6 +79,17 @@ class _MainNavigationViewState extends State<MainNavigationView> {
         return BottomNavigationBar(
           currentIndex: isKasirActive ? 0 : _ctrl.currentIndex.value,
           onTap: (index) {
+            // Index 1 = Master — hanya admin yang boleh akses
+            if (index == 1 && Get.find<UserSession>().isKasir) {
+              Get.snackbar(
+                'Akses Ditolak',
+                'Menu Master Data hanya dapat diakses oleh Admin',
+                snackPosition: SnackPosition.BOTTOM,
+                duration: const Duration(seconds: 2),
+                margin: const EdgeInsets.all(16),
+              );
+              return;
+            }
             _ctrl.changeIndex(index);
           },
           type: BottomNavigationBarType.fixed,
@@ -92,23 +104,28 @@ class _MainNavigationViewState extends State<MainNavigationView> {
             fontSize: 11,
           ),
           elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
+          items: [
+            const BottomNavigationBarItem(
               icon: Icon(Icons.home_rounded, size: 24),
               activeIcon: Icon(Icons.home_rounded, size: 28),
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.inventory_2_rounded, size: 24),
-              activeIcon: Icon(Icons.inventory_2_rounded, size: 28),
+              icon: Obx(() {
+                final isKasir = Get.find<UserSession>().isKasir;
+                return Icon(Icons.inventory_2_rounded,
+                    size: 24,
+                    color: isKasir ? Colors.grey.shade400 : null);
+              }),
+              activeIcon: const Icon(Icons.inventory_2_rounded, size: 28),
               label: 'Master',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.assessment_rounded, size: 24),
               activeIcon: Icon(Icons.assessment_rounded, size: 28),
               label: 'Report',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.settings_rounded, size: 24),
               activeIcon: Icon(Icons.settings_rounded, size: 28),
               label: 'Setting',

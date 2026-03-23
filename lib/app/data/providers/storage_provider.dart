@@ -24,7 +24,7 @@ import '../models/attendance_model.dart';
 /// Provider SQLite — mendukung offline penuh tanpa jaringan.
 class DatabaseProvider extends GetxService {
   static const _dbName = 'kasir_pintar.db';
-  static const _dbVersion = 15;
+  static const _dbVersion = 16;
 
   late Database _db;
 
@@ -396,10 +396,33 @@ class DatabaseProvider extends GetxService {
       )
     ''');
 
+    batch.execute('''
+      CREATE TABLE app_users (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        username   TEXT    NOT NULL UNIQUE,
+        password   TEXT    NOT NULL,
+        role       TEXT    NOT NULL DEFAULT 'kasir',
+        created_at TEXT    NOT NULL
+      )
+    ''');
+
     await batch.commit(noResult: true);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 16) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS app_users (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            username   TEXT    NOT NULL UNIQUE,
+            password   TEXT    NOT NULL,
+            role       TEXT    NOT NULL DEFAULT 'kasir',
+            created_at TEXT    NOT NULL
+          )
+        ''');
+      } catch (_) {}
+    }
     if (oldVersion < 15) {
       try {
         await db.execute('''
@@ -1443,6 +1466,50 @@ class DatabaseProvider extends GetxService {
       orderBy: 'split_number ASC',
     );
     return result.map((m) => SplitTransactionModel.fromMap(m)).toList();
+  }
+
+  // ── App Users (Kasir Accounts) ────────────────────────────────────────────
+
+  Future<void> insertAppUser({
+    required String username,
+    required String password,
+    String role = 'kasir',
+  }) async {
+    await _db.insert('app_users', {
+      'username': username,
+      'password': password,
+      'role': role,
+      'created_at': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<Map<String, dynamic>?> getAppUserByUsername(String username) async {
+    final result = await _db.query(
+      'app_users',
+      where: 'username = ?',
+      whereArgs: [username],
+      limit: 1,
+    );
+    return result.isEmpty ? null : result.first;
+  }
+
+  Future<bool> appUsernameExists(String username) async {
+    final result = await _db.query(
+      'app_users',
+      columns: ['id'],
+      where: 'username = ?',
+      whereArgs: [username],
+      limit: 1,
+    );
+    return result.isNotEmpty;
+  }
+
+  Future<List<Map<String, dynamic>>> getAllAppUsers() async {
+    return await _db.query('app_users', orderBy: 'created_at ASC');
+  }
+
+  Future<void> deleteAppUser(String username) async {
+    await _db.delete('app_users', where: 'username = ?', whereArgs: [username]);
   }
 
   // ── Settings ──────────────────────────────────────────────────────────────

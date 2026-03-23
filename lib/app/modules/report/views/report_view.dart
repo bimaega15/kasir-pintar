@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/report_controller.dart';
 import '../../../routes/app_routes.dart';
+import '../../../services/user_session.dart';
 import '../../../utils/constants/app_colors.dart';
 
 class ReportPageContent extends StatelessWidget {
@@ -70,8 +71,9 @@ class ReportPageContent extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            // Laporan Penjualan
+            // Laporan Penjualan — admin only
             Obx(() {
+              if (Get.find<UserSession>().isKasir) return const SizedBox.shrink();
               final ctrl = Get.find<ReportController>();
               return _buildReportCard(
                 icon: Icons.shopping_cart_checkout_rounded,
@@ -86,8 +88,9 @@ class ReportPageContent extends StatelessWidget {
               );
             }),
             const SizedBox(height: 16),
-            // Laporan Omset
+            // Laporan Omset — admin only
             Obx(() {
+              if (Get.find<UserSession>().isKasir) return const SizedBox.shrink();
               final ctrl = Get.find<ReportController>();
               return _buildReportCard(
                 icon: Icons.trending_up_rounded,
@@ -144,25 +147,29 @@ class ReportPageContent extends StatelessWidget {
               onTap: () => Get.toNamed(AppRoutes.expense),
             ),
             const SizedBox(height: 16),
-            // Presensi Karyawan
-            _buildReportCard(
-              icon: Icons.badge_rounded,
-              title: 'Presensi Karyawan',
-              subtitle: 'Catat kehadiran & kelola data karyawan',
-              color: Colors.teal,
-              count: '',
-              onTap: () => Get.toNamed(AppRoutes.attendance),
-            ),
+            // Presensi Karyawan — admin only
+            Obx(() => Get.find<UserSession>().isAdmin
+                ? _buildReportCard(
+                    icon: Icons.badge_rounded,
+                    title: 'Presensi Karyawan',
+                    subtitle: 'Catat kehadiran & kelola data karyawan',
+                    color: Colors.teal,
+                    count: '',
+                    onTap: () => Get.toNamed(AppRoutes.attendance),
+                  )
+                : const SizedBox.shrink()),
             const SizedBox(height: 16),
-            // Laporan Hutang & Piutang
-            _buildReportCard(
-              icon: Icons.account_balance_wallet_rounded,
-              title: 'Laporan Hutang & Piutang',
-              subtitle: 'Analisis sisa hutang, aging piutang & debitur terbesar',
-              color: Colors.red,
-              count: '',
-              onTap: () => Get.toNamed(AppRoutes.debtReport),
-            ),
+            // Laporan Hutang & Piutang — admin only
+            Obx(() => Get.find<UserSession>().isAdmin
+                ? _buildReportCard(
+                    icon: Icons.account_balance_wallet_rounded,
+                    title: 'Laporan Hutang & Piutang',
+                    subtitle: 'Analisis sisa hutang, aging piutang & debitur terbesar',
+                    color: Colors.red,
+                    count: '',
+                    onTap: () => Get.toNamed(AppRoutes.debtReport),
+                  )
+                : const SizedBox.shrink()),
             const SizedBox(height: 24),
             // Stats Cards
             Obx(() {

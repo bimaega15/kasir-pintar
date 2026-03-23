@@ -73,4 +73,6 @@ abstract class AppRoutes {
   static const attendance = '/attendance';
   static const manageEmployees = '/attendance/employees';
   static const addEditEmployee = '/attendance/employees/form';
+  // tentang aplikasi
+  static const about = '/about';
 }

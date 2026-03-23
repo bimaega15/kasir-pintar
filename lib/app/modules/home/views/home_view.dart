@@ -6,6 +6,7 @@ import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 import '../../main_navigation/controllers/main_navigation_controller.dart';
 import '../../shift/controllers/shift_controller.dart';
+import '../../../services/user_session.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -66,13 +67,14 @@ class HomeView extends GetView<HomeController> {
                 Get.find<MainNavigationController>(tag: MainNavigationController.TAG).changeIndex(4);
               },
             ),
-            _buildQuickAccessCard(
-              icon: Icons.inventory_2_rounded,
-              label: 'Master Data',
-              onTap: () {
-                Get.find<MainNavigationController>(tag: MainNavigationController.TAG).changeIndex(1);
-              },
-            ),
+            if (Get.find<UserSession>().isAdmin)
+              _buildQuickAccessCard(
+                icon: Icons.inventory_2_rounded,
+                label: 'Master Data',
+                onTap: () {
+                  Get.find<MainNavigationController>(tag: MainNavigationController.TAG).changeIndex(1);
+                },
+              ),
             _buildQuickAccessCard(
               icon: Icons.assessment_rounded,
               label: 'Laporan',
@@ -724,7 +726,9 @@ class HomeView extends GetView<HomeController> {
   }
 
   Widget _buildInfoCard() {
-    return Container(
+    return GestureDetector(
+      onTap: () => Get.toNamed(AppRoutes.about),
+      child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -732,7 +736,7 @@ class HomeView extends GetView<HomeController> {
         ),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: const Row(
+      child: Row(
         children: [
           Icon(Icons.info_outline_rounded, color: Colors.white, size: 36),
           SizedBox(width: 16),
@@ -757,6 +761,7 @@ class HomeView extends GetView<HomeController> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

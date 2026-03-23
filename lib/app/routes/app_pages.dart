@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import '../data/models/void_log_model.dart';
+import '../modules/about/views/about_view.dart';
 import '../modules/splash/bindings/splash_binding.dart';
 import '../modules/splash/views/splash_view.dart';
 import '../modules/main_navigation/bindings/main_navigation_binding.dart';
@@ -438,6 +439,12 @@ class AppPages {
       page: () => const AddEditEmployeeView(),
       binding: AttendanceBinding(),
       transition: Transition.downToUp,
+    ),
+    // ── Tentang Aplikasi ──────────────────────────────────────────────────────
+    GetPage(
+      name: AppRoutes.about,
+      page: () => const AboutView(),
+      transition: Transition.rightToLeft,
     ),
   ];
 }

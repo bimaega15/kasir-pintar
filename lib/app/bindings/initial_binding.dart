@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../services/user_session.dart';
 import '../data/repositories/category_repository.dart';
 import '../data/repositories/customer_repository.dart';
 import '../data/repositories/price_level_repository.dart';
@@ -23,6 +24,7 @@ import '../modules/kitchen/controllers/kitchen_controller.dart';
 class InitialBinding extends Bindings {
   @override
   void dependencies() {
+    Get.lazyPut<UserSession>(() => UserSession(), fenix: true);
     Get.lazyPut<CategoryRepository>(() => CategoryRepository(), fenix: true);
     Get.lazyPut<CustomerRepository>(() => CustomerRepository(), fenix: true);
     Get.lazyPut<PriceLevelRepository>(() => PriceLevelRepository(), fenix: true);

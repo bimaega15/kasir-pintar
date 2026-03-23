@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../data/providers/storage_provider.dart';
 import '../../../routes/app_routes.dart';
 import '../../../services/check_version_service.dart';
+import '../../../services/user_session.dart';
 
 class SettingsController extends GetxController {
   final _db = Get.find<DatabaseProvider>();
@@ -201,6 +202,9 @@ class SettingsController extends GetxController {
 
   Future<void> logout() async {
     try {
+      // Clear session role
+      Get.find<UserSession>().clearSession();
+
       // Clear saved local credentials
       await _db.setSetting('app_username', '');
       await _db.setSetting('app_password', '');

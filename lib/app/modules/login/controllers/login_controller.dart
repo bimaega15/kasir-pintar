@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../../data/providers/storage_provider.dart';
 import '../../../routes/app_routes.dart';
+import '../../../services/user_session.dart';
 import '../../../utils/constants/app_colors.dart';
 
 /// True only on platforms where google_sign_in has native support.
@@ -43,21 +44,35 @@ class LoginController extends GetxController {
 
     isLoginLoading.value = true;
     try {
-      final savedUsername = await _db.getSetting('app_username') ?? '';
-      final savedPassword = await _db.getSetting('app_password') ?? '';
+      // 1. Cek akun admin (disimpan di settings)
+      final adminUsername = await _db.getSetting('app_username') ?? '';
+      final adminPassword = await _db.getSetting('app_password') ?? '';
 
-      if (trimmedUsername == savedUsername && password == savedPassword) {
+      if (trimmedUsername == adminUsername && password == adminPassword) {
+        Get.find<UserSession>().setSession(username: trimmedUsername, role: 'admin');
         Get.offAllNamed(AppRoutes.main);
-      } else {
-        Get.snackbar(
-          'Login Gagal',
-          'Username atau password salah',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.shade100,
-          colorText: Colors.red.shade800,
-          margin: const EdgeInsets.all(16),
-        );
+        return;
       }
+
+      // 2. Cek akun kasir (disimpan di tabel app_users)
+      final kasirUser = await _db.getAppUserByUsername(trimmedUsername);
+      if (kasirUser != null && kasirUser['password'] == password) {
+        Get.find<UserSession>().setSession(
+          username: trimmedUsername,
+          role: kasirUser['role'] as String? ?? 'kasir',
+        );
+        Get.offAllNamed(AppRoutes.main);
+        return;
+      }
+
+      Get.snackbar(
+        'Login Gagal',
+        'Username atau password salah',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        margin: const EdgeInsets.all(16),
+      );
     } finally {
       isLoginLoading.value = false;
     }
@@ -228,14 +243,47 @@ class LoginController extends GetxController {
       return;
     }
 
+    // Cek apakah username sudah digunakan (admin atau kasir)
+    final adminUsername = await _db.getSetting('app_username') ?? '';
+    if (adminUsername.isNotEmpty && trimmedUsername == adminUsername) {
+      Get.snackbar(
+        'Username Sudah Digunakan',
+        'Username "$trimmedUsername" sudah terdaftar sebagai Admin. Gunakan username lain.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+      );
+      return;
+    }
+
+    final kasirExists = await _db.appUsernameExists(trimmedUsername);
+    if (kasirExists) {
+      Get.snackbar(
+        'Username Sudah Digunakan',
+        'Username "$trimmedUsername" sudah terdaftar. Gunakan username lain.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+      );
+      return;
+    }
+
     isSetupLoading.value = true;
     try {
-      await _db.setSetting('app_username', trimmedUsername);
-      await _db.setSetting('app_password', password);
+      // Simpan sebagai akun kasir di tabel app_users
+      await _db.insertAppUser(
+        username: trimmedUsername,
+        password: password,
+        role: 'kasir',
+      );
 
       Get.snackbar(
-        'Berhasil',
-        'Akun berhasil dibuat. Silakan login.',
+        'Akun Kasir Dibuat',
+        'Akun "$trimmedUsername" berhasil dibuat sebagai Kasir.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.shade100,
         colorText: Colors.green.shade800,

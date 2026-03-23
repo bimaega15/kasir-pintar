@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/settings_controller.dart';
+import '../../../services/user_session.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../routes/app_routes.dart';
 
@@ -43,14 +44,16 @@ class SettingsView extends GetView<SettingsController> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Pengaturan Toko
-              _buildMenuCard(
-                icon: Icons.tune_rounded,
-                title: 'Pengaturan Toko',
-                subtitle: 'Kelola nama toko, pajak, dan biaya layanan',
-                color: Colors.blue,
-              ),
-              const SizedBox(height: 12),
+              // Pengaturan Toko — admin only
+              if (Get.find<UserSession>().isAdmin) ...[
+                _buildMenuCard(
+                  icon: Icons.tune_rounded,
+                  title: 'Pengaturan Toko',
+                  subtitle: 'Kelola nama toko, pajak, dan biaya layanan',
+                  color: Colors.blue,
+                ),
+                const SizedBox(height: 12),
+              ],
               // Printer
               _buildMenuCard(
                 icon: Icons.print_rounded,
@@ -69,16 +72,27 @@ class SettingsView extends GetView<SettingsController> {
                 onTap: () => controller.checkForUpdates(),
               ),
               const SizedBox(height: 12),
-              // Ekspor / Impor
+              // Ekspor / Impor — admin only
+              if (Get.find<UserSession>().isAdmin)
+                _buildMenuCard(
+                  icon: Icons.import_export_rounded,
+                  title: 'Ekspor / Impor Data',
+                  subtitle: 'Backup dan restore data via file Excel (.xlsx)',
+                  color: Colors.teal,
+                  onTap: () => Get.toNamed(AppRoutes.exportImport),
+                ),
+              const SizedBox(height: 12),
+              // Tentang Aplikasi
               _buildMenuCard(
-                icon: Icons.import_export_rounded,
-                title: 'Ekspor / Impor Data',
-                subtitle: 'Backup dan restore data via file Excel (.xlsx)',
-                color: Colors.teal,
-                onTap: () => Get.toNamed(AppRoutes.exportImport),
+                icon: Icons.info_outline_rounded,
+                title: 'Tentang Aplikasi',
+                subtitle: 'Info pembuat, versi, dan kontak developer',
+                color: Colors.indigo,
+                onTap: () => Get.toNamed(AppRoutes.about),
               ),
               const SizedBox(height: 24),
-              // Form Settings
+              // Form Settings — admin only
+              if (Get.find<UserSession>().isAdmin) ...[
               const Divider(),
               const SizedBox(height: 16),
               _section(
@@ -261,6 +275,7 @@ class SettingsView extends GetView<SettingsController> {
                 ),
               ),
               const SizedBox(height: 24),
+              ], // end admin-only form section
               const Divider(),
               const SizedBox(height: 16),
               const Text(
