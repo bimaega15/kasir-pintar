@@ -908,7 +908,33 @@ class DatabaseProvider extends GetxService {
   Future<List<CustomerModel>> getCustomers() async {
     try {
       final maps = await _db.query('customers', orderBy: 'created_at ASC');
-      return maps.map(_customerFromMap).toList();
+      final customers = maps.map(_customerFromMap).toList();
+
+      // Aggregate transaction stats per customer_name from the transactions table
+      final statsMaps = await _db.rawQuery('''
+        SELECT customer_name,
+               COUNT(*) AS tx_count,
+               COALESCE(SUM(total), 0) AS tx_total
+        FROM transactions
+        WHERE customer_name != ''
+        GROUP BY customer_name
+      ''');
+
+      final statsLookup = <String, Map<String, dynamic>>{
+        for (final row in statsMaps)
+          (row['customer_name'] as String): row,
+      };
+
+      for (final customer in customers) {
+        final stats = statsLookup[customer.name];
+        if (stats != null) {
+          customer.totalTransactions = (stats['tx_count'] as int?) ?? 0;
+          customer.totalSpent =
+              (stats['tx_total'] as num?)?.toDouble() ?? 0.0;
+        }
+      }
+
+      return customers;
     } catch (e) {
       print('[getCustomers] Error: $e');
       rethrow;
