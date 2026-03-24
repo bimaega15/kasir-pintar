@@ -1175,6 +1175,16 @@ class DatabaseProvider extends GetxService {
     return assembled.first;
   }
 
+  Future<OrderModel?> getOrderByTableId(String tableId) async {
+    final maps = await _db.rawQuery(
+      "SELECT * FROM orders WHERE table_id = ? AND kitchen_status != 'paid' AND kitchen_status != 'parked' ORDER BY created_at DESC LIMIT 1",
+      [tableId],
+    );
+    if (maps.isEmpty) return null;
+    final assembled = await _assembleOrders(maps);
+    return assembled.first;
+  }
+
   Future<void> insertOrder(OrderModel order) async {
     await _db.transaction((txn) async {
       await txn.insert('orders', _orderToMap(order));

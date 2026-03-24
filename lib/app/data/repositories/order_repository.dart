@@ -21,6 +21,9 @@ class OrderRepository {
 
   Future<OrderModel?> getById(String id) => _db.getOrderById(id);
 
+  Future<OrderModel?> getByTableId(String tableId) =>
+      _db.getOrderByTableId(tableId);
+
   Future<void> save(OrderModel order) => _db.insertOrder(order);
 
   Future<void> updateKitchenStatus(String id, KitchenStatus status) =>

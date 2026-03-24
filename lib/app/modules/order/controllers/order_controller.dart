@@ -32,6 +32,7 @@ class OrderController extends GetxController {
   // ── Active order state ────────────────────────────────────────────────────
   final orderType = OrderType.dineIn.obs;
   final selectedTable = Rx<TableModel?>(null);
+  final selectedTables = <TableModel>[].obs;
   final guestCount = 1.obs;
   final customerName = ''.obs;
   final customerNameController = TextEditingController();
@@ -67,6 +68,10 @@ class OrderController extends GetxController {
   // ── Price levels ──────────────────────────────────────────────────────────
   final priceLevels = <PriceLevelModel>[].obs;
   final activePriceLevelId = ''.obs;
+
+  // ── Join existing table order ─────────────────────────────────────────────
+  final joiningOrderId = Rx<String?>(null);
+  final joiningInvoiceNumber = Rx<String?>(null);
 
   // ── Tables (for selection view) ───────────────────────────────────────────
   final tables = <TableModel>[].obs;
@@ -278,19 +283,62 @@ class OrderController extends GetxController {
     }
   }
 
+  void toggleTableSelection(TableModel table) {
+    final idx = selectedTables.indexWhere((t) => t.id == table.id);
+    if (idx >= 0) {
+      selectedTables.removeAt(idx);
+    } else {
+      selectedTables.add(table);
+    }
+    selectedTable.value = selectedTables.firstOrNull;
+  }
+
+  /// Gabung dengan pesanan yang sudah ada di meja yang terisi.
+  /// Jika ada pesanan aktif, muat item-nya ke keranjang.
+  /// Jika tidak ada, lanjut seperti pesanan baru di meja tersebut.
+  Future<void> joinTableOrder(TableModel table) async {
+    clearCart();
+
+    selectedTables.add(table);
+    selectedTable.value = table;
+    orderType.value = OrderType.dineIn;
+
+    final existing = await _orderRepo.getByTableId(table.id);
+    if (existing != null) {
+      // Ada pesanan aktif — muat item & info ke keranjang
+      guestCount.value = existing.guestCount;
+      customerName.value = existing.customerName;
+      customerNameController.text = existing.customerName;
+      cart.assignAll(existing.items);
+      discount.value = existing.discount;
+      if (existing.discount > 0) {
+        discountController.text = existing.discount.toStringAsFixed(0);
+      }
+      joiningOrderId.value = existing.id;
+      joiningInvoiceNumber.value = existing.invoiceNumber;
+    }
+    // Jika tidak ada pesanan aktif, lanjut dengan keranjang kosong (pesanan baru)
+
+    Get.toNamed(AppRoutes.pos);
+  }
+
   void clearCart() {
     cart.clear();
     discountController.clear();
     discount.value = 0;
     discountMode.value = 'Rp';
+    selectedTables.clear();
     selectedTable.value = null;
     guestCount.value = 1;
     customerNameController.clear();
     customerName.value = '';
     selectedCustomerId.value = '';
     selectedCustomerName.value = '';
+    selectedCustomerModel.value = null;
     searchController.clear();
     selectedCategory.value = 'all';
+    joiningOrderId.value = null;
+    joiningInvoiceNumber.value = null;
   }
 
   // ── Totals ────────────────────────────────────────────────────────────────
@@ -606,7 +654,8 @@ class OrderController extends GetxController {
       return;
     }
 
-    final invoiceNumber = await _transactionRepo.generateInvoiceNumber();
+    final invoiceNumber = joiningInvoiceNumber.value ??
+        await _transactionRepo.generateInvoiceNumber();
 
     final effectiveCustomerName = selectedCustomerId.value.isNotEmpty
         ? selectedCustomerName.value
@@ -629,11 +678,17 @@ class OrderController extends GetxController {
       total: total,
     );
 
+    // Jika sedang gabung pesanan: hapus order lama sebelum menyimpan yang baru
+    final joiningId = joiningOrderId.value;
+    if (joiningId != null) {
+      await _orderRepo.delete(joiningId);
+    }
+
     await _orderRepo.save(order);
 
-    // Mark table as occupied
-    if (selectedTable.value != null) {
-      await _tableRepo.setOccupied(selectedTable.value!.id, order.id);
+    // Mark all selected tables as occupied
+    for (final t in selectedTables) {
+      await _tableRepo.setOccupied(t.id, order.id);
     }
 
     // Auto-cetak ke printer dapur (silent — tidak blokir jika printer tidak terhubung)
@@ -642,7 +697,7 @@ class OrderController extends GetxController {
     }
 
     Get.snackbar(
-      'Pesanan Dikirim',
+      joiningId != null ? 'Pesanan Digabungkan' : 'Pesanan Dikirim',
       'Pesanan ${order.invoiceNumber} berhasil dikirim ke dapur',
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.green.shade100,

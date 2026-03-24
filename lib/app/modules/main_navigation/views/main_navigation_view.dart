@@ -99,27 +99,42 @@ class _MainNavigationViewState extends State<MainNavigationView> {
       final stackIdx = _ctrl.currentIndex.value;
       final isKasirActive = stackIdx == 4;
 
+      final barDecoration = BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      );
+
       if (isKasir) {
         // Kasir role: 4 item inline, tanpa FAB
         return BottomAppBar(
-          color: Colors.white,
-          elevation: 8,
-          child: SizedBox(
-            height: 56,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _navItem(Icons.home_rounded, 'Home',
-                    !isKasirActive && stackIdx == 0,
-                    () => _ctrl.changeIndex(0)),
-                _kasirNavItem(isKasirActive),
-                _navItem(Icons.assessment_rounded, 'Report',
-                    !isKasirActive && stackIdx == 2,
-                    () => _ctrl.changeIndex(2)),
-                _navItem(Icons.settings_rounded, 'Setting',
-                    !isKasirActive && stackIdx == 3,
-                    () => _ctrl.changeIndex(3)),
-              ],
+          color: Colors.transparent,
+          elevation: 0,
+          padding: EdgeInsets.zero,
+          child: Container(
+            decoration: barDecoration,
+            child: SizedBox(
+              height: 60,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _navItem(Icons.home_rounded, 'Home',
+                      !isKasirActive && stackIdx == 0,
+                      () => _ctrl.changeIndex(0)),
+                  _kasirNavItem(isKasirActive),
+                  _navItem(Icons.assessment_rounded, 'Report',
+                      !isKasirActive && stackIdx == 2,
+                      () => _ctrl.changeIndex(2)),
+                  _navItem(Icons.settings_rounded, 'Setting',
+                      !isKasirActive && stackIdx == 3,
+                      () => _ctrl.changeIndex(3)),
+                ],
+              ),
             ),
           ),
         );
@@ -128,27 +143,31 @@ class _MainNavigationViewState extends State<MainNavigationView> {
         return BottomAppBar(
           shape: const CircularNotchedRectangle(),
           notchMargin: 8.0,
-          color: Colors.white,
-          elevation: 8,
-          child: SizedBox(
-            height: 56,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _navItem(Icons.home_rounded, 'Home',
-                    !isKasirActive && stackIdx == 0,
-                    () => _ctrl.changeIndex(0)),
-                _navItem(Icons.inventory_2_rounded, 'Master',
-                    !isKasirActive && stackIdx == 1,
-                    () => _ctrl.changeIndex(1)),
-                const Expanded(child: SizedBox()), // ruang untuk FAB
-                _navItem(Icons.assessment_rounded, 'Report',
-                    !isKasirActive && stackIdx == 2,
-                    () => _ctrl.changeIndex(2)),
-                _navItem(Icons.settings_rounded, 'Setting',
-                    !isKasirActive && stackIdx == 3,
-                    () => _ctrl.changeIndex(3)),
-              ],
+          color: Colors.transparent,
+          elevation: 0,
+          padding: EdgeInsets.zero,
+          child: Container(
+            decoration: barDecoration,
+            child: SizedBox(
+              height: 60,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _navItem(Icons.home_rounded, 'Home',
+                      !isKasirActive && stackIdx == 0,
+                      () => _ctrl.changeIndex(0)),
+                  _navItem(Icons.inventory_2_rounded, 'Master',
+                      !isKasirActive && stackIdx == 1,
+                      () => _ctrl.changeIndex(1)),
+                  const Expanded(child: SizedBox()), // ruang untuk FAB
+                  _navItem(Icons.assessment_rounded, 'Report',
+                      !isKasirActive && stackIdx == 2,
+                      () => _ctrl.changeIndex(2)),
+                  _navItem(Icons.settings_rounded, 'Setting',
+                      !isKasirActive && stackIdx == 3,
+                      () => _ctrl.changeIndex(3)),
+                ],
+              ),
             ),
           ),
         );
@@ -158,26 +177,32 @@ class _MainNavigationViewState extends State<MainNavigationView> {
 
   Widget _navItem(IconData icon, String label, bool isActive, VoidCallback onTap) {
     return Expanded(
-      child: InkWell(
+      child: GestureDetector(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        behavior: HitTestBehavior.opaque,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: isActive ? 28 : 24,
-              color: isActive ? AppColors.primary : AppColors.textSecondary,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            AnimatedScale(
+              scale: isActive ? 1.15 : 1.0,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              child: Icon(
+                icon,
+                size: 22,
                 color: isActive ? AppColors.primary : AppColors.textSecondary,
               ),
+            ),
+            const SizedBox(height: 4),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                color: isActive ? AppColors.primary : AppColors.textSecondary,
+              ),
+              child: Text(label, maxLines: 1),
             ),
           ],
         ),

@@ -27,7 +27,12 @@ class TableSelectView extends GetView<OrderController> {
         final available = controller.tables
             .where((t) => t.status == TableStatus.available)
             .toList();
-        return Column(
+        final occupied = controller.tables
+            .where((t) => t.status == TableStatus.occupied)
+            .toList();
+        return Stack(
+          children: [
+          Column(
           children: [
             // Customer name autocomplete input
             Container(
@@ -109,6 +114,26 @@ class TableSelectView extends GetView<OrderController> {
                       fontSize: 13,
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  Obx(() {
+                    final n = controller.selectedTables.length;
+                    if (n == 0) return const SizedBox.shrink();
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '$n dipilih',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    );
+                  }),
                   const Spacer(),
                   TextButton.icon(
                     onPressed: controller.loadTables,
@@ -119,7 +144,7 @@ class TableSelectView extends GetView<OrderController> {
               ),
             ),
 
-            if (available.isEmpty)
+            if (available.isEmpty && occupied.isEmpty)
               const Expanded(
                 child: Center(
                   child: Column(
@@ -132,7 +157,7 @@ class TableSelectView extends GetView<OrderController> {
                       ),
                       SizedBox(height: 12),
                       Text(
-                        'Semua meja sedang terisi',
+                        'Belum ada meja yang terdaftar',
                         style: TextStyle(color: AppColors.textSecondary),
                       ),
                     ],
@@ -141,20 +166,152 @@ class TableSelectView extends GetView<OrderController> {
               )
             else
               Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 160,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 1.0,
-                  ),
-                  itemCount: available.length,
-                  itemBuilder: (_, i) => _buildTableTile(available[i]),
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                  children: [
+                    // ── Meja Tersedia ──────────────────────────────────────
+                    if (available.isNotEmpty) ...[
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          'Meja Tersedia',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 160,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 1.0,
+                        ),
+                        itemCount: available.length,
+                        itemBuilder: (_, i) => _buildTableTile(available[i]),
+                      ),
+                    ],
+                    // ── Meja Terisi ────────────────────────────────────────
+                    if (occupied.isNotEmpty) ...[
+                      Padding(
+                        padding: EdgeInsets.only(
+                            top: available.isNotEmpty ? 16 : 0, bottom: 8),
+                        child: Row(
+                          children: [
+                            const Text(
+                              'Meja Terisi',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Ketuk untuk gabung',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.orange.shade700,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 160,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 1.0,
+                        ),
+                        itemCount: occupied.length,
+                        itemBuilder: (_, i) =>
+                            _buildOccupiedTableTile(context, occupied[i]),
+                      ),
+                    ],
+                  ],
                 ),
               ),
           ],
-        );
+        ),
+
+        // Tombol konfirmasi muncul saat ada meja yang dipilih
+        Positioned(
+          bottom: 16,
+          left: 16,
+          right: 16,
+          child: Obx(() {
+            final selected = controller.selectedTables;
+            if (selected.isEmpty) return const SizedBox.shrink();
+            final tableLabels =
+                selected.map((t) => 'Meja ${t.number}').join(', ');
+            return SafeArea(
+              child: ElevatedButton(
+                onPressed: () {
+                  final typedName =
+                      controller.customerNameController.text.trim();
+                  final isConfirmed =
+                      controller.selectedCustomerModel.value != null;
+                  if (typedName.isNotEmpty && !isConfirmed) {
+                    Get.snackbar(
+                      'Nama Belum Dikonfirmasi',
+                      'Pilih pelanggan dari daftar atau tekan tombol + untuk menambahkan nama pemesan',
+                      snackPosition: SnackPosition.BOTTOM,
+                      backgroundColor: Colors.orange.shade100,
+                      colorText: Colors.orange.shade900,
+                    );
+                    return;
+                  }
+                  Get.toNamed(AppRoutes.pos);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 4,
+                  shadowColor: AppColors.primary.withValues(alpha: 0.4),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Mulai Pesanan · ${selected.length} Meja',
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      tableLabels,
+                      style: const TextStyle(
+                          fontSize: 11, color: Colors.white70),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ),
+        ],
+      );
       }),
     );
   }
@@ -440,25 +597,10 @@ class TableSelectView extends GetView<OrderController> {
 
   Widget _buildTableTile(TableModel table) {
     return Obx(() {
-      final isSelected = controller.selectedTable.value?.id == table.id;
+      final isSelected =
+          controller.selectedTables.any((t) => t.id == table.id);
       return GestureDetector(
-        onTap: () {
-          final typedName = controller.customerNameController.text.trim();
-          final isConfirmed = controller.selectedCustomerModel.value != null;
-          if (typedName.isNotEmpty && !isConfirmed) {
-            Get.snackbar(
-              'Nama Belum Dikonfirmasi',
-              'Pilih pelanggan dari daftar atau tekan tombol + untuk menambahkan nama pemesan',
-              snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: Colors.orange.shade100,
-              colorText: Colors.orange.shade900,
-              duration: const Duration(seconds: 3),
-            );
-            return;
-          }
-          controller.selectedTable.value = table;
-          Get.toNamed(AppRoutes.pos);
-        },
+        onTap: () => controller.toggleTableSelection(table),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           decoration: BoxDecoration(
@@ -507,5 +649,91 @@ class TableSelectView extends GetView<OrderController> {
         ),
       );
     });
+  }
+
+  Widget _buildOccupiedTableTile(BuildContext context, TableModel table) {
+    return GestureDetector(
+      onTap: () => _showJoinDialog(context, table),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.orange.shade300, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.orange.withValues(alpha: 0.15),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.table_restaurant_rounded,
+              color: Colors.orange.shade600,
+              size: 30,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Meja ${table.number}',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Colors.orange.shade800,
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.only(top: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade200,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'Terisi',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.orange.shade900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showJoinDialog(BuildContext context, TableModel table) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Gabung Meja ${table.number}'),
+        content: Text(
+          'Meja ${table.number} sedang terisi. Gabungkan pesanan baru dengan pesanan yang sudah ada di meja ini?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.merge_rounded, size: 18),
+            label: const Text('Gabung Pesanan'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange.shade600,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.of(context).pop();
+              controller.joinTableOrder(table);
+            },
+          ),
+        ],
+      ),
+    );
   }
 }

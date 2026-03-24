@@ -20,10 +20,13 @@ class PosView extends GetView<OrderController> {
           if (controller.orderType.value == OrderType.takeAway) {
             return const Text('Kasir · Take Away');
           }
-          final table = controller.selectedTable.value;
-          if (table != null) {
-            return Text(
-                'Kasir · Meja ${table.number} (${controller.guestCount.value} tamu)');
+          final tables = controller.selectedTables;
+          if (tables.isNotEmpty) {
+            final nums = tables.map((t) => t.number.toString()).join(', ');
+            final isJoining = controller.joiningOrderId.value != null;
+            return Text(isJoining
+                ? 'Gabung · Meja $nums'
+                : 'Kasir · Meja $nums (${controller.guestCount.value} tamu)');
           }
           return const Text('Kasir');
         }),
