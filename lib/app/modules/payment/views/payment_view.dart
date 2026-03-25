@@ -61,44 +61,70 @@ class PaymentView extends GetView<PaymentController> {
                         const SizedBox(height: 12),
                         // Items
                         ...order.items.map((item) => Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
-                              child: Row(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(item.productEmoji),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(item.productName,
-                                            style: const TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w500)),
-                                        if (item.note.isNotEmpty)
-                                          Text(item.note,
-                                              style: const TextStyle(
-                                                  fontSize: 11,
-                                                  color:
-                                                      AppColors.textSecondary,
-                                                  fontStyle:
-                                                      FontStyle.italic)),
-                                      ],
+                                  Row(
+                                    children: [
+                                      Text(item.productEmoji),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(item.productName,
+                                                style: const TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight:
+                                                        FontWeight.w500)),
+                                            if (item.note.isNotEmpty)
+                                              Text(item.note,
+                                                  style: const TextStyle(
+                                                      fontSize: 11,
+                                                      color: AppColors
+                                                          .textSecondary,
+                                                      fontStyle:
+                                                          FontStyle.italic)),
+                                          ],
+                                        ),
+                                      ),
+                                      Text(
+                                        '${item.quantity}x',
+                                        style: const TextStyle(
+                                            color: AppColors.textSecondary,
+                                            fontSize: 12),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        CurrencyHelper.formatRupiah(
+                                            item.subtotal),
+                                        style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600),
+                                      ),
+                                    ],
+                                  ),
+                                  if (item.isPackage &&
+                                      item.packageItems.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                          left: 26, top: 3),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: item.packageItems
+                                            .map((pkg) => Text(
+                                                  '${pkg.productEmoji} ${pkg.productName}  ×${pkg.quantity}',
+                                                  style: TextStyle(
+                                                      fontSize: 11,
+                                                      color:
+                                                          Colors.grey.shade500),
+                                                ))
+                                            .toList(),
+                                      ),
                                     ),
-                                  ),
-                                  Text(
-                                    '${item.quantity}x',
-                                    style: const TextStyle(
-                                        color: AppColors.textSecondary,
-                                        fontSize: 12),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    CurrencyHelper.formatRupiah(item.subtotal),
-                                    style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600),
-                                  ),
                                 ],
                               ),
                             )),

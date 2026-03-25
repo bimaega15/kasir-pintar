@@ -168,18 +168,38 @@ class _ActiveOrdersViewState extends State<ActiveOrdersView> {
               child: Column(
                 children: order.items
                     .map((item) => Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Row(children: [
-                            Text(item.productEmoji),
-                            const SizedBox(width: 6),
-                            Expanded(
-                                child: Text(item.productName,
-                                    style: const TextStyle(fontSize: 13))),
-                            Text('${item.quantity}x',
-                                style: const TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 12)),
-                          ]),
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(children: [
+                                Text(item.productEmoji),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                    child: Text(item.productName,
+                                        style: const TextStyle(fontSize: 13))),
+                                Text('${item.quantity}x',
+                                    style: const TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 12)),
+                              ]),
+                              if (item.isPackage && item.packageItems.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 24, top: 2),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: item.packageItems
+                                        .map((pkg) => Text(
+                                              '${pkg.productEmoji} ${pkg.productName}  ×${pkg.quantity}',
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.grey.shade500),
+                                            ))
+                                        .toList(),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ))
                     .toList(),
               ),

@@ -233,6 +233,24 @@ class OrderConfirmView extends GetView<OrderController> {
                           item.productName,
                           style: const TextStyle(fontWeight: FontWeight.w500),
                         ),
+                        if (item.isPackage && item.packageItems.isNotEmpty)
+                          ...item.packageItems.map((pkg) => Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Row(
+                                  children: [
+                                    Text(pkg.productEmoji,
+                                        style: const TextStyle(fontSize: 11)),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${pkg.productName}  x${pkg.quantity}',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )),
                         if (item.note.isNotEmpty)
                           Text(
                             '📝 ${item.note}',

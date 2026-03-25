@@ -581,6 +581,16 @@ class PrinterService extends GetxService {
           2,
           0,
         );
+        // Isi paket
+        if (item.isPackage && item.packageItems.isNotEmpty) {
+          for (final pkg in item.packageItems) {
+            await _printer!.printCustom(
+              '   ${pkg.productEmoji} ${pkg.productName} x${pkg.quantity}',
+              1,
+              0,
+            );
+          }
+        }
         // Catatan khusus
         if (item.note.isNotEmpty) {
           await _printer!.printCustom('   >> ${item.note}', 1, 0);

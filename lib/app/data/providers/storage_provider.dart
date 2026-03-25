@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -24,7 +25,7 @@ import '../models/attendance_model.dart';
 /// Provider SQLite — mendukung offline penuh tanpa jaringan.
 class DatabaseProvider extends GetxService {
   static const _dbName = 'kasir_pintar.db';
-  static const _dbVersion = 16;
+  static const _dbVersion = 19;
 
   late Database _db;
 
@@ -62,7 +63,20 @@ class DatabaseProvider extends GetxService {
         description TEXT    NOT NULL DEFAULT '',
         emoji       TEXT    NOT NULL DEFAULT '📦',
         image_path  TEXT,
-        created_at  TEXT    NOT NULL
+        created_at  TEXT    NOT NULL,
+        is_package  INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+
+    batch.execute('''
+      CREATE TABLE product_package_items (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id   TEXT    NOT NULL,
+        item_id      TEXT    NOT NULL,
+        item_name    TEXT    NOT NULL,
+        item_emoji   TEXT    NOT NULL DEFAULT '📦',
+        quantity     INTEGER NOT NULL DEFAULT 1,
+        FOREIGN KEY (product_id) REFERENCES products(id)
       )
     ''');
 
@@ -89,14 +103,16 @@ class DatabaseProvider extends GetxService {
 
     batch.execute('''
       CREATE TABLE transaction_items (
-        id             INTEGER PRIMARY KEY AUTOINCREMENT,
-        transaction_id TEXT    NOT NULL,
-        product_id     TEXT    NOT NULL,
-        product_name   TEXT    NOT NULL,
-        product_price  REAL    NOT NULL,
-        product_emoji  TEXT    NOT NULL DEFAULT '📦',
-        quantity       INTEGER NOT NULL,
-        note           TEXT    NOT NULL DEFAULT '',
+        id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+        transaction_id     TEXT    NOT NULL,
+        product_id         TEXT    NOT NULL,
+        product_name       TEXT    NOT NULL,
+        product_price      REAL    NOT NULL,
+        product_emoji      TEXT    NOT NULL DEFAULT '📦',
+        quantity           INTEGER NOT NULL,
+        note               TEXT    NOT NULL DEFAULT '',
+        is_package         INTEGER NOT NULL DEFAULT 0,
+        package_items_json TEXT    NOT NULL DEFAULT '[]',
         FOREIGN KEY (transaction_id) REFERENCES transactions(id)
       )
     ''');
@@ -154,14 +170,16 @@ class DatabaseProvider extends GetxService {
 
     batch.execute('''
       CREATE TABLE order_items (
-        id             INTEGER PRIMARY KEY AUTOINCREMENT,
-        order_id       TEXT    NOT NULL,
-        product_id     TEXT    NOT NULL,
-        product_name   TEXT    NOT NULL,
-        product_price  REAL    NOT NULL,
-        product_emoji  TEXT    NOT NULL DEFAULT '📦',
-        quantity       INTEGER NOT NULL,
-        note           TEXT    NOT NULL DEFAULT '',
+        id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id            TEXT    NOT NULL,
+        product_id          TEXT    NOT NULL,
+        product_name        TEXT    NOT NULL,
+        product_price       REAL    NOT NULL,
+        product_emoji       TEXT    NOT NULL DEFAULT '📦',
+        quantity            INTEGER NOT NULL,
+        note                TEXT    NOT NULL DEFAULT '',
+        is_package          INTEGER NOT NULL DEFAULT 0,
+        package_items_json  TEXT    NOT NULL DEFAULT '[]',
         FOREIGN KEY (order_id) REFERENCES orders(id)
       )
     ''');
@@ -410,6 +428,43 @@ class DatabaseProvider extends GetxService {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 19) {
+      try {
+        await db.execute(
+            'ALTER TABLE transaction_items ADD COLUMN is_package INTEGER NOT NULL DEFAULT 0');
+        await db.execute(
+            "ALTER TABLE transaction_items ADD COLUMN package_items_json TEXT NOT NULL DEFAULT '[]'");
+      } catch (_) {}
+    }
+    if (oldVersion < 18) {
+      try {
+        await db.execute(
+            'ALTER TABLE order_items ADD COLUMN is_package INTEGER NOT NULL DEFAULT 0');
+      } catch (_) {}
+      try {
+        await db.execute(
+            "ALTER TABLE order_items ADD COLUMN package_items_json TEXT NOT NULL DEFAULT '[]'");
+      } catch (_) {}
+    }
+    if (oldVersion < 17) {
+      try {
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN is_package INTEGER NOT NULL DEFAULT 0');
+      } catch (_) {}
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS product_package_items (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id TEXT    NOT NULL,
+            item_id    TEXT    NOT NULL,
+            item_name  TEXT    NOT NULL,
+            item_emoji TEXT    NOT NULL DEFAULT '📦',
+            quantity   INTEGER NOT NULL DEFAULT 1,
+            FOREIGN KEY (product_id) REFERENCES products(id)
+          )
+        ''');
+      } catch (_) {}
+    }
     if (oldVersion < 16) {
       try {
         await db.execute('''
@@ -822,6 +877,37 @@ class DatabaseProvider extends GetxService {
       for (final p in products) {
         p.priceLevels = priceMap[p.id] ?? [];
       }
+
+      // Load package items (isolated — failure here must not break product load)
+      try {
+        await _db.execute('''
+          CREATE TABLE IF NOT EXISTS product_package_items (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id TEXT    NOT NULL,
+            item_id    TEXT    NOT NULL,
+            item_name  TEXT    NOT NULL,
+            item_emoji TEXT    NOT NULL DEFAULT '📦',
+            quantity   INTEGER NOT NULL DEFAULT 1
+          )
+        ''');
+        final packageMaps = await _db.query('product_package_items');
+        final packageMap = <String, List<PackageItem>>{};
+        for (final row in packageMaps) {
+          final pid = row['product_id'] as String;
+          packageMap.putIfAbsent(pid, () => []).add(PackageItem(
+            productId: row['item_id'] as String,
+            productName: row['item_name'] as String,
+            productEmoji: row['item_emoji'] as String? ?? '📦',
+            quantity: row['quantity'] as int? ?? 1,
+          ));
+        }
+        for (final p in products) {
+          p.packageItems = packageMap[p.id] ?? [];
+        }
+      } catch (e) {
+        print('[getProducts] Warning: could not load package items: $e');
+      }
+
       return products;
     } catch (e) {
       print('[getProducts] Error: $e');
@@ -834,6 +920,9 @@ class DatabaseProvider extends GetxService {
       final map = _productToMap(product);
       print('[insertProduct] Inserting product: ${product.name} with map: $map');
       await _db.insert('products', map);
+      if (product.isPackage) {
+        await _savePackageItems(product.id, product.packageItems);
+      }
       print('[insertProduct] Successfully inserted product: ${product.name}');
     } catch (e) {
       print('[insertProduct] Error inserting product: $e');
@@ -848,9 +937,11 @@ class DatabaseProvider extends GetxService {
       where: 'id = ?',
       whereArgs: [product.id],
     );
+    await _savePackageItems(product.id, product.isPackage ? product.packageItems : []);
   }
 
   Future<void> deleteProduct(String id) async {
+    await _db.delete('product_package_items', where: 'product_id = ?', whereArgs: [id]);
     await _db.delete('products', where: 'id = ?', whereArgs: [id]);
   }
 
@@ -874,6 +965,9 @@ class DatabaseProvider extends GetxService {
       final price = (priceValue as num).toDouble();
       final stock = stockValue as int;
 
+      final isPackageVal = m['is_package'];
+      final isPackage = isPackageVal != null && isPackageVal != 0;
+
       return ProductModel(
         id: id,
         name: name,
@@ -884,6 +978,7 @@ class DatabaseProvider extends GetxService {
         emoji: emoji,
         imagePath: imagePath,
         createdAt: DateTime.parse(createdAtStr),
+        isPackage: isPackage,
       );
     } catch (e) {
       print('[_productFromMap] Error parsing map: $m with error: $e');
@@ -901,7 +996,22 @@ class DatabaseProvider extends GetxService {
     'emoji': p.emoji,
     'image_path': p.imagePath,
     'created_at': p.createdAt.toIso8601String(),
+    'is_package': p.isPackage ? 1 : 0,
   };
+
+  Future<void> _savePackageItems(String productId, List<PackageItem> items) async {
+    await _db.delete('product_package_items',
+        where: 'product_id = ?', whereArgs: [productId]);
+    for (final item in items) {
+      await _db.insert('product_package_items', {
+        'product_id': productId,
+        'item_id': item.productId,
+        'item_name': item.productName,
+        'item_emoji': item.productEmoji,
+        'quantity': item.quantity,
+      });
+    }
+  }
 
   // ── Customers ──────────────────────────────────────────────────────────────
 
@@ -1197,6 +1307,10 @@ class DatabaseProvider extends GetxService {
           'product_emoji': item.productEmoji,
           'quantity': item.quantity,
           'note': item.note,
+          'is_package': item.isPackage ? 1 : 0,
+          'package_items_json': jsonEncode(
+            item.packageItems.map((p) => p.toJson()).toList(),
+          ),
         });
       }
     });
@@ -1265,6 +1379,14 @@ class DatabaseProvider extends GetxService {
     final itemsByOrder = <String, List<OrderItemModel>>{};
     for (final m in itemMaps) {
       final oid = m['order_id'] as String;
+      final pkgJson = m['package_items_json'] as String? ?? '[]';
+      List<PackageItem> pkgItems = [];
+      try {
+        final decoded = jsonDecode(pkgJson) as List<dynamic>;
+        pkgItems = decoded
+            .map((e) => PackageItem.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+      } catch (_) {}
       itemsByOrder
           .putIfAbsent(oid, () => [])
           .add(
@@ -1275,6 +1397,8 @@ class DatabaseProvider extends GetxService {
               productEmoji: m['product_emoji'] as String? ?? '📦',
               quantity: m['quantity'] as int,
               note: m['note'] as String? ?? '',
+              isPackage: (m['is_package'] as int? ?? 0) != 0,
+              packageItems: pkgItems,
             ),
           );
     }
@@ -1465,6 +1589,9 @@ class DatabaseProvider extends GetxService {
           'product_emoji': item.product.emoji,
           'quantity': item.quantity,
           'note': item.note,
+          'is_package': item.product.isPackage ? 1 : 0,
+          'package_items_json': jsonEncode(
+              item.product.packageItems.map((p) => p.toJson()).toList()),
         });
       }
 
@@ -1480,13 +1607,24 @@ class DatabaseProvider extends GetxService {
   }
 
   CartItemModel _cartItemFromMap(Map<String, Object?> m) {
+    final isPackage = (m['is_package'] as int? ?? 0) == 1;
+    List<PackageItem> packageItems = [];
+    if (isPackage) {
+      try {
+        final raw = m['package_items_json'] as String? ?? '[]';
+        final decoded = jsonDecode(raw) as List<dynamic>;
+        packageItems =
+            decoded.map((e) => PackageItem.fromJson(e as Map<String, dynamic>)).toList();
+      } catch (_) {}
+    }
     final product = ProductModel(
       id: m['product_id'] as String,
       name: m['product_name'] as String,
       categoryId: 'other',
       price: (m['product_price'] as num).toDouble(),
       emoji: m['product_emoji'] as String? ?? '📦',
-    );
+      isPackage: isPackage,
+    )..packageItems = packageItems;
     return CartItemModel(
       product: product,
       quantity: m['quantity'] as int,

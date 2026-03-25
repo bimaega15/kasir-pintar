@@ -224,6 +224,21 @@ class KitchenView extends GetView<KitchenController> {
                               ),
                             ],
                           ),
+                          if (item.isPackage && item.packageItems.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 3, left: 26),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: item.packageItems
+                                    .map((pkg) => Text(
+                                          '${pkg.productEmoji} ${pkg.productName}  ×${pkg.quantity}',
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade500),
+                                        ))
+                                    .toList(),
+                              ),
+                            ),
                           if (item.note.isNotEmpty)
                             Padding(
                               padding: const EdgeInsets.only(top: 3, left: 26),

@@ -242,6 +242,8 @@ class OrderController extends GetxController {
           productPrice: price,
           productEmoji: product.emoji,
           quantity: 1,
+          isPackage: product.isPackage,
+          packageItems: List.from(product.packageItems),
         ),
       );
     }

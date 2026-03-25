@@ -37,6 +37,10 @@ class ProductsController extends GetxController {
   /// TextEditingController per level: levelId → controller harga
   final Map<String, TextEditingController> levelPriceControllers = {};
 
+  // ── Package ────────────────────────────────────────────────────────────────
+  final isPackage = false.obs;
+  final packageItems = <PackageItem>[].obs;
+
   ProductModel? editingProduct;
 
   @override
@@ -169,6 +173,8 @@ class ProductsController extends GetxController {
     selectedCategoryId.value = firstReal;
     selectedEmoji.value = '📦';
     selectedImagePath.value = null;
+    isPackage.value = false;
+    packageItems.clear();
 
     // Safely reset controllers
     try {
@@ -205,6 +211,8 @@ class ProductsController extends GetxController {
     selectedCategoryId.value = product.categoryId;
     selectedEmoji.value = product.emoji;
     selectedImagePath.value = product.imagePath;
+    isPackage.value = product.isPackage;
+    packageItems.assignAll(product.packageItems);
 
     // Populate level price controllers for non-default levels only
     // (default level price = product.price, shown in the main Harga field)
@@ -245,6 +253,39 @@ class ProductsController extends GetxController {
     
     // Create new controllers
     // This is a fallback, shouldn't normally happen
+  }
+
+  // ── Package Items ──────────────────────────────────────────────────────
+
+  void addPackageItem(ProductModel product, {int quantity = 1}) {
+    final existing = packageItems.indexWhere((i) => i.productId == product.id);
+    if (existing >= 0) {
+      packageItems[existing].quantity += quantity;
+      packageItems.refresh();
+    } else {
+      packageItems.add(PackageItem(
+        productId: product.id,
+        productName: product.name,
+        productEmoji: product.emoji,
+        quantity: quantity,
+      ));
+    }
+  }
+
+  void removePackageItem(String productId) {
+    packageItems.removeWhere((i) => i.productId == productId);
+  }
+
+  void updatePackageItemQty(String productId, int qty) {
+    final idx = packageItems.indexWhere((i) => i.productId == productId);
+    if (idx >= 0) {
+      if (qty <= 0) {
+        packageItems.removeAt(idx);
+      } else {
+        packageItems[idx].quantity = qty;
+        packageItems.refresh();
+      }
+    }
   }
 
   // ── Image Picking ──────────────────────────────────────────────────────
@@ -292,6 +333,11 @@ class ProductsController extends GetxController {
           snackPosition: SnackPosition.BOTTOM);
       return;
     }
+    if (isPackage.value && packageItems.isEmpty) {
+      Get.snackbar('Error', 'Paket harus memiliki minimal 1 item',
+          snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
 
     // Build price level entries:
     // - Default level → always uses the main price field
@@ -331,7 +377,9 @@ class ProductsController extends GetxController {
           description: descController.text.trim(),
           emoji: selectedEmoji.value,
           imagePath: selectedImagePath.value,
+          isPackage: isPackage.value,
         );
+        product.packageItems = packageItems.toList();
         await _productRepo.add(product);
         await _priceLevelRepo.saveProductPriceLevels(product.id, levelEntries);
         successMsg = 'Produk berhasil ditambahkan';
@@ -343,7 +391,9 @@ class ProductsController extends GetxController {
           ..stock = stock
           ..description = descController.text.trim()
           ..emoji = selectedEmoji.value
-          ..imagePath = selectedImagePath.value;
+          ..imagePath = selectedImagePath.value
+          ..isPackage = isPackage.value
+          ..packageItems = packageItems.toList();
         await _productRepo.update(editingProduct!);
         await _priceLevelRepo.saveProductPriceLevels(
             editingProduct!.id, levelEntries);

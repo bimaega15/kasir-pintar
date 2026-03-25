@@ -1,3 +1,5 @@
+import 'product_model.dart';
+
 class OrderItemModel {
   final String productId;
   final String productName;
@@ -5,6 +7,8 @@ class OrderItemModel {
   final String productEmoji;
   int quantity;
   String note;
+  final bool isPackage;
+  final List<PackageItem> packageItems;
 
   OrderItemModel({
     required this.productId,
@@ -13,7 +17,9 @@ class OrderItemModel {
     this.productEmoji = '📦',
     this.quantity = 1,
     this.note = '',
-  });
+    this.isPackage = false,
+    List<PackageItem>? packageItems,
+  }) : packageItems = packageItems ?? [];
 
   double get subtotal => productPrice * quantity;
 
@@ -24,5 +30,7 @@ class OrderItemModel {
         productEmoji: productEmoji,
         quantity: quantity,
         note: note,
+        isPackage: isPackage,
+        packageItems: packageItems,
       );
 }

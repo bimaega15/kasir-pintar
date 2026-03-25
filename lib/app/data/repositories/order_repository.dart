@@ -47,21 +47,17 @@ class OrderRepository {
     final change = (totalPaid - order.total).clamp(0.0, double.infinity);
 
     // Convert OrderItemModel → CartItemModel (product snapshot)
-    final cartItems = order.items
-        .map(
-          (oi) => CartItemModel(
-            product: ProductModel(
-              id: oi.productId,
-              name: oi.productName,
-              categoryId: 'other',
-              price: oi.productPrice,
-              emoji: oi.productEmoji,
-            ),
-            quantity: oi.quantity,
-            note: oi.note,
-          ),
-        )
-        .toList();
+    final cartItems = order.items.map((oi) {
+      final product = ProductModel(
+        id: oi.productId,
+        name: oi.productName,
+        categoryId: 'other',
+        price: oi.productPrice,
+        emoji: oi.productEmoji,
+        isPackage: oi.isPackage,
+      )..packageItems = List.from(oi.packageItems);
+      return CartItemModel(product: product, quantity: oi.quantity, note: oi.note);
+    }).toList();
 
     final transaction = TransactionModel(
       invoiceNumber: order.invoiceNumber,

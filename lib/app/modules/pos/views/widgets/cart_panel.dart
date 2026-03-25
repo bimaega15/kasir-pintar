@@ -281,6 +281,32 @@ class _CartItemRowState extends State<_CartItemRow> {
             ],
           ),
 
+          // Baris isi paket (jika item adalah paket)
+          if (item.isPackage && item.packageItems.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 32, top: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: item.packageItems.map((pkg) => Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Row(
+                    children: [
+                      Text(pkg.productEmoji,
+                          style: const TextStyle(fontSize: 12)),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${pkg.productName}  x${pkg.quantity}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
+                  ),
+                )).toList(),
+              ),
+            ),
+
           // Baris 2: harga satuan (kiri) · subtotal (kanan), sejajar dengan konten
           Padding(
             padding: const EdgeInsets.only(left: 32, top: 3),

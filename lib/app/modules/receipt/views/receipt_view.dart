@@ -66,6 +66,11 @@ class _ReceiptViewState extends State<ReceiptView> {
       buf.writeln('${item.product.emoji} ${item.product.name}');
       buf.writeln(
           '  ${item.quantity} x ${CurrencyHelper.formatRupiah(item.product.price)}  →  ${CurrencyHelper.formatRupiah(item.subtotal)}');
+      if (item.product.isPackage && item.product.packageItems.isNotEmpty) {
+        for (final pkg in item.product.packageItems) {
+          buf.writeln('    ${pkg.productEmoji} ${pkg.productName}  ×${pkg.quantity}');
+        }
+      }
     }
     buf.writeln(sep);
     buf.writeln('Subtotal    : ${CurrencyHelper.formatRupiah(transaction.subtotal)}');
@@ -357,45 +362,89 @@ class _ReceiptViewState extends State<ReceiptView> {
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 5,
                                     ),
-                                    child: Row(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          item.product.emoji,
-                                          style: const TextStyle(fontSize: 18),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                item.product.name,
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              item.product.emoji,
+                                              style: const TextStyle(
+                                                  fontSize: 18),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    item.product.name,
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    '${item.quantity} x ${CurrencyHelper.formatRupiah(item.product.price)}',
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color: AppColors
+                                                          .textSecondary,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                              Text(
-                                                '${item.quantity} x ${CurrencyHelper.formatRupiah(item.product.price)}',
-                                                style: const TextStyle(
-                                                  fontSize: 12,
-                                                  color:
-                                                      AppColors.textSecondary,
-                                                ),
+                                            ),
+                                            Text(
+                                              CurrencyHelper.formatRupiah(
+                                                item.subtotal,
                                               ),
-                                            ],
-                                          ),
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        Text(
-                                          CurrencyHelper.formatRupiah(
-                                            item.subtotal,
+                                        if (item.product.isPackage &&
+                                            item.product.packageItems
+                                                .isNotEmpty)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                left: 26, top: 4),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: item.product.packageItems
+                                                  .map((pkg) => Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(
+                                                                bottom: 2),
+                                                        child: Row(children: [
+                                                          Text(pkg.productEmoji,
+                                                              style:
+                                                                  const TextStyle(
+                                                                      fontSize:
+                                                                          11)),
+                                                          const SizedBox(
+                                                              width: 4),
+                                                          Text(
+                                                            '${pkg.productName}  ×${pkg.quantity}',
+                                                            style: TextStyle(
+                                                                fontSize: 11,
+                                                                color: Colors
+                                                                    .grey
+                                                                    .shade500),
+                                                          ),
+                                                        ]),
+                                                      ))
+                                                  .toList(),
+                                            ),
                                           ),
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
                                       ],
                                     ),
                                   ),

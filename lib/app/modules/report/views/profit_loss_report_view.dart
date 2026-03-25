@@ -71,34 +71,66 @@ class ProfitLossReportView extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 8,
-          )
+          BoxShadow(color: Colors.grey.withValues(alpha: 0.1), blurRadius: 8)
         ],
       ),
       child: Obx(() {
+        final dateFormat = DateFormat('dd MMM yyyy', 'id_ID');
+        final startDate = ctrl.dateRange.value?.start;
+        final endDate = ctrl.dateRange.value?.end;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Periode',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textSecondary,
+            const Text('Periode',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textSecondary)),
+            const SizedBox(height: 8),
+            Text(ctrl.periodLabel,
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary)),
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: () => _showDateRangePicker(ctrl),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today,
+                        size: 18, color: AppColors.primary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        startDate != null && endDate != null
+                            ? '${dateFormat.format(startDate)} - ${dateFormat.format(endDate)}'
+                            : 'Pilih Tanggal Mulai dan Akhir',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: startDate != null && endDate != null
+                                ? AppColors.textPrimary
+                                : AppColors.textSecondary),
+                      ),
+                    ),
+                    Icon(Icons.arrow_drop_down,
+                        color: AppColors.primary.withValues(alpha: 0.6),
+                        size: 24),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 12),
-            Text(
-              ctrl.periodLabel,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 16),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -108,6 +140,8 @@ class ProfitLossReportView extends StatelessWidget {
                   _periodButton('Minggu', 'week', ctrl),
                   const SizedBox(width: 8),
                   _periodButton('Bulan', 'month', ctrl),
+                  const SizedBox(width: 8),
+                  _customDateRangeButton(ctrl),
                 ],
               ),
             ),
@@ -129,6 +163,44 @@ class ProfitLossReportView extends StatelessWidget {
         child: Text(label),
       );
     });
+  }
+
+  Widget _customDateRangeButton(ReportController ctrl) {
+    return Obx(() {
+      final isSelected = ctrl.selectedPeriod.value == 'custom';
+      return ElevatedButton.icon(
+        onPressed: () => _showDateRangePicker(ctrl),
+        icon: const Icon(Icons.calendar_today, size: 16),
+        label: const Text('Kustom'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isSelected ? AppColors.primary : Colors.grey[200],
+          foregroundColor: isSelected ? Colors.white : AppColors.textPrimary,
+        ),
+      );
+    });
+  }
+
+  void _showDateRangePicker(ReportController ctrl) async {
+    final context = Get.context;
+    if (context == null) return;
+    final now = DateTime.now();
+    try {
+      final picked = await showDateRangePicker(
+        context: context,
+        firstDate: DateTime(now.year - 1),
+        lastDate: now,
+        initialDateRange:
+            ctrl.dateRange.value ?? DateTimeRange(start: now, end: now),
+        locale: const Locale('id', 'ID'),
+        confirmText: 'Terapkan',
+        cancelText: 'Batal',
+        fieldStartLabelText: 'Tanggal Mulai',
+        fieldEndLabelText: 'Tanggal Akhir',
+      );
+      if (picked != null) ctrl.setCustomRange(picked);
+    } catch (e) {
+      debugPrint('Error showing date range picker: $e');
+    }
   }
 
   Widget _buildProfitLossSummary(

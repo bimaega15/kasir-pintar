@@ -3,6 +3,35 @@ import 'price_level_model.dart';
 
 const _uuid = Uuid();
 
+/// Satu item (produk) yang termasuk dalam sebuah paket
+class PackageItem {
+  final String productId;
+  String productName;
+  String productEmoji;
+  int quantity;
+
+  PackageItem({
+    required this.productId,
+    required this.productName,
+    this.productEmoji = '📦',
+    this.quantity = 1,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'productId': productId,
+        'productName': productName,
+        'productEmoji': productEmoji,
+        'quantity': quantity,
+      };
+
+  factory PackageItem.fromJson(Map<String, dynamic> json) => PackageItem(
+        productId: json['productId'] as String,
+        productName: json['productName'] as String,
+        productEmoji: json['productEmoji'] as String? ?? '📦',
+        quantity: json['quantity'] as int? ?? 1,
+      );
+}
+
 class ProductModel {
   final String id;
   String name;
@@ -13,6 +42,12 @@ class ProductModel {
   String emoji;
   String? imagePath; // path foto produk (null = pakai emoji)
   final DateTime createdAt;
+
+  /// true jika produk ini adalah sebuah paket (bundle)
+  bool isPackage;
+
+  /// Item-item yang termasuk dalam paket — diisi oleh storage_provider saat load
+  List<PackageItem> packageItems = [];
 
   /// Harga per level — diisi oleh storage_provider saat load
   List<ProductPriceLevelEntry> priceLevels = [];
@@ -35,6 +70,7 @@ class ProductModel {
     this.emoji = '📦',
     this.imagePath,
     DateTime? createdAt,
+    this.isPackage = false,
   })  : id = id ?? _uuid.v4(),
         createdAt = createdAt ?? DateTime.now();
 
@@ -48,6 +84,7 @@ class ProductModel {
         emoji: json['emoji'] as String? ?? '📦',
         imagePath: json['imagePath'] as String?,
         createdAt: DateTime.parse(json['createdAt'] as String),
+        isPackage: json['isPackage'] as bool? ?? false,
       );
 
   Map<String, dynamic> toJson() => {
@@ -60,6 +97,7 @@ class ProductModel {
         'emoji': emoji,
         'imagePath': imagePath,
         'createdAt': createdAt.toIso8601String(),
+        'isPackage': isPackage,
       };
 
   ProductModel copyWith({
@@ -71,6 +109,7 @@ class ProductModel {
     String? emoji,
     String? imagePath,
     bool clearImage = false,
+    bool? isPackage,
   }) =>
       ProductModel(
         id: id,
@@ -82,6 +121,7 @@ class ProductModel {
         emoji: emoji ?? this.emoji,
         imagePath: clearImage ? null : (imagePath ?? this.imagePath),
         createdAt: createdAt,
+        isPackage: isPackage ?? this.isPackage,
       );
 
   static List<ProductModel> get sampleProducts => [
