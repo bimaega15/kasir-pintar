@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../data/providers/storage_provider.dart';
 import '../../../routes/app_routes.dart';
 import '../../../services/check_version_service.dart';
+import '../../../services/sql_backup_service.dart';
 import '../../../services/user_session.dart';
 
 class SettingsController extends GetxController {
@@ -200,6 +201,171 @@ class SettingsController extends GetxController {
     await CheckVersionService.checkManual(ctx);
   }
 
+  // ── SQL Backup & Restore ──────────────────────────────────────────────────
+
+  Future<void> exportSqlBackup() async {
+    isLoading.value = true;
+    try {
+      final service = SqlBackupService();
+      await service.exportSql();
+    } catch (e) {
+      Get.snackbar(
+        'Gagal Export',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> importSqlBackup() async {
+    final service = SqlBackupService();
+
+    final confirmed = await Get.dialog<bool>(AlertDialog(
+      title: const Text('Import Database SQL'),
+      content: const Text(
+        'Seluruh data yang ada di aplikasi akan diganti dengan data dari file SQL.\n\n'
+        'Pastikan file SQL berasal dari backup Kasir Pintar.\n\nLanjutkan?',
+      ),
+      actions: [
+        TextButton(onPressed: () => Get.back(result: false), child: const Text('Batal')),
+        ElevatedButton(
+          onPressed: () => Get.back(result: true),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          child: const Text('Ya, Import Sekarang'),
+        ),
+      ],
+    ));
+    if (confirmed != true) return;
+
+    final path = await service.pickSqlFile();
+    if (path == null) return;
+
+    isLoading.value = true;
+    try {
+      await service.importSql(path);
+      Get.offAllNamed(AppRoutes.main);
+      Get.snackbar('Import Berhasil', 'Database berhasil direstore dari file SQL',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 4));
+    } catch (e) {
+      Get.snackbar('Gagal Import', e.toString(),
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> resetAllData() async {
+    final step1 = await Get.dialog<bool>(AlertDialog(
+      title: const Text('Reset Semua Data'),
+      content: const Text(
+        'Ini akan menghapus SEMUA data:\n\n'
+        '• Produk & Kategori\n'
+        '• Transaksi & Riwayat\n'
+        '• Pesanan & Order\n'
+        '• Pelanggan\n'
+        '• Karyawan\n'
+        '• Stok & Bahan Baku\n'
+        '• Laporan Shift\n\n'
+        'Data pengaturan toko dan akun pengguna TIDAK dihapus.\n\n'
+        'Tindakan ini TIDAK BISA dibatalkan!',
+      ),
+      actions: [
+        TextButton(onPressed: () => Get.back(result: false), child: const Text('Batal')),
+        ElevatedButton(
+          onPressed: () => Get.back(result: true),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          child: const Text('Lanjutkan'),
+        ),
+      ],
+    ));
+    if (step1 != true) return;
+
+    final step2 = await Get.dialog<bool>(AlertDialog(
+      title: const Text('Konfirmasi Akhir'),
+      content: const Text(
+        'Apakah Anda yakin?\n\n'
+        'Semua data akan dihapus permanen dan tidak bisa dikembalikan.',
+      ),
+      actions: [
+        TextButton(onPressed: () => Get.back(result: false), child: const Text('Tidak, Batalkan')),
+        ElevatedButton(
+          onPressed: () => Get.back(result: true),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+          child: const Text('YA, HAPUS SEMUA'),
+        ),
+      ],
+    ));
+    if (step2 != true) return;
+
+    isLoading.value = true;
+    try {
+      await _db.resetAllData();
+      Get.offAllNamed(AppRoutes.main);
+      Get.snackbar('Reset Berhasil', 'Semua data telah dihapus. Aplikasi siap digunakan dari awal.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 4));
+    } catch (e) {
+      Get.snackbar('Gagal Reset', e.toString(),
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> seedMieGacorData() async {
+    final confirmed = await Get.dialog<bool>(AlertDialog(
+      title: const Text('Isi Data Menu Mie Gacor'),
+      content: const Text(
+        'Semua produk dan kategori yang ada akan dihapus, lalu diisi ulang dengan data menu Mie Gacor.\n\nLanjutkan?',
+      ),
+      actions: [
+        TextButton(onPressed: () => Get.back(result: false), child: const Text('Batal')),
+        ElevatedButton(
+          onPressed: () => Get.back(result: true),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+          child: const Text('Ya, Isi Ulang'),
+        ),
+      ],
+    ));
+    if (confirmed != true) return;
+
+    isLoading.value = true;
+    try {
+      await _db.seedMieGacorData();
+      Get.offAllNamed(AppRoutes.main);
+      Get.snackbar(
+        'Berhasil',
+        'Data menu Mie Gacor berhasil diisi',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Gagal',
+        'Terjadi kesalahan: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   Future<void> logout() async {
     try {
       // Hapus session aktif (bukan kredensial admin)
@@ -214,7 +380,7 @@ class SettingsController extends GetxController {
         }
       } catch (firebaseError) {
         // Firebase not initialized, skip Firebase logout
-        print('Firebase signOut skipped: $firebaseError');
+        debugPrint('Firebase signOut skipped: $firebaseError');
       }
 
       // Navigate to login screen

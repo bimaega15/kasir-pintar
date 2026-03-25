@@ -90,6 +90,44 @@ class SettingsView extends GetView<SettingsController> {
                 color: Colors.indigo,
                 onTap: () => Get.toNamed(AppRoutes.about),
               ),
+              const SizedBox(height: 12),
+              // SQL Backup — admin only
+              if (Get.find<UserSession>().isAdmin) ...[
+                _buildMenuCard(
+                  icon: Icons.upload_rounded,
+                  title: 'Export Database (SQL)',
+                  subtitle: 'Backup seluruh data ke file .sql dan bagikan',
+                  color: Colors.teal,
+                  onTap: () => controller.exportSqlBackup(),
+                ),
+                const SizedBox(height: 12),
+                _buildMenuCard(
+                  icon: Icons.download_rounded,
+                  title: 'Import Database (SQL)',
+                  subtitle: 'Restore seluruh data dari file .sql backup',
+                  color: Colors.deepOrange,
+                  onTap: () => controller.importSqlBackup(),
+                ),
+                const SizedBox(height: 12),
+              ],
+              // Seed Data — admin only
+              if (Get.find<UserSession>().isAdmin) ...[
+                _buildMenuCard(
+                  icon: Icons.restore_rounded,
+                  title: 'Isi Data Menu Mie Gacor',
+                  subtitle: 'Hapus semua produk & kategori, isi ulang dengan menu Mie Gacor',
+                  color: Colors.orange,
+                  onTap: () => controller.seedMieGacorData(),
+                ),
+                const SizedBox(height: 12),
+                _buildMenuCard(
+                  icon: Icons.delete_forever_rounded,
+                  title: 'Reset Semua Data',
+                  subtitle: 'Hapus seluruh data transaksi, produk, dan operasional',
+                  color: Colors.red,
+                  onTap: () => controller.resetAllData(),
+                ),
+              ],
               const SizedBox(height: 24),
               // Form Settings — admin only
               if (Get.find<UserSession>().isAdmin) ...[

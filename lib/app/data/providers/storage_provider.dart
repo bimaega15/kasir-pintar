@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -2093,6 +2094,237 @@ class DatabaseProvider extends GetxService {
     'icon': c.icon,
     'sort_order': sortOrder,
   };
+
+  // ── Reset All Data ────────────────────────────────────────────────────────
+
+  /// Hapus semua data operasional. Tabel settings & app_users tetap dipertahankan.
+  Future<void> resetAllData() async {
+    // Urutan: child table dulu agar tidak melanggar foreign key
+    const tables = [
+      'attendances',
+      'debt_payments',
+      'debts',
+      'split_transactions',
+      'void_logs',
+      'order_payments',
+      'order_items',
+      'orders',
+      'transaction_payments',
+      'transaction_items',
+      'transactions',
+      'stock_opname_items',
+      'stock_opname',
+      'stock_movements',
+      'bahan_baku_movements',
+      'bahan_baku',
+      'operational_expenses',
+      'customers',
+      'product_price_levels',
+      'product_package_items',
+      'products',
+      'price_levels',
+      'categories',
+      'shifts',
+      'tables',
+      'employees',
+    ];
+
+    await _db.transaction((txn) async {
+      await txn.execute('PRAGMA foreign_keys = OFF');
+      for (final t in tables) {
+        await txn.delete(t);
+      }
+      // Reset invoice counter
+      await txn.delete('settings', where: 'key = ?', whereArgs: ['invoice_counter']);
+      await txn.execute('PRAGMA foreign_keys = ON');
+    });
+  }
+
+  // ── Seed Data Mie Gacor ───────────────────────────────────────────────────
+
+  /// Hapus semua produk & kategori lama, lalu isi dengan data menu Mie Gacor.
+  Future<void> seedMieGacorData() async {
+    await _db.transaction((txn) async {
+      // Clear existing data
+      await txn.delete('product_package_items');
+      await txn.delete('product_price_levels');
+      await txn.delete('products');
+      await txn.delete('categories');
+
+      // Insert categories
+      final categories = [
+        {'id': 'mie', 'name': 'Mie Gacor', 'icon': '🍜', 'sort_order': 1},
+        {'id': 'toping', 'name': 'Toping', 'icon': '🌶️', 'sort_order': 2},
+        {'id': 'minuman', 'name': 'Minuman', 'icon': '🥤', 'sort_order': 3},
+        {'id': 'paket', 'name': 'Paket', 'icon': '📦', 'sort_order': 4},
+      ];
+      for (final c in categories) {
+        await txn.insert('categories', c, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+
+      final now = DateTime.now().toIso8601String();
+
+      // Insert produk mie
+      final mieProducts = [
+        {'id': 'mie_gacor_aja', 'name': 'Mie Gacor Aja', 'category_id': 'mie', 'price': 8000.0, 'stock': 100, 'description': 'Ayam, Pangsit, Mie', 'emoji': '🍜', 'image_path': null, 'created_at': now, 'is_package': 0},
+        {'id': 'mie_sedap_gacor_aja', 'name': 'Mie Sedap Gacor Aja', 'category_id': 'mie', 'price': 8000.0, 'stock': 100, 'description': 'Ayam, Pangsit, Mie Sedap', 'emoji': '🍜', 'image_path': null, 'created_at': now, 'is_package': 0},
+        {'id': 'mie_gacor_brutal', 'name': 'Mie Gacor Brutal', 'category_id': 'mie', 'price': 10000.0, 'stock': 100, 'description': 'Ayam, Pangsit, Smoke Beef/Sosis, Level 1-5', 'emoji': '🌶️', 'image_path': null, 'created_at': now, 'is_package': 0},
+        {'id': 'mie_sedap_gacor_brutal', 'name': 'Mie Sedap Gacor Brutal', 'category_id': 'mie', 'price': 10000.0, 'stock': 100, 'description': 'Ayam, Smoke Beef/Sosis, Level 1-5', 'emoji': '🌶️', 'image_path': null, 'created_at': now, 'is_package': 0},
+      ];
+
+      // Insert toping
+      final topingProducts = [
+        {'id': 'toping_sosis', 'name': 'Sosis', 'category_id': 'toping', 'price': 5000.0, 'stock': 100, 'description': '', 'emoji': '🌭', 'image_path': null, 'created_at': now, 'is_package': 0},
+        {'id': 'toping_nugget', 'name': 'Nugget', 'category_id': 'toping', 'price': 5000.0, 'stock': 100, 'description': '', 'emoji': '🍗', 'image_path': null, 'created_at': now, 'is_package': 0},
+        {'id': 'toping_bakso', 'name': 'Bakso', 'category_id': 'toping', 'price': 5000.0, 'stock': 100, 'description': '', 'emoji': '🥩', 'image_path': null, 'created_at': now, 'is_package': 0},
+        {'id': 'toping_pangsit', 'name': 'Pangsit', 'category_id': 'toping', 'price': 5000.0, 'stock': 100, 'description': '', 'emoji': '🥟', 'image_path': null, 'created_at': now, 'is_package': 0},
+      ];
+
+      // Insert minuman
+      final minumanProducts = [
+        {'id': 'es_teh_manis', 'name': 'Es Teh Manis', 'category_id': 'minuman', 'price': 4000.0, 'stock': 100, 'description': '', 'emoji': '🧋', 'image_path': null, 'created_at': now, 'is_package': 0},
+        {'id': 'lemon_tea', 'name': 'Lemon Tea', 'category_id': 'minuman', 'price': 5000.0, 'stock': 100, 'description': '', 'emoji': '🍋', 'image_path': null, 'created_at': now, 'is_package': 0},
+        {'id': 'green_tea', 'name': 'Green Tea', 'category_id': 'minuman', 'price': 5000.0, 'stock': 100, 'description': '', 'emoji': '🍵', 'image_path': null, 'created_at': now, 'is_package': 0},
+      ];
+
+      // Insert paket (isPackage = 1)
+      final paketProducts = [
+        {'id': 'paket_1_mie_gacor', 'name': 'Paket Gacor 1 (Mie Gacor)', 'category_id': 'paket', 'price': 12000.0, 'stock': 100, 'description': 'Mie Gacor + Es Teh Manis', 'emoji': '📦', 'image_path': null, 'created_at': now, 'is_package': 1},
+        {'id': 'paket_1_mie_sedap', 'name': 'Paket Gacor 1 (Mie Sedap)', 'category_id': 'paket', 'price': 12000.0, 'stock': 100, 'description': 'Mie Sedap + Es Teh Manis', 'emoji': '📦', 'image_path': null, 'created_at': now, 'is_package': 1},
+        {'id': 'paket_2_mie_gacor', 'name': 'Paket Gacor 2 (Mie Gacor)', 'category_id': 'paket', 'price': 13000.0, 'stock': 100, 'description': 'Mie Gacor + Lemon Tea', 'emoji': '📦', 'image_path': null, 'created_at': now, 'is_package': 1},
+        {'id': 'paket_2_mie_sedap', 'name': 'Paket Gacor 2 (Mie Sedap)', 'category_id': 'paket', 'price': 13000.0, 'stock': 100, 'description': 'Mie Sedap + Lemon Tea', 'emoji': '📦', 'image_path': null, 'created_at': now, 'is_package': 1},
+        {'id': 'paket_3_mie_gacor', 'name': 'Paket Gacor 3 (Mie Gacor)', 'category_id': 'paket', 'price': 13000.0, 'stock': 100, 'description': 'Mie Gacor + Green Tea', 'emoji': '📦', 'image_path': null, 'created_at': now, 'is_package': 1},
+        {'id': 'paket_3_mie_sedap', 'name': 'Paket Gacor 3 (Mie Sedap)', 'category_id': 'paket', 'price': 13000.0, 'stock': 100, 'description': 'Mie Sedap + Green Tea', 'emoji': '📦', 'image_path': null, 'created_at': now, 'is_package': 1},
+      ];
+
+      for (final p in [...mieProducts, ...topingProducts, ...minumanProducts, ...paketProducts]) {
+        await txn.insert('products', p, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+
+      // Insert package items
+      final packageItems = [
+        // Paket 1 Mie Gacor
+        {'product_id': 'paket_1_mie_gacor', 'item_id': 'mie_gacor_aja', 'item_name': 'Mie Gacor Aja', 'item_emoji': '🍜', 'quantity': 1},
+        {'product_id': 'paket_1_mie_gacor', 'item_id': 'es_teh_manis', 'item_name': 'Es Teh Manis', 'item_emoji': '🧋', 'quantity': 1},
+        // Paket 1 Mie Sedap
+        {'product_id': 'paket_1_mie_sedap', 'item_id': 'mie_sedap_gacor_aja', 'item_name': 'Mie Sedap Gacor Aja', 'item_emoji': '🍜', 'quantity': 1},
+        {'product_id': 'paket_1_mie_sedap', 'item_id': 'es_teh_manis', 'item_name': 'Es Teh Manis', 'item_emoji': '🧋', 'quantity': 1},
+        // Paket 2 Mie Gacor
+        {'product_id': 'paket_2_mie_gacor', 'item_id': 'mie_gacor_aja', 'item_name': 'Mie Gacor Aja', 'item_emoji': '🍜', 'quantity': 1},
+        {'product_id': 'paket_2_mie_gacor', 'item_id': 'lemon_tea', 'item_name': 'Lemon Tea', 'item_emoji': '🍋', 'quantity': 1},
+        // Paket 2 Mie Sedap
+        {'product_id': 'paket_2_mie_sedap', 'item_id': 'mie_sedap_gacor_aja', 'item_name': 'Mie Sedap Gacor Aja', 'item_emoji': '🍜', 'quantity': 1},
+        {'product_id': 'paket_2_mie_sedap', 'item_id': 'lemon_tea', 'item_name': 'Lemon Tea', 'item_emoji': '🍋', 'quantity': 1},
+        // Paket 3 Mie Gacor
+        {'product_id': 'paket_3_mie_gacor', 'item_id': 'mie_gacor_aja', 'item_name': 'Mie Gacor Aja', 'item_emoji': '🍜', 'quantity': 1},
+        {'product_id': 'paket_3_mie_gacor', 'item_id': 'green_tea', 'item_name': 'Green Tea', 'item_emoji': '🍵', 'quantity': 1},
+        // Paket 3 Mie Sedap
+        {'product_id': 'paket_3_mie_sedap', 'item_id': 'mie_sedap_gacor_aja', 'item_name': 'Mie Sedap Gacor Aja', 'item_emoji': '🍜', 'quantity': 1},
+        {'product_id': 'paket_3_mie_sedap', 'item_id': 'green_tea', 'item_name': 'Green Tea', 'item_emoji': '🍵', 'quantity': 1},
+      ];
+
+      for (final item in packageItems) {
+        await txn.insert('product_package_items', item, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    });
+  }
+
+  // ── SQL Backup & Restore ─────────────────────────────────────────────────
+
+  /// Generate SQL dump seluruh database (hanya data, bukan schema).
+  Future<String> exportToSql() async {
+    final buffer = StringBuffer();
+    final now = DateTime.now();
+    buffer.writeln('-- Kasir Pintar Database Backup');
+    buffer.writeln('-- Generated: ${now.toIso8601String()}');
+    buffer.writeln('-- DB Version: $_dbVersion');
+    buffer.writeln();
+
+    // Ambil semua tabel user (bukan tabel internal sqlite)
+    final tables = await _db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+    );
+
+    for (final tableRow in tables) {
+      final tableName = tableRow['name'] as String;
+      buffer.writeln('-- [$tableName]');
+      buffer.writeln('DELETE FROM "$tableName";');
+
+      final rows = await _db.query(tableName);
+      if (rows.isNotEmpty) {
+        final cols = rows.first.keys.map((c) => '"$c"').join(', ');
+        for (final row in rows) {
+          final vals = row.values.map(_sqlLiteral).join(', ');
+          buffer.writeln('INSERT INTO "$tableName" ($cols) VALUES ($vals);');
+        }
+      }
+      buffer.writeln();
+    }
+
+    return buffer.toString();
+  }
+
+  String _sqlLiteral(dynamic v) {
+    if (v == null) return 'NULL';
+    if (v is int || v is double) return v.toString();
+    // String & fallback: escape single quotes
+    return "'${v.toString().replaceAll("'", "''")}'";
+  }
+
+  /// Jalankan SQL dump untuk menggantikan seluruh isi database.
+  Future<void> importFromSql(String sqlContent) async {
+    final statements = _parseSqlStatements(sqlContent);
+    // Jalankan langsung tanpa transaction wrapper karena beberapa statement
+    // (PRAGMA) tidak bisa di dalam transaction sqflite
+    await _db.execute('PRAGMA foreign_keys = OFF');
+    for (final stmt in statements) {
+      final trimmed = stmt.trim();
+      if (trimmed.isEmpty) continue;
+      // Skip komentar
+      if (trimmed.startsWith('--')) continue;
+      // Skip PRAGMA (sudah dihandle di luar)
+      if (trimmed.toUpperCase().startsWith('PRAGMA')) continue;
+      try {
+        await _db.execute(trimmed);
+      } catch (e) {
+        debugPrint('[importFromSql] Error: $e\nStatement: $trimmed');
+        rethrow;
+      }
+    }
+    await _db.execute('PRAGMA foreign_keys = ON');
+  }
+
+  List<String> _parseSqlStatements(String sql) {
+    final statements = <String>[];
+    final current = StringBuffer();
+    bool inString = false;
+
+    for (int i = 0; i < sql.length; i++) {
+      final ch = sql[i];
+      if (ch == "'" && !inString) {
+        inString = true;
+        current.write(ch);
+      } else if (ch == "'" && inString) {
+        // Escaped quote: ''
+        if (i + 1 < sql.length && sql[i + 1] == "'") {
+          current.write("''");
+          i++;
+        } else {
+          inString = false;
+          current.write(ch);
+        }
+      } else if (ch == ';' && !inString) {
+        final stmt = current.toString().trim();
+        if (stmt.isNotEmpty) statements.add(stmt);
+        current.clear();
+      } else {
+        current.write(ch);
+      }
+    }
+    final remaining = current.toString().trim();
+    if (remaining.isNotEmpty) statements.add(remaining);
+    return statements;
+  }
 
   // ── Invoice Number ────────────────────────────────────────────────────────
 
