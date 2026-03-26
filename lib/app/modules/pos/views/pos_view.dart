@@ -92,11 +92,12 @@ class PosView extends GetView<OrderController> {
   }
 
   Widget _buildNarrowLayout(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     return Stack(
       children: [
         _buildProductPanel(),
         Positioned(
-          bottom: 16,
+          bottom: 16 + bottomInset,
           left: 16,
           right: 16,
           child: Obx(() {

@@ -89,7 +89,9 @@ class CartPanel extends StatelessWidget {
           ),
 
           // Summary & Action
-          Obx(() => c.cart.isNotEmpty ? _buildSummary(c) : const SizedBox()),
+          Obx(() => c.cart.isNotEmpty
+              ? SafeArea(top: false, child: _buildSummary(c))
+              : const SizedBox()),
         ],
       ),
     );

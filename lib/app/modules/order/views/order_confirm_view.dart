@@ -39,7 +39,10 @@ class OrderConfirmView extends GetView<OrderController> {
                 ),
               ),
             ),
-            _bottomButtons(),
+            SafeArea(
+              top: false,
+              child: _bottomButtons(),
+            ),
           ],
         ),
       ),
