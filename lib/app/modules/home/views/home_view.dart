@@ -515,17 +515,17 @@ class HomeView extends GetView<HomeController> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: p.stock == 0
+                            color: p.computedStock == 0
                                 ? Colors.red.shade100
                                 : Colors.orange.shade100,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            p.stock == 0 ? 'Habis' : 'Stok: ${p.stock}',
+                            p.computedStock == 0 ? 'Habis' : 'Stok: ${p.computedStock}',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: p.stock == 0
+                              color: p.computedStock == 0
                                   ? Colors.red.shade700
                                   : Colors.orange.shade700,
                             ),

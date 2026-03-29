@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/products_controller.dart';
-import '../../../data/models/product_model.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/responsive/responsive_helper.dart';
 
@@ -70,46 +69,17 @@ class AddEditProductView extends GetView<ProductsController> {
             _buildCategoryDropdown(),
             const SizedBox(height: 16),
 
-            // Price & Stock
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _sectionLabel('Harga (Rp) *'),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: controller.priceController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          hintText: '0',
-                          prefixText: 'Rp ',
-                          prefixIcon: Icon(Icons.attach_money),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _sectionLabel('Stok'),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: controller.stockController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          hintText: '0',
-                          prefixIcon: Icon(Icons.inventory_2_outlined),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            // Price
+            _sectionLabel('Harga (Rp) *'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: controller.priceController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                hintText: '0',
+                prefixText: 'Rp ',
+                prefixIcon: Icon(Icons.attach_money),
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -134,6 +104,10 @@ class AddEditProductView extends GetView<ProductsController> {
             Obx(() => controller.isPackage.value
                 ? _buildPackageItemsSection()
                 : const SizedBox.shrink()),
+
+            // Resep Bahan Baku
+            _buildBahanBakuSection(),
+            const SizedBox(height: 16),
 
             // Price Levels
             _buildPriceLevelsSection(),
@@ -507,6 +481,155 @@ class AddEditProductView extends GetView<ProductsController> {
                           style: const TextStyle(fontSize: 12)),
                       onTap: () {
                         controller.addPackageItem(p);
+                        Get.back();
+                      },
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Get.back(), child: const Text('Batal')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBahanBakuSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionLabel('Resep Bahan Baku'),
+        const SizedBox(height: 4),
+        Text(
+          'Tentukan bahan baku yang dipakai per 1 porsi produk',
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.divider),
+          ),
+          child: Column(
+            children: [
+              Obx(() {
+                if (controller.bahanBakuItems.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      'Belum ada bahan baku. Tap "+ Tambah Bahan Baku" untuk menambahkan resep.',
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                }
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: controller.bahanBakuItems.length,
+                  separatorBuilder: (_, __) =>
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                  itemBuilder: (_, i) {
+                    final item = controller.bahanBakuItems[i];
+                    return ListTile(
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      leading: Text(item.bahanBakuEmoji,
+                          style: const TextStyle(fontSize: 24)),
+                      title: Text(item.bahanBakuName,
+                          style: const TextStyle(fontWeight: FontWeight.w600)),
+                      subtitle: Text(
+                        '${item.quantity} ${item.bahanBakuUnit} per porsi',
+                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 60,
+                            child: TextField(
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                              decoration: const InputDecoration(
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                                border: OutlineInputBorder(),
+                              ),
+                              controller: TextEditingController(
+                                text: item.quantity % 1 == 0
+                                    ? item.quantity.toInt().toString()
+                                    : item.quantity.toString(),
+                              ),
+                              onChanged: (val) {
+                                final qty = double.tryParse(val) ?? 0;
+                                controller.updateBahanBakuItemQty(item.bahanBakuId, qty);
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(item.bahanBakuUnit,
+                              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline,
+                                size: 20, color: AppColors.error),
+                            onPressed: () =>
+                                controller.removeBahanBakuItem(item.bahanBakuId),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              }),
+              const Divider(height: 1),
+              TextButton.icon(
+                onPressed: () => _showBahanBakuPickerDialog(),
+                icon: const Icon(Icons.add),
+                label: const Text('Tambah Bahan Baku'),
+                style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showBahanBakuPickerDialog() {
+    final addedIds =
+        controller.bahanBakuItems.map((i) => i.bahanBakuId).toSet();
+    final available = controller.availableBahanBaku
+        .where((bb) => !addedIds.contains(bb.id))
+        .toList();
+
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Pilih Bahan Baku'),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: available.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('Tidak ada bahan baku tersedia. Tambah bahan baku di menu Master Data terlebih dahulu.'),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: available.length,
+                  itemBuilder: (_, i) {
+                    final bb = available[i];
+                    return ListTile(
+                      leading: Text(bb.emoji,
+                          style: const TextStyle(fontSize: 22)),
+                      title: Text(bb.name),
+                      subtitle: Text(
+                          'Stok: ${bb.stock} ${bb.unit}',
+                          style: const TextStyle(fontSize: 12)),
+                      onTap: () {
+                        controller.addBahanBakuItem(bb);
                         Get.back();
                       },
                     );

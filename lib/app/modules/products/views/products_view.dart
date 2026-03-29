@@ -166,13 +166,13 @@ class ProductsView extends GetView<ProductsController> {
             fontWeight: FontWeight.w600, fontSize: 14),
       ),
       subtitle: Text(
-        '${CurrencyHelper.formatRupiah(product.price)}  •  Stok: ${product.stock}',
+        '${CurrencyHelper.formatRupiah(product.price)}  •  Stok: ${product.computedStock}',
         style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (product.stock < 5)
+          if (product.computedStock < 5)
             Container(
               padding:
                   const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -181,7 +181,7 @@ class ProductsView extends GetView<ProductsController> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                product.stock == 0 ? 'Habis' : 'Hampir habis',
+                product.computedStock == 0 ? 'Habis' : 'Hampir habis',
                 style: const TextStyle(
                     color: AppColors.error,
                     fontSize: 11,

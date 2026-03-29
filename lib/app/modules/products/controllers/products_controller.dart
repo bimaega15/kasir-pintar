@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import '../../../data/models/bahan_baku_model.dart';
 import '../../../data/models/category_model.dart';
 import '../../../data/models/price_level_model.dart';
 import '../../../data/models/product_model.dart';
+import '../../../data/providers/storage_provider.dart';
 import '../../../data/repositories/category_repository.dart';
 import '../../../data/repositories/price_level_repository.dart';
 import '../../../data/repositories/product_repository.dart';
@@ -25,7 +27,6 @@ class ProductsController extends GetxController {
   // Form fields for add/edit
   final nameController = TextEditingController();
   final priceController = TextEditingController();
-  final stockController = TextEditingController();
   final descController = TextEditingController();
   final selectedCategoryId = 'food'.obs;
   final selectedEmoji = '📦'.obs;
@@ -41,6 +42,10 @@ class ProductsController extends GetxController {
   final isPackage = false.obs;
   final packageItems = <PackageItem>[].obs;
 
+  // ── Bahan Baku (Resep) ──────────────────────────────────────────────────
+  final bahanBakuItems = <ProductBahanBakuEntry>[].obs;
+  final availableBahanBaku = <BahanBakuModel>[].obs;
+
   ProductModel? editingProduct;
 
   @override
@@ -49,6 +54,7 @@ class ProductsController extends GetxController {
     loadProducts();
     loadCategories();
     loadPriceLevels();
+    loadBahanBakuList();
     searchController.addListener(() {
       searchQuery.value = searchController.text;
     });
@@ -61,6 +67,16 @@ class ProductsController extends GetxController {
       _rebuildLevelControllers();
     } catch (e) {
       print('[loadPriceLevels] Error: $e');
+    }
+  }
+
+  Future<void> loadBahanBakuList() async {
+    try {
+      final db = Get.find<DatabaseProvider>();
+      final list = await db.getBahanBakuList();
+      availableBahanBaku.assignAll(list);
+    } catch (e) {
+      print('[loadBahanBakuList] Error: $e');
     }
   }
 
@@ -121,11 +137,6 @@ class ProductsController extends GetxController {
       print('Error disposing priceController: $e');
     }
     try {
-      stockController.dispose();
-    } catch (e) {
-      print('Error disposing stockController: $e');
-    }
-    try {
       descController.dispose();
     } catch (e) {
       print('Error disposing descController: $e');
@@ -175,13 +186,13 @@ class ProductsController extends GetxController {
     selectedImagePath.value = null;
     isPackage.value = false;
     packageItems.clear();
+    bahanBakuItems.clear();
 
     // Safely reset controllers
     try {
-      if (!nameController.text.isEmpty) nameController.clear();
-      if (!priceController.text.isEmpty) priceController.clear();
-      if (!stockController.text.isEmpty) stockController.clear();
-      if (!descController.text.isEmpty) descController.clear();
+      if (nameController.text.isNotEmpty) nameController.clear();
+      if (priceController.text.isNotEmpty) priceController.clear();
+      if (descController.text.isNotEmpty) descController.clear();
     } catch (e) {
       print('Controller disposed, recreating: $e');
       _reinitializeControllers();
@@ -198,14 +209,12 @@ class ProductsController extends GetxController {
     try {
       nameController.text = product.name;
       priceController.text = product.price.toStringAsFixed(0);
-      stockController.text = product.stock.toString();
       descController.text = product.description;
     } catch (e) {
       print('Controller disposed, recreating: $e');
       _reinitializeControllers();
       nameController.text = product.name;
       priceController.text = product.price.toStringAsFixed(0);
-      stockController.text = product.stock.toString();
       descController.text = product.description;
     }
     selectedCategoryId.value = product.categoryId;
@@ -213,6 +222,7 @@ class ProductsController extends GetxController {
     selectedImagePath.value = product.imagePath;
     isPackage.value = product.isPackage;
     packageItems.assignAll(product.packageItems);
+    bahanBakuItems.assignAll(product.bahanBakuItems);
 
     // Populate level price controllers for non-default levels only
     // (default level price = product.price, shown in the main Harga field)
@@ -243,9 +253,6 @@ class ProductsController extends GetxController {
     } catch (_) {}
     try {
       priceController.dispose();
-    } catch (_) {}
-    try {
-      stockController.dispose();
     } catch (_) {}
     try {
       descController.dispose();
@@ -321,7 +328,6 @@ class ProductsController extends GetxController {
     final price = double.tryParse(
             priceController.text.replaceAll('.', '').replaceAll(',', '')) ??
         0;
-    final stock = int.tryParse(stockController.text) ?? 0;
 
     if (name.isEmpty) {
       Get.snackbar('Error', 'Nama produk tidak boleh kosong',
@@ -373,13 +379,14 @@ class ProductsController extends GetxController {
           name: name,
           categoryId: selectedCategoryId.value,
           price: price,
-          stock: stock,
+          stock: 0,
           description: descController.text.trim(),
           emoji: selectedEmoji.value,
           imagePath: selectedImagePath.value,
           isPackage: isPackage.value,
         );
         product.packageItems = packageItems.toList();
+        product.bahanBakuItems = bahanBakuItems.toList();
         await _productRepo.add(product);
         await _priceLevelRepo.saveProductPriceLevels(product.id, levelEntries);
         successMsg = 'Produk berhasil ditambahkan';
@@ -388,12 +395,12 @@ class ProductsController extends GetxController {
           ..name = name
           ..categoryId = selectedCategoryId.value
           ..price = price
-          ..stock = stock
           ..description = descController.text.trim()
           ..emoji = selectedEmoji.value
           ..imagePath = selectedImagePath.value
           ..isPackage = isPackage.value
-          ..packageItems = packageItems.toList();
+          ..packageItems = packageItems.toList()
+          ..bahanBakuItems = bahanBakuItems.toList();
         await _productRepo.update(editingProduct!);
         await _priceLevelRepo.saveProductPriceLevels(
             editingProduct!.id, levelEntries);
@@ -459,6 +466,40 @@ class ProductsController extends GetxController {
             colorText: Colors.red.shade900,
             duration: const Duration(seconds: 3));
         print('Error deleting product: $e');
+      }
+    }
+  }
+
+  // ── Bahan Baku (Resep) Management ─────────────────────────────────────────
+
+  void addBahanBakuItem(BahanBakuModel bb, {double quantity = 1}) {
+    final existing = bahanBakuItems.indexWhere((i) => i.bahanBakuId == bb.id);
+    if (existing >= 0) {
+      bahanBakuItems[existing].quantity += quantity;
+      bahanBakuItems.refresh();
+    } else {
+      bahanBakuItems.add(ProductBahanBakuEntry(
+        bahanBakuId: bb.id,
+        bahanBakuName: bb.name,
+        bahanBakuEmoji: bb.emoji,
+        bahanBakuUnit: bb.unit,
+        quantity: quantity,
+      ));
+    }
+  }
+
+  void removeBahanBakuItem(String bahanBakuId) {
+    bahanBakuItems.removeWhere((i) => i.bahanBakuId == bahanBakuId);
+  }
+
+  void updateBahanBakuItemQty(String bahanBakuId, double qty) {
+    final idx = bahanBakuItems.indexWhere((i) => i.bahanBakuId == bahanBakuId);
+    if (idx >= 0) {
+      if (qty <= 0) {
+        bahanBakuItems.removeAt(idx);
+      } else {
+        bahanBakuItems[idx].quantity = qty;
+        bahanBakuItems.refresh();
       }
     }
   }

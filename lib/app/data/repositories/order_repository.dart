@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../models/bahan_baku_model.dart';
 import '../models/cart_item_model.dart';
 import '../models/order_model.dart';
 import '../models/payment_entry_model.dart';
@@ -82,8 +83,7 @@ class OrderRepository {
     await txRepo.save(transaction, payments);
     await _db.insertOrderPayments(order.id, payments);
 
-    // Deduct stock for each sold item and record movement
-    final stockRepo = Get.find<StockRepository>();
+    // Deduct bahan baku stock for each sold item based on recipe
     for (final oi in order.items) {
       final currentProducts = await _db.getProducts();
       final product = currentProducts.cast<ProductModel?>().firstWhere(
@@ -91,20 +91,45 @@ class OrderRepository {
             orElse: () => null,
           );
       if (product == null) continue;
-      final qtyBefore = product.stock;
-      final qtyAfter = (qtyBefore - oi.quantity).clamp(0, double.maxFinite.toInt());
-      await _db.adjustProductStock(oi.productId, qtyAfter);
-      await stockRepo.addMovement(StockMovementModel(
-        productId: oi.productId,
-        productName: oi.productName,
-        productEmoji: oi.productEmoji,
-        type: StockMovementType.sale,
-        quantity: oi.quantity,
-        qtyBefore: qtyBefore,
-        qtyAfter: qtyAfter,
-        referenceId: transaction.id,
-        notes: 'Terjual - ${transaction.invoiceNumber}',
-      ));
+
+      if (product.bahanBakuItems.isNotEmpty) {
+        // F&B flow: deduct each bahan baku based on recipe × quantity ordered
+        for (final recipe in product.bahanBakuItems) {
+          final bb = await _db.getBahanBakuById(recipe.bahanBakuId);
+          if (bb == null) continue;
+          final usageQty = recipe.quantity * oi.quantity;
+          final qtyBefore = bb.stock;
+          final qtyAfter = (qtyBefore - usageQty).clamp(0.0, double.maxFinite);
+          await _db.updateBahanBakuStock(recipe.bahanBakuId, qtyAfter);
+          await _db.insertBahanBakuMovement(BahanBakuMovementModel(
+            bahanBakuId: recipe.bahanBakuId,
+            bahanBakuName: recipe.bahanBakuName,
+            bahanBakuEmoji: recipe.bahanBakuEmoji,
+            type: BahanBakuMovementType.usage,
+            quantity: usageQty,
+            qtyBefore: qtyBefore,
+            qtyAfter: qtyAfter,
+            notes: 'Penjualan ${oi.productName} x${oi.quantity} - ${transaction.invoiceNumber}',
+          ));
+        }
+      } else {
+        // Fallback: non-recipe products still deduct product stock directly
+        final stockRepo = Get.find<StockRepository>();
+        final qtyBefore = product.stock;
+        final qtyAfter = (qtyBefore - oi.quantity).clamp(0, double.maxFinite.toInt());
+        await _db.adjustProductStock(oi.productId, qtyAfter);
+        await stockRepo.addMovement(StockMovementModel(
+          productId: oi.productId,
+          productName: oi.productName,
+          productEmoji: oi.productEmoji,
+          type: StockMovementType.sale,
+          quantity: oi.quantity,
+          qtyBefore: qtyBefore,
+          qtyAfter: qtyAfter,
+          referenceId: transaction.id,
+          notes: 'Terjual - ${transaction.invoiceNumber}',
+        ));
+      }
     }
 
     return transaction;

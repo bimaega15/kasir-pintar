@@ -205,7 +205,7 @@ class _StockCardViewState extends State<StockCardView> {
                                   ? AppColors.primary
                                   : AppColors.textPrimary,
                             )),
-                        subtitle: Text('Stok: ${p.stock}',
+                        subtitle: Text('Stok: ${p.computedStock}',
                             style: const TextStyle(
                                 fontSize: 12,
                                 color: AppColors.textSecondary)),
@@ -290,10 +290,10 @@ class _StockCardViewState extends State<StockCardView> {
                                     fontSize: 15, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 4),
                             Text(
-                              'Stok saat ini: ${_product!.stock} unit',
+                              'Stok saat ini: ${_product!.computedStock} unit',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: _product!.stock < 5
+                                color: _product!.computedStock < 5
                                     ? AppColors.error
                                     : Colors.green.shade700,
                                 fontWeight: FontWeight.w600,

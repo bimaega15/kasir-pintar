@@ -26,7 +26,7 @@ import '../models/attendance_model.dart';
 /// Provider SQLite — mendukung offline penuh tanpa jaringan.
 class DatabaseProvider extends GetxService {
   static const _dbName = 'kasir_pintar.db';
-  static const _dbVersion = 19;
+  static const _dbVersion = 20;
 
   late Database _db;
 
@@ -78,6 +78,20 @@ class DatabaseProvider extends GetxService {
         item_emoji   TEXT    NOT NULL DEFAULT '📦',
         quantity     INTEGER NOT NULL DEFAULT 1,
         FOREIGN KEY (product_id) REFERENCES products(id)
+      )
+    ''');
+
+    batch.execute('''
+      CREATE TABLE product_bahan_baku (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id      TEXT    NOT NULL,
+        bahan_baku_id   TEXT    NOT NULL,
+        bahan_baku_name TEXT    NOT NULL,
+        bahan_baku_emoji TEXT   NOT NULL DEFAULT '📦',
+        bahan_baku_unit TEXT    NOT NULL DEFAULT '',
+        quantity        REAL    NOT NULL DEFAULT 0,
+        FOREIGN KEY (product_id) REFERENCES products(id),
+        FOREIGN KEY (bahan_baku_id) REFERENCES bahan_baku(id)
       )
     ''');
 
@@ -429,6 +443,23 @@ class DatabaseProvider extends GetxService {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 20) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS product_bahan_baku (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id      TEXT    NOT NULL,
+            bahan_baku_id   TEXT    NOT NULL,
+            bahan_baku_name TEXT    NOT NULL,
+            bahan_baku_emoji TEXT   NOT NULL DEFAULT '📦',
+            bahan_baku_unit TEXT    NOT NULL DEFAULT '',
+            quantity        REAL    NOT NULL DEFAULT 0,
+            FOREIGN KEY (product_id) REFERENCES products(id),
+            FOREIGN KEY (bahan_baku_id) REFERENCES bahan_baku(id)
+          )
+        ''');
+      } catch (_) {}
+    }
     if (oldVersion < 19) {
       try {
         await db.execute(
@@ -909,6 +940,46 @@ class DatabaseProvider extends GetxService {
         print('[getProducts] Warning: could not load package items: $e');
       }
 
+      // Load bahan baku recipe items + current stock for computed stock
+      try {
+        await _db.execute('''
+          CREATE TABLE IF NOT EXISTS product_bahan_baku (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id      TEXT    NOT NULL,
+            bahan_baku_id   TEXT    NOT NULL,
+            bahan_baku_name TEXT    NOT NULL,
+            bahan_baku_emoji TEXT   NOT NULL DEFAULT '📦',
+            bahan_baku_unit TEXT    NOT NULL DEFAULT '',
+            quantity        REAL    NOT NULL DEFAULT 0
+          )
+        ''');
+        final bbMaps = await _db.rawQuery('''
+          SELECT pbb.product_id, pbb.bahan_baku_id, pbb.bahan_baku_name,
+                 pbb.bahan_baku_emoji, pbb.bahan_baku_unit, pbb.quantity,
+                 COALESCE(bb.stock, 0) as available_stock
+          FROM product_bahan_baku pbb
+          LEFT JOIN bahan_baku bb ON pbb.bahan_baku_id = bb.id
+        ''');
+        final bbMap = <String, List<ProductBahanBakuEntry>>{};
+        for (final row in bbMaps) {
+          final pid = row['product_id'] as String;
+          final entry = ProductBahanBakuEntry(
+            bahanBakuId: row['bahan_baku_id'] as String,
+            bahanBakuName: row['bahan_baku_name'] as String,
+            bahanBakuEmoji: row['bahan_baku_emoji'] as String? ?? '📦',
+            bahanBakuUnit: row['bahan_baku_unit'] as String? ?? '',
+            quantity: (row['quantity'] as num).toDouble(),
+          );
+          entry.availableStock = (row['available_stock'] as num).toDouble();
+          bbMap.putIfAbsent(pid, () => []).add(entry);
+        }
+        for (final p in products) {
+          p.bahanBakuItems = bbMap[p.id] ?? [];
+        }
+      } catch (e) {
+        print('[getProducts] Warning: could not load bahan baku items: $e');
+      }
+
       return products;
     } catch (e) {
       print('[getProducts] Error: $e');
@@ -924,6 +995,7 @@ class DatabaseProvider extends GetxService {
       if (product.isPackage) {
         await _savePackageItems(product.id, product.packageItems);
       }
+      await _saveProductBahanBaku(product.id, product.bahanBakuItems);
       print('[insertProduct] Successfully inserted product: ${product.name}');
     } catch (e) {
       print('[insertProduct] Error inserting product: $e');
@@ -939,11 +1011,29 @@ class DatabaseProvider extends GetxService {
       whereArgs: [product.id],
     );
     await _savePackageItems(product.id, product.isPackage ? product.packageItems : []);
+    await _saveProductBahanBaku(product.id, product.bahanBakuItems);
   }
 
   Future<void> deleteProduct(String id) async {
+    await _db.delete('product_bahan_baku', where: 'product_id = ?', whereArgs: [id]);
     await _db.delete('product_package_items', where: 'product_id = ?', whereArgs: [id]);
     await _db.delete('products', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> _saveProductBahanBaku(
+      String productId, List<ProductBahanBakuEntry> items) async {
+    await _db.delete('product_bahan_baku',
+        where: 'product_id = ?', whereArgs: [productId]);
+    for (final item in items) {
+      await _db.insert('product_bahan_baku', {
+        'product_id': productId,
+        'bahan_baku_id': item.bahanBakuId,
+        'bahan_baku_name': item.bahanBakuName,
+        'bahan_baku_emoji': item.bahanBakuEmoji,
+        'bahan_baku_unit': item.bahanBakuUnit,
+        'quantity': item.quantity,
+      });
+    }
   }
 
   ProductModel _productFromMap(Map<String, Object?> m) {

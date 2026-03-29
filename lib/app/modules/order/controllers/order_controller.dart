@@ -203,7 +203,7 @@ class OrderController extends GetxController {
   // ── Filtered products ─────────────────────────────────────────────────────
 
   List<ProductModel> get filteredProducts {
-    var list = products.where((p) => p.stock > 0).toList();
+    var list = products.where((p) => p.computedStock > 0).toList();
     if (selectedCategory.value != 'all') {
       list = list.where((p) => p.categoryId == selectedCategory.value).toList();
     }
@@ -219,7 +219,7 @@ class OrderController extends GetxController {
   void addToCart(ProductModel product) {
     final idx = cart.indexWhere((i) => i.productId == product.id);
     if (idx != -1) {
-      if (cart[idx].quantity < product.stock) {
+      if (cart[idx].quantity < product.computedStock) {
         cart[idx].quantity++;
         cart.refresh();
       } else {
@@ -257,7 +257,7 @@ class OrderController extends GetxController {
     final idx = cart.indexWhere((i) => i.productId == productId);
     if (idx != -1) {
       final product = products.firstWhereOrNull((p) => p.id == productId);
-      final maxStock = product?.stock ?? 999;
+      final maxStock = product?.computedStock ?? 999;
       if (cart[idx].quantity < maxStock) {
         cart[idx].quantity++;
         cart.refresh();

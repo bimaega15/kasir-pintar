@@ -131,7 +131,7 @@ class _ProductStockTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ctrl = Get.find<StockController>();
-    final isLow = product.stock < 5;
+    final isLow = product.computedStock < 5;
     final stockColor = isLow ? AppColors.error : Colors.green.shade700;
 
     return Card(
@@ -178,7 +178,7 @@ class _ProductStockTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${product.stock}',
+                  '${product.computedStock}',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -261,7 +261,7 @@ class _ProductStockTile extends StatelessWidget {
                       Text(product.name,
                           style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text('Stok saat ini: ${product.stock} unit',
+                      Text('Stok saat ini: ${product.computedStock} unit',
                           style: const TextStyle(
                               color: AppColors.textSecondary, fontSize: 12)),
                     ],

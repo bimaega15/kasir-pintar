@@ -32,6 +32,41 @@ class PackageItem {
       );
 }
 
+/// Satu bahan baku yang digunakan dalam resep produk (recipe item)
+class ProductBahanBakuEntry {
+  final String bahanBakuId;
+  String bahanBakuName;
+  String bahanBakuEmoji;
+  String bahanBakuUnit;
+  double quantity; // jumlah bahan baku per 1 porsi produk
+  double availableStock = 0; // di-set oleh storage_provider saat load
+
+  ProductBahanBakuEntry({
+    required this.bahanBakuId,
+    required this.bahanBakuName,
+    this.bahanBakuEmoji = '📦',
+    this.bahanBakuUnit = '',
+    required this.quantity,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'bahanBakuId': bahanBakuId,
+        'bahanBakuName': bahanBakuName,
+        'bahanBakuEmoji': bahanBakuEmoji,
+        'bahanBakuUnit': bahanBakuUnit,
+        'quantity': quantity,
+      };
+
+  factory ProductBahanBakuEntry.fromJson(Map<String, dynamic> json) =>
+      ProductBahanBakuEntry(
+        bahanBakuId: json['bahanBakuId'] as String,
+        bahanBakuName: json['bahanBakuName'] as String,
+        bahanBakuEmoji: json['bahanBakuEmoji'] as String? ?? '📦',
+        bahanBakuUnit: json['bahanBakuUnit'] as String? ?? '',
+        quantity: (json['quantity'] as num).toDouble(),
+      );
+}
+
 class ProductModel {
   final String id;
   String name;
@@ -49,8 +84,26 @@ class ProductModel {
   /// Item-item yang termasuk dalam paket — diisi oleh storage_provider saat load
   List<PackageItem> packageItems = [];
 
+  /// Resep bahan baku — diisi oleh storage_provider saat load
+  List<ProductBahanBakuEntry> bahanBakuItems = [];
+
   /// Harga per level — diisi oleh storage_provider saat load
   List<ProductPriceLevelEntry> priceLevels = [];
+
+  /// Hitung stok produk berdasarkan ketersediaan bahan baku.
+  /// Jika produk punya resep bahan baku, stok = floor(MIN(bb.stock / recipe.qty)).
+  /// Jika tidak punya resep, gunakan field stock langsung (fallback).
+  int get computedStock {
+    if (bahanBakuItems.isEmpty) return stock;
+    int minPortions = 999999;
+    for (final item in bahanBakuItems) {
+      if (item.quantity <= 0) continue;
+      // bahanBakuStock di-set oleh storage_provider saat load
+      final portions = (item.availableStock / item.quantity).floor();
+      if (portions < minPortions) minPortions = portions;
+    }
+    return minPortions == 999999 ? 0 : minPortions;
+  }
 
   /// Kembalikan harga untuk level tertentu; fallback ke harga dasar
   double getPriceForLevel(String? levelId) {
