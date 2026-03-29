@@ -166,7 +166,7 @@ class ProductsView extends GetView<ProductsController> {
             fontWeight: FontWeight.w600, fontSize: 14),
       ),
       subtitle: Text(
-        '${CurrencyHelper.formatRupiah(product.price)}  •  Stok: ${product.computedStock}',
+        CurrencyHelper.formatRupiah(product.price),
         style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
       ),
       trailing: Row(
