@@ -5,6 +5,7 @@ import '../../../data/models/order_model.dart';
 import '../../../services/printer_service.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class KitchenView extends GetView<KitchenController> {
   const KitchenView({super.key});

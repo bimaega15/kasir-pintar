@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../data/models/customer_model.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../controllers/customers_controller.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class AddEditCustomerView extends GetView<CustomersController> {
   const AddEditCustomerView({super.key});
@@ -20,7 +21,7 @@ class AddEditCustomerView extends GetView<CustomersController> {
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: Res.padding(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

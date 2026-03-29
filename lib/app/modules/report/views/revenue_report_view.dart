@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../controllers/report_controller.dart';
 import '../../../utils/constants/app_colors.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class RevenueReportView extends StatelessWidget {
   const RevenueReportView({super.key});
@@ -25,7 +26,7 @@ class RevenueReportView extends StatelessWidget {
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: Res.padding(context),
         child: Obx(() {
           if (ctrl.isLoading.value) {
             return const Center(child: CircularProgressIndicator());

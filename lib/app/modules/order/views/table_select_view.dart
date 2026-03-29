@@ -5,6 +5,7 @@ import '../../../data/models/table_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../controllers/order_controller.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class TableSelectView extends GetView<OrderController> {
   const TableSelectView({super.key});

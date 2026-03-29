@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../controllers/settings_controller.dart';
 import '../../../services/user_session.dart';
 import '../../../utils/constants/app_colors.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 import '../../../routes/app_routes.dart';
 
 class SettingsView extends GetView<SettingsController> {
@@ -30,7 +31,7 @@ class SettingsView extends GetView<SettingsController> {
           return const Center(child: CircularProgressIndicator());
         }
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: Res.padding(context),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

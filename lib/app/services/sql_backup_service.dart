@@ -24,8 +24,8 @@ class SqlBackupService {
 
     await Share.shareXFiles(
       [XFile(file.path)],
-      subject: 'Backup Database Kasir Pintar',
-      text: 'Backup database Kasir Pintar — $stamp',
+      subject: 'Backup Database Kasir Pintar Sasbim',
+      text: 'Backup database Kasir Pintar Sasbim — $stamp',
     );
   }
 
@@ -56,7 +56,7 @@ class SqlBackupService {
         title: const Text('Import Database SQL'),
         content: const Text(
           'Seluruh data yang ada di aplikasi akan diganti dengan data dari file SQL.\n\n'
-          'Pastikan file SQL berasal dari backup Kasir Pintar.\n\n'
+          'Pastikan file SQL berasal dari backup Kasir Pintar Sasbim.\n\n'
           'Lanjutkan?',
         ),
         actions: [

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../controllers/shift_controller.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class ShiftHandoverView extends GetView<ShiftController> {
   const ShiftHandoverView({super.key});
@@ -26,7 +27,7 @@ class ShiftHandoverView extends GetView<ShiftController> {
           return const Center(child: Text('Tidak ada shift aktif'));
         }
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: Res.padding(context),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

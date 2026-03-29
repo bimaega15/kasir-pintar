@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../controllers/categories_controller.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class AddEditCategoryView extends GetView<CategoriesController> {
   const AddEditCategoryView({super.key});
@@ -24,7 +25,7 @@ class AddEditCategoryView extends GetView<CategoriesController> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: Res.padding(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

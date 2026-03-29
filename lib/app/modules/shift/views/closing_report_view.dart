@@ -4,6 +4,7 @@ import '../controllers/shift_controller.dart';
 import '../../../data/models/shift_model.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class ClosingReportView extends GetView<ShiftController> {
   const ClosingReportView({super.key});
@@ -34,7 +35,7 @@ class ClosingReportView extends GetView<ShiftController> {
           return const Center(child: CircularProgressIndicator());
         }
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: Res.padding(context),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

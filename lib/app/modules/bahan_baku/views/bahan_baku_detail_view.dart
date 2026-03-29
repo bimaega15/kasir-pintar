@@ -6,6 +6,7 @@ import '../../../data/models/bahan_baku_model.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 import '../controllers/bahan_baku_controller.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class BahanBakuDetailView extends StatefulWidget {
   const BahanBakuDetailView({super.key});
@@ -42,7 +43,7 @@ class _BahanBakuDetailViewState extends State<BahanBakuDetailView> {
         if (updated != null) item = updated;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: Res.padding(context),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

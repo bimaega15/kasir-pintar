@@ -4,6 +4,7 @@ import '../controllers/home_controller.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 import '../../main_navigation/controllers/main_navigation_controller.dart';
 import '../../shift/controllers/shift_controller.dart';
 import '../../../services/user_session.dart';
@@ -20,15 +21,15 @@ class HomeView extends GetView<HomeController> {
         slivers: [
           _buildAppBar(),
           SliverPadding(
-            padding: const EdgeInsets.all(16),
+            padding: Res.padding(context),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 _buildShiftBanner(),
                 _buildLowStockBanner(),
                 _buildLowStockBahanBakuBanner(),
-                _buildStatsGrid(),
+                _buildStatsGrid(context),
                 const SizedBox(height: 24),
-                _buildQuickAccessSection(),
+                _buildQuickAccessSection(context),
                 const SizedBox(height: 24),
                 _buildInfoCard(),
               ]),
@@ -39,7 +40,7 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  Widget _buildQuickAccessSection() {
+  Widget _buildQuickAccessSection(BuildContext context) {
     final session = Get.find<UserSession>();
     final navCtrl = Get.find<MainNavigationController>(
         tag: MainNavigationController.TAG);
@@ -122,7 +123,7 @@ class HomeView extends GetView<HomeController> {
           ),
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
           child: GridView.count(
-            crossAxisCount: 4,
+            crossAxisCount: Res.menuCols(context),
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 20,
@@ -194,7 +195,7 @@ class HomeView extends GetView<HomeController> {
                 ),
                 const SizedBox(width: 8),
                 const Text(
-                  'Kasir Pintar',
+                  'Kasir Pintar Sasbim',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -276,7 +277,7 @@ class HomeView extends GetView<HomeController> {
                                   ),
                                   const SizedBox(height: 8),
                                   const Text(
-                                    'Kasir Pintar',
+                                    'Kasir Pintar Sasbim',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 28,
@@ -654,14 +655,16 @@ class HomeView extends GetView<HomeController> {
   String _fmtQty(double qty) =>
       qty == qty.truncateToDouble() ? qty.toInt().toString() : qty.toStringAsFixed(1);
 
-  Widget _buildStatsGrid() {
+  Widget _buildStatsGrid(BuildContext context) {
+    final cols = Res.cols(context, mobile: 2, tablet: 4);
+    final ratio = Res.isTablet(context) ? 1.9 : 1.6;
     return Obx(() => GridView.count(
-          crossAxisCount: 2,
+          crossAxisCount: cols,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: 1.6,
+          childAspectRatio: ratio,
           children: [
             _buildStatCard(
               label: 'Pendapatan Hari Ini',
@@ -762,7 +765,7 @@ class HomeView extends GetView<HomeController> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Kasir Pintar v2.0',
+                  'Kasir Pintar Sasbim v2.0',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,

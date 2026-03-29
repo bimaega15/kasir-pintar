@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../data/models/table_model.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../controllers/tables_controller.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class AddEditTableView extends GetView<TablesController> {
   const AddEditTableView({super.key});
@@ -28,7 +29,7 @@ class AddEditTableView extends GetView<TablesController> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: Res.padding(context),
         child: Column(
           children: [
             _card(

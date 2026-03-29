@@ -5,6 +5,7 @@ import '../../../data/providers/storage_provider.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class VoidLogView extends StatefulWidget {
   const VoidLogView({super.key});

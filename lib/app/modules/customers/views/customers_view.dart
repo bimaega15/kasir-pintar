@@ -4,6 +4,7 @@ import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/customers_controller.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class CustomersView extends GetView<CustomersController> {
   const CustomersView({super.key});

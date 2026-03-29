@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/main_navigation_controller.dart';
 import '../../../utils/constants/app_colors.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/views/home_view.dart';
 import '../../settings/views/settings_view.dart';
@@ -41,6 +42,31 @@ class _MainNavigationViewState extends State<MainNavigationView> {
   Widget build(BuildContext context) {
     final isKasir = Get.find<UserSession>().isKasir;
 
+    // ── Tablet layout: NavigationRail di kiri ──────────────────────────────
+    if (Res.isTablet(context)) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          child: Obx(() {
+            final idx = _ctrl.currentIndex.value;
+            return Row(
+              children: [
+                _buildRail(isKasir, idx),
+                const VerticalDivider(width: 1, thickness: 1),
+                Expanded(
+                  child: IndexedStack(
+                    index: idx,
+                    children: _pages,
+                  ),
+                ),
+              ],
+            );
+          }),
+        ),
+      );
+    }
+
+    // ── Mobile layout: BottomAppBar ────────────────────────────────────────
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Obx(() => Stack(
@@ -90,6 +116,89 @@ class _MainNavigationViewState extends State<MainNavigationView> {
             }),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: _buildCustomBottomBar(),
+    );
+  }
+
+  /// NavigationRail untuk layout tablet.
+  Widget _buildRail(bool isKasir, int currentIdx) {
+    const selectedStyle = TextStyle(
+      color: AppColors.primary,
+      fontWeight: FontWeight.w700,
+      fontSize: 11,
+    );
+    const unselectedStyle = TextStyle(
+      color: AppColors.textSecondary,
+      fontSize: 11,
+    );
+
+    if (isKasir) {
+      // Kasir: 4 destinasi — index nav → index stack
+      const kasirToStack = <int>[0, 4, 2, 3];
+      const stackToNav = <int, int>{0: 0, 4: 1, 2: 2, 3: 3};
+      final navIdx = stackToNav[currentIdx] ?? 0;
+
+      return NavigationRail(
+        selectedIndex: navIdx,
+        onDestinationSelected: (i) => _ctrl.changeIndex(kasirToStack[i]),
+        labelType: NavigationRailLabelType.all,
+        backgroundColor: Colors.white,
+        selectedIconTheme: const IconThemeData(color: AppColors.primary),
+        unselectedIconTheme: const IconThemeData(color: AppColors.textSecondary),
+        selectedLabelTextStyle: selectedStyle,
+        unselectedLabelTextStyle: unselectedStyle,
+        destinations: const [
+          NavigationRailDestination(
+            icon: Icon(Icons.home_rounded),
+            label: Text('Home'),
+          ),
+          NavigationRailDestination(
+            icon: Icon(Icons.point_of_sale_rounded),
+            label: Text('Kasir'),
+          ),
+          NavigationRailDestination(
+            icon: Icon(Icons.assessment_rounded),
+            label: Text('Report'),
+          ),
+          NavigationRailDestination(
+            icon: Icon(Icons.settings_rounded),
+            label: Text('Setting'),
+          ),
+        ],
+      );
+    }
+
+    // Admin: 5 destinasi — index nav = index stack (0-4)
+    return NavigationRail(
+      selectedIndex: currentIdx,
+      onDestinationSelected: _ctrl.changeIndex,
+      labelType: NavigationRailLabelType.all,
+      backgroundColor: Colors.white,
+      selectedIconTheme: const IconThemeData(color: AppColors.primary),
+      unselectedIconTheme: const IconThemeData(color: AppColors.textSecondary),
+      selectedLabelTextStyle: selectedStyle,
+      unselectedLabelTextStyle: unselectedStyle,
+      destinations: const [
+        NavigationRailDestination(
+          icon: Icon(Icons.home_rounded),
+          label: Text('Home'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.inventory_2_rounded),
+          label: Text('Master'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.assessment_rounded),
+          label: Text('Report'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.settings_rounded),
+          label: Text('Setting'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.point_of_sale_rounded),
+          label: Text('Kasir'),
+        ),
+      ],
     );
   }
 
@@ -270,7 +379,10 @@ class _KasirPageContentState extends State<KasirPageContent> {
         elevation: 0,
       ),
       body: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          padding: EdgeInsets.fromLTRB(
+            Res.hp(context), 16, Res.hp(context),
+            Res.isTablet(context) ? 20 : 100,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

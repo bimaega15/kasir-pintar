@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../controllers/products_controller.dart';
 import '../../../data/models/product_model.dart';
 import '../../../utils/constants/app_colors.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class AddEditProductView extends GetView<ProductsController> {
   const AddEditProductView({super.key});
@@ -34,7 +35,7 @@ class AddEditProductView extends GetView<ProductsController> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: Res.padding(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

@@ -13,6 +13,7 @@ import '../../../services/printer_service.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 import '../../main_navigation/controllers/main_navigation_controller.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class ReceiptView extends StatefulWidget {
   const ReceiptView({super.key});
@@ -38,7 +39,7 @@ class _ReceiptViewState extends State<ReceiptView> {
   }
 
   Future<Map<String, String>> _loadStoreInfo() async {
-    final name = await _db.getSetting('store_name') ?? 'Kasir Pintar';
+    final name = await _db.getSetting('store_name') ?? 'Kasir Pintar Sasbim';
     final address = await _db.getSetting('store_address') ?? '';
     final logo = await _db.getSetting('store_logo_path') ?? '';
     final footer = await _db.getSetting('store_footer') ?? '';
@@ -47,7 +48,7 @@ class _ReceiptViewState extends State<ReceiptView> {
 
   String _buildReceiptText(
       TransactionModel transaction, Map<String, String> storeInfo) {
-    final storeName = storeInfo['name'] ?? 'Kasir Pintar';
+    final storeName = storeInfo['name'] ?? 'Kasir Pintar Sasbim';
     final storeAddress = storeInfo['address'] ?? '';
     final sep = '─' * 32;
     final buf = StringBuffer();
@@ -165,7 +166,7 @@ class _ReceiptViewState extends State<ReceiptView> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: Res.padding(context),
               child: Column(
                 children: [
                   // Main receipt card with success header
@@ -249,7 +250,7 @@ class _ReceiptViewState extends State<ReceiptView> {
                             future: _storeInfoFuture,
                             builder: (context, snap) {
                               final info = snap.data ?? {};
-                              final storeName = info['name'] ?? 'Kasir Pintar';
+                              final storeName = info['name'] ?? 'Kasir Pintar Sasbim';
                               final address = info['address'] ?? '';
                               final logoPath = info['logo'] ?? '';
                               final hasLogo = logoPath.isNotEmpty &&

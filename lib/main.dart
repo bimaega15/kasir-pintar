@@ -84,7 +84,7 @@ class KasirPintarApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'Kasir Pintar',
+      title: 'Kasir Pintar Sasbim',
       theme: AppTheme.lightTheme,
       initialBinding: InitialBinding(),
       initialRoute: AppRoutes.splash,

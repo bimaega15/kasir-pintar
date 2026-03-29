@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 import '../controllers/order_controller.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class OrderConfirmView extends GetView<OrderController> {
   const OrderConfirmView({super.key});
@@ -21,7 +22,7 @@ class OrderConfirmView extends GetView<OrderController> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
+                padding: Res.padding(context),
                 child: Column(
                   children: [
                     // Order info

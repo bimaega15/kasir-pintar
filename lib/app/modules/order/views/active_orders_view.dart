@@ -9,6 +9,7 @@ import '../../../routes/app_routes.dart';
 import '../../../services/printer_service.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class ActiveOrdersView extends StatefulWidget {
   const ActiveOrdersView({super.key});

@@ -4,6 +4,7 @@ import '../controllers/shift_controller.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 import '../../../routes/app_routes.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class CloseShiftView extends GetView<ShiftController> {
   const CloseShiftView({super.key});
@@ -29,7 +30,7 @@ class CloseShiftView extends GetView<ShiftController> {
         }
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: Res.padding(context),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

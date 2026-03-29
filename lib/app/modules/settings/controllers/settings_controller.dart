@@ -44,7 +44,7 @@ class SettingsController extends GetxController {
   Future<void> loadSettings() async {
     isLoading.value = true;
     try {
-      final name = await _db.getSetting('store_name') ?? 'Kasir Pintar';
+      final name = await _db.getSetting('store_name') ?? 'Kasir Pintar Sasbim';
       final tax = await _db.getSetting('tax_percent') ?? '0';
       final service = await _db.getSetting('service_charge_percent') ?? '0';
 
@@ -228,7 +228,7 @@ class SettingsController extends GetxController {
       title: const Text('Import Database SQL'),
       content: const Text(
         'Seluruh data yang ada di aplikasi akan diganti dengan data dari file SQL.\n\n'
-        'Pastikan file SQL berasal dari backup Kasir Pintar.\n\nLanjutkan?',
+        'Pastikan file SQL berasal dari backup Kasir Pintar Sasbim.\n\nLanjutkan?',
       ),
       actions: [
         TextButton(onPressed: () => Get.back(result: false), child: const Text('Batal')),

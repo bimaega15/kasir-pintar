@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../data/models/void_log_model.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class VoidLogDetailView extends StatelessWidget {
   final VoidLogModel log;
@@ -18,7 +19,7 @@ class VoidLogDetailView extends StatelessWidget {
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: Res.padding(context),
         child: Column(
           children: [
             // Header Card

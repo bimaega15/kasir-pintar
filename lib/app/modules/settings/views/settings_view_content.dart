@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../controllers/settings_controller.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../routes/app_routes.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class SettingsPageContent extends GetView<SettingsController> {
   const SettingsPageContent({super.key});
@@ -10,7 +11,7 @@ class SettingsPageContent extends GetView<SettingsController> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: Res.padding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -78,7 +79,7 @@ class SettingsPageContent extends GetView<SettingsController> {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'Kasir Pintar v2.0 - Sistem POS Modern untuk Restoran & Retail',
+                        'Kasir Pintar Sasbim v2.0 - Sistem POS Modern untuk Restoran & Retail',
                         style: TextStyle(
                           fontSize: 11,
                           color: AppColors.textSecondary,

@@ -6,6 +6,7 @@ import '../../../utils/constants/app_colors.dart';
 import '../../../data/models/bahan_baku_model.dart';
 import '../../../utils/helpers/currency_helper.dart';
 import '../controllers/bahan_baku_controller.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class BahanBakuView extends GetView<BahanBakuController> {
   const BahanBakuView({super.key});

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/thermal_receipt_helper.dart';
 import '../controllers/printer_controller.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class PrinterSettingsView extends GetView<PrinterController> {
   const PrinterSettingsView({super.key});

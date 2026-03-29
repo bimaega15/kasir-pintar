@@ -4,6 +4,7 @@ import '../controllers/debt_controller.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 import '../../../routes/app_routes.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class DebtReportView extends GetView<DebtController> {
   const DebtReportView({super.key});
@@ -33,7 +34,7 @@ class DebtReportView extends GetView<DebtController> {
         }
         final s = controller.reportStats.value;
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: Res.padding(context),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../controllers/bahan_baku_controller.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class AddEditBahanBakuView extends GetView<BahanBakuController> {
   const AddEditBahanBakuView({super.key});
@@ -64,7 +65,7 @@ class AddEditBahanBakuView extends GetView<BahanBakuController> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: Res.padding(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

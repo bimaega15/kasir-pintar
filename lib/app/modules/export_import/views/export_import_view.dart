@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/export_import_controller.dart';
 import '../../../utils/constants/app_colors.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class ExportImportView extends GetView<ExportImportController> {
   const ExportImportView({super.key});
@@ -33,7 +34,7 @@ class ExportImportView extends GetView<ExportImportController> {
           );
         }
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: Res.padding(context),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

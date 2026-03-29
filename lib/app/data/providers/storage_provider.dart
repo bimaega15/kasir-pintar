@@ -2235,7 +2235,7 @@ class DatabaseProvider extends GetxService {
   Future<String> exportToSql() async {
     final buffer = StringBuffer();
     final now = DateTime.now();
-    buffer.writeln('-- Kasir Pintar Database Backup');
+    buffer.writeln('-- Kasir Pintar Sasbim Database Backup');
     buffer.writeln('-- Generated: ${now.toIso8601String()}');
     buffer.writeln('-- DB Version: $_dbVersion');
     buffer.writeln();

@@ -86,7 +86,7 @@ class NotificationService extends GetxService {
 
   Future<void> _initDesktop() async {
     try {
-      await localNotifier.setup(appName: 'Kasir Pintar');
+      await localNotifier.setup(appName: 'Kasir Pintar Sasbim');
       _desktopNotificationsSupported = true;
       debugPrint('✓ Desktop notifications initialized successfully');
     } catch (e) {

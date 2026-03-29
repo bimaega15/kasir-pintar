@@ -4,6 +4,7 @@ import '../controllers/expense_controller.dart';
 import '../../../data/models/expense_model.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class AddEditExpenseView extends GetView<ExpenseController> {
   const AddEditExpenseView({super.key});
@@ -23,7 +24,7 @@ class AddEditExpenseView extends GetView<ExpenseController> {
       body: Form(
         key: controller.formKey,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: Res.padding(context),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

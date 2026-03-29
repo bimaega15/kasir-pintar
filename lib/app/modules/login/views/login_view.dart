@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../controllers/login_controller.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -45,21 +46,27 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
+    final isTab = Res.isTablet(context);
     return Scaffold(
       backgroundColor: AppColors.primary,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Column(
-            children: [
-              const SizedBox(height: 64),
-              _buildLogo(),
-              const SizedBox(height: 32),
-              _buildTitle(),
-              const SizedBox(height: 36),
-              _buildCard(),
-              const SizedBox(height: 32),
-            ],
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: isTab ? 48 : 28),
+              child: Column(
+                children: [
+                  SizedBox(height: isTab ? 48 : 64),
+                  _buildLogo(),
+                  const SizedBox(height: 32),
+                  _buildTitle(),
+                  const SizedBox(height: 36),
+                  _buildCard(),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -91,7 +98,7 @@ class _LoginViewState extends State<LoginView> {
     return const Column(
       children: [
         Text(
-          'Kasir Pintar',
+          'Kasir Pintar Sasbim',
           style: TextStyle(
             color: Colors.white,
             fontSize: 28,

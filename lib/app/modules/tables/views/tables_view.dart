@@ -4,6 +4,7 @@ import '../../../data/models/table_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../controllers/tables_controller.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class TablesView extends GetView<TablesController> {
   const TablesView({super.key});

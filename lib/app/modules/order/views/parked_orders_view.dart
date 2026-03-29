@@ -4,6 +4,7 @@ import '../../../data/models/order_model.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 import '../controllers/order_controller.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class ParkedOrdersView extends StatefulWidget {
   const ParkedOrdersView({super.key});

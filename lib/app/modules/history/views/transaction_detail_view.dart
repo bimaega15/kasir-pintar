@@ -7,6 +7,7 @@ import '../../../data/repositories/debt_repository.dart';
 import '../../../data/repositories/transaction_repository.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class TransactionDetailView extends StatefulWidget {
   const TransactionDetailView({super.key});
@@ -35,7 +36,7 @@ class _TransactionDetailViewState extends State<TransactionDetailView> {
     return Scaffold(
       appBar: AppBar(title: Text(transaction.invoiceNumber)),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: Res.padding(context),
         child: Column(
           children: [
             _buildHeader(transaction),

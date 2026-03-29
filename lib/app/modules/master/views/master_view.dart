@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/constants/app_colors.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 import '../../categories/controllers/categories_controller.dart';
 import '../../customers/controllers/customers_controller.dart';
 import '../../price_levels/controllers/price_levels_controller.dart';
@@ -24,7 +25,7 @@ class MasterPageContent extends StatelessWidget {
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: Res.padding(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

@@ -4,6 +4,7 @@ import '../controllers/report_controller.dart';
 import '../../../routes/app_routes.dart';
 import '../../../services/user_session.dart';
 import '../../../utils/constants/app_colors.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class ReportPageContent extends StatelessWidget {
   const ReportPageContent({super.key});
@@ -19,7 +20,7 @@ class ReportPageContent extends StatelessWidget {
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: Res.padding(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

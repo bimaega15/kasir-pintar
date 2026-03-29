@@ -5,6 +5,7 @@ import '../../../data/models/shift_model.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 import '../../../routes/app_routes.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class ShiftReportView extends StatefulWidget {
   const ShiftReportView({super.key});

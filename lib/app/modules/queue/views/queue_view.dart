@@ -4,6 +4,7 @@ import '../controllers/queue_controller.dart';
 import '../../../routes/app_routes.dart';
 import '../../../services/printer_service.dart';
 import '../../../utils/constants/app_colors.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class QueueView extends GetView<QueueController> {
   const QueueView({super.key});

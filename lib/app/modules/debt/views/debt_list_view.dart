@@ -4,6 +4,7 @@ import '../../../data/models/debt_model.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/helpers/currency_helper.dart';
 import '../controllers/debt_controller.dart';
+import '../../../utils/responsive/responsive_helper.dart';
 
 class DebtListView extends GetView<DebtController> {
   const DebtListView({super.key});
