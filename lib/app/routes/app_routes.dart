@@ -35,6 +35,7 @@ abstract class AppRoutes {
   // v4 — auth
   static const login = '/login';
   static const setup = '/setup';
+  static const adminSetup = '/admin-setup';
   // master kategori
   static const categories = '/categories';
   static const addEditCategory = '/categories/form';

@@ -1,9 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../utils/constants/app_colors.dart';
 
-class AboutView extends StatelessWidget {
+class AboutView extends StatefulWidget {
   const AboutView({super.key});
+
+  @override
+  State<AboutView> createState() => _AboutViewState();
+}
+
+class _AboutViewState extends State<AboutView> {
+  String _version = '-';
+
+  @override
+  void initState() {
+    super.initState();
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) setState(() => _version = info.version);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,8 +134,8 @@ class AboutView extends StatelessWidget {
                         color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Text(
-                        'v2.0 — Restoran & Retail POS',
+                      child: Text(
+                        'v$_version — Restoran & Retail POS',
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 11,
@@ -386,7 +402,7 @@ class AboutView extends StatelessWidget {
             icon: Icons.info_outline_rounded,
             color: AppColors.primary,
             label: 'Versi',
-            value: '2.0.0',
+            value: _version,
           ),
           const SizedBox(height: 10),
           _buildInfoRow(

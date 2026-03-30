@@ -188,7 +188,73 @@ class LoginController extends GetxController {
     }
   }
 
-  // ── Setup ─────────────────────────────────────────────────────────────────
+  // ── Admin Setup (first install) ───────────────────────────────────────────
+
+  Future<void> setupAdminAccount({
+    required String username,
+    required String email,
+    required String password,
+    required String confirm,
+    required BuildContext context,
+  }) async {
+    final trimmedUsername = username.trim();
+    final trimmedEmail = email.trim();
+
+    void showWarn(String msg) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(msg),
+        backgroundColor: Colors.orange.shade700,
+      ));
+    }
+
+    if (trimmedUsername.isEmpty || trimmedEmail.isEmpty ||
+        password.isEmpty || confirm.isEmpty) {
+      showWarn('Semua kolom wajib diisi');
+      return;
+    }
+    if (trimmedUsername.length < 3) {
+      showWarn('Username minimal 3 karakter');
+      return;
+    }
+    if (!RegExp(r'^[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}$').hasMatch(trimmedEmail)) {
+      showWarn('Format email tidak valid');
+      return;
+    }
+    if (password.length < 6) {
+      showWarn('Password minimal 6 karakter');
+      return;
+    }
+    if (password != confirm) {
+      showWarn('Konfirmasi password tidak cocok');
+      return;
+    }
+
+    isSetupLoading.value = true;
+    try {
+      await _db.setSetting('app_username', trimmedUsername);
+      await _db.setSetting('app_password', password);
+      await _db.setSetting('app_email', trimmedEmail);
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Akun admin "$trimmedUsername" berhasil dibuat!'),
+        backgroundColor: Colors.green.shade700,
+      ));
+
+      await Future.delayed(const Duration(milliseconds: 800));
+      Get.offAllNamed(AppRoutes.login);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Gagal membuat akun: $e'),
+        backgroundColor: Colors.red.shade700,
+      ));
+    } finally {
+      isSetupLoading.value = false;
+    }
+  }
+
+  // ── Kasir Setup ───────────────────────────────────────────────────────────
 
   Future<void> setupAccount({
     required String username,

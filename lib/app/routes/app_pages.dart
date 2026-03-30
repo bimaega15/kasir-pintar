@@ -50,6 +50,7 @@ import '../modules/void_log/views/void_log_detail_view.dart';
 import '../modules/login/bindings/login_binding.dart';
 import '../modules/login/views/login_view.dart';
 import '../modules/login/views/setup_view.dart';
+import '../modules/login/views/admin_setup_view.dart';
 import '../modules/categories/bindings/categories_binding.dart';
 import '../modules/categories/views/categories_view.dart';
 import '../modules/categories/views/add_edit_category_view.dart';
@@ -263,6 +264,12 @@ class AppPages {
     GetPage(
       name: AppRoutes.setup,
       page: () => const SetupView(),
+      binding: LoginBinding(),
+      transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: AppRoutes.adminSetup,
+      page: () => const AdminSetupView(),
       binding: LoginBinding(),
       transition: Transition.fadeIn,
     ),

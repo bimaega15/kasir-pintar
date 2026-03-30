@@ -35,8 +35,8 @@ class SplashController extends GetxController {
     // 2. Cek apakah admin sudah pernah dibuat (setup pertama kali)
     final adminUsername = await _db.getSetting('app_username') ?? '';
     if (adminUsername.isEmpty) {
-      // Belum ada akun admin → arahkan ke halaman setup
-      Get.offAllNamed(AppRoutes.setup);
+      // Belum ada akun admin → arahkan ke halaman setup admin (first install)
+      Get.offAllNamed(AppRoutes.adminSetup);
       return;
     }
 

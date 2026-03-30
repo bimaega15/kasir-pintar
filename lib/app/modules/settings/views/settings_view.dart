@@ -113,13 +113,13 @@ class SettingsView extends GetView<SettingsController> {
               ],
               // Seed Data — admin only
               if (Get.find<UserSession>().isAdmin) ...[
-                _buildMenuCard(
-                  icon: Icons.restore_rounded,
-                  title: 'Isi Data Menu Mie Gacor',
-                  subtitle: 'Hapus semua produk & kategori, isi ulang dengan menu Mie Gacor',
-                  color: Colors.orange,
-                  onTap: () => controller.seedMieGacorData(),
-                ),
+                // _buildMenuCard(
+                //   icon: Icons.restore_rounded,
+                //   title: 'Isi Data Menu Mie Gacor',
+                //   subtitle: 'Hapus semua produk & kategori, isi ulang dengan menu Mie Gacor',
+                //   color: Colors.orange,
+                //   onTap: () => controller.seedMieGacorData(),
+                // ),
                 const SizedBox(height: 12),
                 _buildMenuCard(
                   icon: Icons.delete_forever_rounded,

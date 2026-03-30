@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../controllers/settings_controller.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../routes/app_routes.dart';
@@ -65,11 +66,11 @@ class SettingsPageContent extends GetView<SettingsController> {
                   size: 28,
                 ),
                 const SizedBox(width: 16),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Tentang Aplikasi',
                         style: TextStyle(
                           fontSize: 13,
@@ -77,13 +78,21 @@ class SettingsPageContent extends GetView<SettingsController> {
                           color: AppColors.textPrimary,
                         ),
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Kasir Pintar MB v2.0 - Sistem POS Modern untuk Restoran & Retail',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
-                        ),
+                      const SizedBox(height: 4),
+                      FutureBuilder<PackageInfo>(
+                        future: PackageInfo.fromPlatform(),
+                        builder: (_, snap) {
+                          final v = snap.data?.version ?? '';
+                          return Text(
+                            v.isEmpty
+                                ? 'Kasir Pintar MB - Sistem POS Modern untuk Restoran & Retail'
+                                : 'Kasir Pintar MB v$v - Sistem POS Modern untuk Restoran & Retail',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

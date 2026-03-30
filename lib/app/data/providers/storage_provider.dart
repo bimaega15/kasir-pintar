@@ -874,12 +874,7 @@ class DatabaseProvider extends GetxService {
       await batch.commit(noResult: true);
     }
 
-    // Seed default admin account jika belum ada
-    final existingUsername = await getSetting('app_username');
-    if (existingUsername == null || existingUsername.isEmpty) {
-      await setSetting('app_username', 'rizky_syahputra');
-      await setSetting('app_password', 'admin123#');
-    }
+    // Akun admin dibuat oleh user sendiri saat first-install via AdminSetupView
   }
 
   // ── Products ──────────────────────────────────────────────────────────────
