@@ -319,7 +319,7 @@ class CheckVersionService {
   ) async {
     await _notif.show(
       _progressNotifId,
-      'Mengunduh Update Kasir Pintar Sasbim',
+      'Mengunduh Update Kasir Pintar MB',
       text,
       NotificationDetails(
         android: AndroidNotificationDetails(

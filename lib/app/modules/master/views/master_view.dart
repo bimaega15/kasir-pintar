@@ -189,10 +189,11 @@ class MasterPageContent extends StatelessWidget {
               onTap: () => Get.toNamed(AppRoutes.bahanBaku),
               actionButton: ElevatedButton.icon(
                 onPressed: () {
-                  if (!Get.isRegistered<BahanBakuController>()) {
-                    Get.put(BahanBakuController());
+                  // Delete stale/disposed instance before recreating
+                  if (Get.isRegistered<BahanBakuController>()) {
+                    Get.delete<BahanBakuController>(force: true);
                   }
-                  final ctrl = Get.find<BahanBakuController>();
+                  final ctrl = Get.put(BahanBakuController());
                   ctrl.prepareAdd();
                   Get.toNamed(AppRoutes.addEditBahanBaku);
                 },

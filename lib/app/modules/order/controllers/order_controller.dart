@@ -111,7 +111,7 @@ class OrderController extends GetxController {
     if (!rawValue.startsWith('PRODUCT:')) {
       Get.snackbar(
         'Format Tidak Dikenal',
-        'QR ini bukan kode produk Kasir Pintar Sasbim',
+        'QR ini bukan kode produk Kasir Pintar MB',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.orange.shade100,
         colorText: Colors.orange.shade900,

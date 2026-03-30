@@ -102,7 +102,7 @@ class AboutView extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'Kasir Pintar Sasbim',
+                      'Kasir Pintar MB',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 22,

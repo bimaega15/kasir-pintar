@@ -79,7 +79,7 @@ class SettingsPageContent extends GetView<SettingsController> {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'Kasir Pintar Sasbim v2.0 - Sistem POS Modern untuk Restoran & Retail',
+                        'Kasir Pintar MB v2.0 - Sistem POS Modern untuk Restoran & Retail',
                         style: TextStyle(
                           fontSize: 11,
                           color: AppColors.textSecondary,

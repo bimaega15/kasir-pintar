@@ -44,6 +44,22 @@ class AddEditBahanBakuView extends GetView<BahanBakuController> {
     'ikat',
   ];
 
+  Future<void> _save(BuildContext context) async {
+    try {
+      final msg = await controller.saveBahanBaku();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg), backgroundColor: Colors.green.shade700),
+      );
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red.shade700),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -57,7 +73,7 @@ class AddEditBahanBakuView extends GetView<BahanBakuController> {
         elevation: 0,
         actions: [
           TextButton(
-            onPressed: () => controller.saveBahanBaku(),
+            onPressed: () => _save(context),
             child: const Text('Simpan',
                 style: TextStyle(
                     color: Colors.white, fontWeight: FontWeight.bold)),
@@ -238,7 +254,7 @@ class AddEditBahanBakuView extends GetView<BahanBakuController> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton.icon(
-                onPressed: () => controller.saveBahanBaku(),
+                onPressed: () => _save(context),
                 icon: Icon(
                     controller.isEditing
                         ? Icons.save_rounded

@@ -39,7 +39,7 @@ class _ReceiptViewState extends State<ReceiptView> {
   }
 
   Future<Map<String, String>> _loadStoreInfo() async {
-    final name = await _db.getSetting('store_name') ?? 'Kasir Pintar Sasbim';
+    final name = await _db.getSetting('store_name') ?? 'Kasir Pintar MB';
     final address = await _db.getSetting('store_address') ?? '';
     final logo = await _db.getSetting('store_logo_path') ?? '';
     final footer = await _db.getSetting('store_footer') ?? '';
@@ -48,7 +48,7 @@ class _ReceiptViewState extends State<ReceiptView> {
 
   String _buildReceiptText(
       TransactionModel transaction, Map<String, String> storeInfo) {
-    final storeName = storeInfo['name'] ?? 'Kasir Pintar Sasbim';
+    final storeName = storeInfo['name'] ?? 'Kasir Pintar MB';
     final storeAddress = storeInfo['address'] ?? '';
     final sep = '─' * 32;
     final buf = StringBuffer();
@@ -250,7 +250,7 @@ class _ReceiptViewState extends State<ReceiptView> {
                             future: _storeInfoFuture,
                             builder: (context, snap) {
                               final info = snap.data ?? {};
-                              final storeName = info['name'] ?? 'Kasir Pintar Sasbim';
+                              final storeName = info['name'] ?? 'Kasir Pintar MB';
                               final address = info['address'] ?? '';
                               final logoPath = info['logo'] ?? '';
                               final hasLogo = logoPath.isNotEmpty &&

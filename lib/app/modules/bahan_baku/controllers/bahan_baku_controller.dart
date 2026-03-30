@@ -111,57 +111,43 @@ class BahanBakuController extends GetxController {
 
   // ── CRUD Operations ───────────────────────────────────────────────────
 
-  Future<void> saveBahanBaku() async {
+  /// Returns the success message on success, or throws a [String] error message.
+  Future<String> saveBahanBaku() async {
     final name = nameController.text.trim();
     final unit = unitController.text.trim();
-    if (name.isEmpty) {
-      Get.snackbar('Peringatan', 'Nama bahan baku tidak boleh kosong',
-          snackPosition: SnackPosition.BOTTOM);
-      return;
-    }
-    if (unit.isEmpty) {
-      Get.snackbar('Peringatan', 'Satuan tidak boleh kosong',
-          snackPosition: SnackPosition.BOTTOM);
-      return;
-    }
+    if (name.isEmpty) throw 'Nama bahan baku tidak boleh kosong';
+    if (unit.isEmpty) throw 'Satuan tidak boleh kosong';
 
     final stock = double.tryParse(stockController.text) ?? 0;
     final minStock = double.tryParse(minStockController.text) ?? 0;
     final price = double.tryParse(priceController.text) ?? 0;
 
-    try {
-      if (isEditing) {
-        final updated = _editingItem!.copyWith(
-          name: name,
-          unit: unit,
-          stock: stock,
-          minStock: minStock,
-          price: price,
-          emoji: selectedEmoji.value,
-          notes: notesController.text.trim(),
-        );
-        await _repo.update(updated);
-        Get.snackbar('Berhasil', 'Bahan baku "$name" berhasil diperbarui',
-            snackPosition: SnackPosition.BOTTOM);
-      } else {
-        final bb = BahanBakuModel(
-          name: name,
-          unit: unit,
-          stock: stock,
-          minStock: minStock,
-          price: price,
-          emoji: selectedEmoji.value,
-          notes: notesController.text.trim(),
-        );
-        await _repo.add(bb);
-        Get.snackbar('Berhasil', 'Bahan baku "$name" berhasil ditambahkan',
-            snackPosition: SnackPosition.BOTTOM);
-      }
+    if (isEditing) {
+      final updated = _editingItem!.copyWith(
+        name: name,
+        unit: unit,
+        stock: stock,
+        minStock: minStock,
+        price: price,
+        emoji: selectedEmoji.value,
+        notes: notesController.text.trim(),
+      );
+      await _repo.update(updated);
       await loadAll();
-      Get.back();
-    } catch (e) {
-      Get.snackbar('Error', 'Gagal menyimpan: $e',
-          snackPosition: SnackPosition.BOTTOM);
+      return 'Bahan baku "$name" berhasil diperbarui';
+    } else {
+      final bb = BahanBakuModel(
+        name: name,
+        unit: unit,
+        stock: stock,
+        minStock: minStock,
+        price: price,
+        emoji: selectedEmoji.value,
+        notes: notesController.text.trim(),
+      );
+      await _repo.add(bb);
+      await loadAll();
+      return 'Bahan baku "$name" berhasil ditambahkan';
     }
   }
 

@@ -19,7 +19,7 @@ class HomeView extends GetView<HomeController> {
       body: CustomScrollView(
         controller: controller.scrollController,
         slivers: [
-          _buildAppBar(),
+          _buildAppBar(context),
           SliverPadding(
             padding: Res.padding(context),
             sliver: SliverList(
@@ -169,10 +169,11 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  Widget _buildAppBar() {
+  Widget _buildAppBar(BuildContext context) {
     final shiftCtrl = Get.find<ShiftController>();
+    final topPadding = MediaQuery.of(context).padding.top;
     return SliverAppBar(
-      expandedHeight: 140,
+      expandedHeight: 180,
       pinned: true,
       backgroundColor: AppColors.primary,
       elevation: 0,
@@ -195,7 +196,7 @@ class HomeView extends GetView<HomeController> {
                 ),
                 const SizedBox(width: 8),
                 const Text(
-                  'Kasir Pintar Sasbim',
+                  'Kasir Pintar MB',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -254,7 +255,7 @@ class HomeView extends GetView<HomeController> {
               ),
               // Content - hanya tampil saat expanded
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.fromLTRB(20, topPadding + kToolbarHeight, 20, 16),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,7 +278,7 @@ class HomeView extends GetView<HomeController> {
                                   ),
                                   const SizedBox(height: 8),
                                   const Text(
-                                    'Kasir Pintar Sasbim',
+                                    'Kasir Pintar MB',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 28,
@@ -657,7 +658,7 @@ class HomeView extends GetView<HomeController> {
 
   Widget _buildStatsGrid(BuildContext context) {
     final cols = Res.cols(context, mobile: 2, tablet: 4);
-    final ratio = Res.isTablet(context) ? 2.2 : 1.6;
+    final ratio = Res.isTablet(context) ? 1.4 : 1.6;
     return Obx(() => GridView.count(
           crossAxisCount: cols,
           shrinkWrap: true,
@@ -701,7 +702,7 @@ class HomeView extends GetView<HomeController> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -712,41 +713,48 @@ class HomeView extends GetView<HomeController> {
               offset: Offset(0, 2))
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Container(
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(6),
+          Positioned(
+            top: 0,
+            left: 0,
+            child: Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(icon, color: color, size: 14),
             ),
-            child: Icon(icon, color: color, size: 14),
           ),
-          const Spacer(),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: const TextStyle(
-                    fontSize: 9, color: AppColors.textSecondary),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+                const SizedBox(height: 1),
+                Text(
+                  label,
+                  style: const TextStyle(
+                      fontSize: 9, color: AppColors.textSecondary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -773,7 +781,7 @@ class HomeView extends GetView<HomeController> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Kasir Pintar Sasbim v2.0',
+                  'Kasir Pintar MB v2.0',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,

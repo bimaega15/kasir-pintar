@@ -98,7 +98,7 @@ class _LoginViewState extends State<LoginView> {
     return const Column(
       children: [
         Text(
-          'Kasir Pintar Sasbim',
+          'Kasir Pintar MB',
           style: TextStyle(
             color: Colors.white,
             fontSize: 28,
