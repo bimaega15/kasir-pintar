@@ -36,6 +36,8 @@ abstract class AppRoutes {
   static const login = '/login';
   static const setup = '/setup';
   static const adminSetup = '/admin-setup';
+  static const licenseGate = '/license-gate';
+  static const licenseGenerator = '/license-generator';
   // master kategori
   static const categories = '/categories';
   static const addEditCategory = '/categories/form';

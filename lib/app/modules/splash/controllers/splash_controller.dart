@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get/get.dart';
 import '../../../data/providers/storage_provider.dart';
 import '../../../routes/app_routes.dart';
+import '../../../services/license_service.dart';
 import '../../../services/user_session.dart';
 
 class SplashController extends GetxController {
@@ -28,6 +29,13 @@ class SplashController extends GetxController {
         username: sessionUsername,
         role: sessionRole.isNotEmpty ? sessionRole : 'admin',
       );
+      // Cek lisensi — jika expired arahkan ke license gate
+      final license = Get.find<LicenseService>();
+      await license.refresh();
+      if (!license.isActive) {
+        Get.offAllNamed(AppRoutes.licenseGate);
+        return;
+      }
       Get.offAllNamed(AppRoutes.main);
       return;
     }
@@ -59,7 +67,14 @@ class SplashController extends GetxController {
       }
     }
 
-    // 4. Tidak ada sesi → ke halaman login
+    // 4. Cek lisensi sebelum ke login (tampilkan gate jika expired)
+    final license = Get.find<LicenseService>();
+    await license.refresh();
+    if (!license.isActive) {
+      Get.offAllNamed(AppRoutes.licenseGate);
+      return;
+    }
+
     Get.offAllNamed(AppRoutes.login);
   }
 }

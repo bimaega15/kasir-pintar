@@ -1,7 +1,228 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../../../routes/app_routes.dart';
+import '../../../services/license_service.dart';
 import '../../../utils/constants/app_colors.dart';
+
+class _ActivationSheet extends StatefulWidget {
+  const _ActivationSheet();
+
+  @override
+  State<_ActivationSheet> createState() => _ActivationSheetState();
+}
+
+class _ActivationSheetState extends State<_ActivationSheet> {
+  final _keyCtrl = TextEditingController();
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _keyCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _activate() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    final err = await Get.find<LicenseService>().activate(_keyCtrl.text);
+    if (!mounted) return;
+    setState(() => _loading = false);
+    if (err != null) {
+      setState(() => _error = err);
+    } else {
+      // Capture messenger before pop (context unmounts after pop)
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.of(context).pop();
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text('Lisensi berhasil diaktivasi!'),
+          backgroundColor: Colors.green.shade700,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.vpn_key_rounded,
+                      color: AppColors.primary, size: 20),
+                ),
+                const SizedBox(width: 12),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Aktivasi Lisensi',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      'Masukkan kunci lisensi yang Anda miliki',
+                      style: TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _keyCtrl,
+              inputFormatters: [_LicenseKeyFormatter()],
+              textCapitalization: TextCapitalization.characters,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2.5,
+                color: AppColors.textPrimary,
+              ),
+              decoration: InputDecoration(
+                hintText: 'XXXXX-XXXXX-XXXXX-XXXXX',
+                hintStyle: TextStyle(
+                  color: Colors.grey.shade400,
+                  letterSpacing: 2,
+                  fontSize: 13,
+                  fontWeight: FontWeight.normal,
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: AppColors.primary, width: 1.5),
+                ),
+                suffixIcon: IconButton(
+                  tooltip: 'Tempel dari clipboard',
+                  icon: Icon(Icons.paste_rounded,
+                      color: Colors.grey.shade500, size: 20),
+                  onPressed: () async {
+                    final data = await Clipboard.getData('text/plain');
+                    if (data?.text != null) _keyCtrl.text = data!.text!;
+                  },
+                ),
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.error_outline,
+                      color: Colors.red.shade600, size: 14),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      _error!,
+                      style:
+                          TextStyle(color: Colors.red.shade600, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: _loading ? null : _activate,
+                icon: _loading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check_circle_rounded, size: 18),
+                label: Text(
+                  _loading ? 'Memverifikasi...' : 'Aktivasi Sekarang',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Auto-formats input as XXXXX-XXXXX-XXXXX-XXXXX (hex only, max 20 chars)
+class _LicenseKeyFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue old, TextEditingValue next) {
+    final raw =
+        next.text.toUpperCase().replaceAll(RegExp(r'[^0-9A-F]'), '');
+    final limited = raw.length > 20 ? raw.substring(0, 20) : raw;
+    final buf = StringBuffer();
+    for (int i = 0; i < limited.length; i++) {
+      if (i > 0 && i % 5 == 0) buf.write('-');
+      buf.write(limited[i]);
+    }
+    final out = buf.toString();
+    return TextEditingValue(
+      text: out,
+      selection: TextSelection.collapsed(offset: out.length),
+    );
+  }
+}
 
 class AboutView extends StatefulWidget {
   const AboutView({super.key});
@@ -12,6 +233,7 @@ class AboutView extends StatefulWidget {
 
 class _AboutViewState extends State<AboutView> {
   String _version = '-';
+  int _tapCount = 0;
 
   @override
   void initState() {
@@ -19,6 +241,14 @@ class _AboutViewState extends State<AboutView> {
     PackageInfo.fromPlatform().then((info) {
       if (mounted) setState(() => _version = info.version);
     });
+  }
+
+  void _onLogoTap() {
+    _tapCount++;
+    if (_tapCount >= 7) {
+      _tapCount = 0;
+      Get.toNamed(AppRoutes.licenseGenerator);
+    }
   }
 
   @override
@@ -99,21 +329,24 @@ class _AboutViewState extends State<AboutView> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 32),
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.3),
-                          width: 2,
+                    GestureDetector(
+                      onTap: _onLogoTap,
+                      child: Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            width: 2,
+                          ),
                         ),
-                      ),
-                      child: const Icon(
-                        Icons.point_of_sale_rounded,
-                        color: Colors.white,
-                        size: 36,
+                        child: const Icon(
+                          Icons.point_of_sale_rounded,
+                          color: Colors.white,
+                          size: 36,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -425,6 +658,56 @@ class _AboutViewState extends State<AboutView> {
             label: 'Teknologi',
             value: 'Flutter + Dart',
           ),
+          const SizedBox(height: 10),
+          Obx(() {
+            final lic = Get.find<LicenseService>();
+            final status = lic.status.value;
+            final days = lic.daysLeft.value;
+            final String label;
+            final Color color;
+            if (status == LicenseStatus.licensed) {
+              label = 'Berlisensi · $days hari tersisa';
+              color = Colors.green.shade600;
+            } else if (status == LicenseStatus.trial) {
+              label = 'Trial · $days hari tersisa';
+              color = Colors.orange.shade700;
+            } else {
+              label = 'Expired';
+              color = Colors.red.shade600;
+            }
+            return Column(
+              children: [
+                _buildInfoRow(
+                  icon: Icons.verified_rounded,
+                  color: color,
+                  label: 'Lisensi',
+                  value: label,
+                ),
+                if (status != LicenseStatus.licensed) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showActivationSheet(context),
+                      icon: const Icon(Icons.vpn_key_rounded, size: 16),
+                      label: const Text(
+                        'Aktivasi Lisensi',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            );
+          }),
         ],
       ),
     );
@@ -495,6 +778,15 @@ class _AboutViewState extends State<AboutView> {
         ),
       ],
       ),
+    );
+  }
+
+  void _showActivationSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _ActivationSheet(),
     );
   }
 

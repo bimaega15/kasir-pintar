@@ -51,6 +51,8 @@ import '../modules/login/bindings/login_binding.dart';
 import '../modules/login/views/login_view.dart';
 import '../modules/login/views/setup_view.dart';
 import '../modules/login/views/admin_setup_view.dart';
+import '../modules/license/views/license_gate_view.dart';
+import '../modules/license/views/license_generator_view.dart';
 import '../modules/categories/bindings/categories_binding.dart';
 import '../modules/categories/views/categories_view.dart';
 import '../modules/categories/views/add_edit_category_view.dart';
@@ -272,6 +274,16 @@ class AppPages {
       page: () => const AdminSetupView(),
       binding: LoginBinding(),
       transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: AppRoutes.licenseGate,
+      page: () => const LicenseGateView(),
+      transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: AppRoutes.licenseGenerator,
+      page: () => const LicenseGeneratorView(),
+      transition: Transition.rightToLeft,
     ),
     // ── Master Kategori ───────────────────────────────────────────────────────
     GetPage(
