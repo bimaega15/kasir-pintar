@@ -495,12 +495,8 @@ class ProductsController extends GetxController {
   void updateBahanBakuItemQty(String bahanBakuId, double qty) {
     final idx = bahanBakuItems.indexWhere((i) => i.bahanBakuId == bahanBakuId);
     if (idx >= 0) {
-      if (qty <= 0) {
-        bahanBakuItems.removeAt(idx);
-      } else {
-        bahanBakuItems[idx].quantity = qty;
-        bahanBakuItems.refresh();
-      }
+      bahanBakuItems[idx].quantity = qty > 0 ? qty : bahanBakuItems[idx].quantity;
+      bahanBakuItems.refresh();
     }
   }
 }

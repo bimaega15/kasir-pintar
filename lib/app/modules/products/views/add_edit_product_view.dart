@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/products_controller.dart';
+import '../../../data/models/product_model.dart';
 import '../../../utils/constants/app_colors.dart';
 import '../../../utils/responsive/responsive_helper.dart';
 
@@ -533,53 +534,11 @@ class AddEditProductView extends GetView<ProductsController> {
                       const Divider(height: 1, indent: 16, endIndent: 16),
                   itemBuilder: (_, i) {
                     final item = controller.bahanBakuItems[i];
-                    return ListTile(
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      leading: Text(item.bahanBakuEmoji,
-                          style: const TextStyle(fontSize: 24)),
-                      title: Text(item.bahanBakuName,
-                          style: const TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: Text(
-                        '${item.quantity} ${item.bahanBakuUnit} per porsi',
-                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            width: 60,
-                            child: TextField(
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                              decoration: const InputDecoration(
-                                isDense: true,
-                                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                                border: OutlineInputBorder(),
-                              ),
-                              controller: TextEditingController(
-                                text: item.quantity % 1 == 0
-                                    ? item.quantity.toInt().toString()
-                                    : item.quantity.toString(),
-                              ),
-                              onChanged: (val) {
-                                final qty = double.tryParse(val) ?? 0;
-                                controller.updateBahanBakuItemQty(item.bahanBakuId, qty);
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(item.bahanBakuUnit,
-                              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline,
-                                size: 20, color: AppColors.error),
-                            onPressed: () =>
-                                controller.removeBahanBakuItem(item.bahanBakuId),
-                          ),
-                        ],
-                      ),
+                    return _BahanBakuRow(
+                      key: ValueKey(item.bahanBakuId),
+                      item: item,
+                      onQtyChanged: (qty) => controller.updateBahanBakuItemQty(item.bahanBakuId, qty),
+                      onRemove: () => controller.removeBahanBakuItem(item.bahanBakuId),
                     );
                   },
                 );
@@ -673,5 +632,100 @@ class AddEditProductView extends GetView<ProductsController> {
         ),
       );
     });
+  }
+}
+
+class _BahanBakuRow extends StatefulWidget {
+  final ProductBahanBakuEntry item;
+  final ValueChanged<double> onQtyChanged;
+  final VoidCallback onRemove;
+
+  const _BahanBakuRow({
+    super.key,
+    required this.item,
+    required this.onQtyChanged,
+    required this.onRemove,
+  });
+
+  @override
+  State<_BahanBakuRow> createState() => _BahanBakuRowState();
+}
+
+class _BahanBakuRowState extends State<_BahanBakuRow> {
+  late final TextEditingController _qtyCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    final q = widget.item.quantity;
+    _qtyCtrl = TextEditingController(
+      text: q % 1 == 0 ? q.toInt().toString() : q.toString(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _qtyCtrl.dispose();
+    super.dispose();
+  }
+
+  void _commit() {
+    final qty = double.tryParse(_qtyCtrl.text);
+    if (qty != null && qty > 0) {
+      widget.onQtyChanged(qty);
+    } else {
+      // Restore to last valid value if field is empty/invalid
+      final q = widget.item.quantity;
+      _qtyCtrl.text = q % 1 == 0 ? q.toInt().toString() : q.toString();
+      _qtyCtrl.selection = TextSelection.collapsed(offset: _qtyCtrl.text.length);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: Text(widget.item.bahanBakuEmoji,
+          style: const TextStyle(fontSize: 24)),
+      title: Text(widget.item.bahanBakuName,
+          style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(
+        '${widget.item.quantity} ${widget.item.bahanBakuUnit} per porsi',
+        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 60,
+            child: TextField(
+              controller: _qtyCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              decoration: const InputDecoration(
+                isDense: true,
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                border: OutlineInputBorder(),
+              ),
+              onSubmitted: (_) => _commit(),
+              onEditingComplete: _commit,
+              onTapOutside: (_) => _commit(),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(widget.item.bahanBakuUnit,
+              style: const TextStyle(
+                  fontSize: 12, color: AppColors.textSecondary)),
+          IconButton(
+            icon: const Icon(Icons.delete_outline,
+                size: 20, color: AppColors.error),
+            onPressed: widget.onRemove,
+          ),
+        ],
+      ),
+    );
   }
 }
