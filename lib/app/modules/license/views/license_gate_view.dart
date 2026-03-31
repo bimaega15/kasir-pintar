@@ -252,13 +252,15 @@ class _LicenseGateViewState extends State<LicenseGateView> {
                 return;
               }
               Navigator.of(ctx).pop();
+              final deviceId = Get.find<LicenseService>().deviceIdDisplay.value;
               final msg = Uri.encodeComponent(
                 'Hai kak, saya ingin memperpanjang aplikasi Kasir Pintar MB nya '
                 'dengan paket *$paket ($harga)*\n\n'
                 'Nama Pelanggan: $nama\n'
                 'Nomor Handphone: $hp\n'
                 'Email: ${email.isEmpty ? '-' : email}\n'
-                'Paket: $paket ($harga)',
+                'Paket: $paket ($harga)\n'
+                'ID Perangkat: $deviceId',
               );
               final url = Uri.parse('https://wa.me/62${_stripLeadingZero('082277506232')}?text=$msg');
               if (await canLaunchUrl(url)) {
