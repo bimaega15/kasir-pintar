@@ -24,10 +24,12 @@ class _LicenseGeneratorViewState extends State<LicenseGeneratorView> {
   // Generator state
   int _selectedDays = 30;
   final _customDaysCtrl = TextEditingController(text: '30');
+  final _deviceIdCtrl = TextEditingController();
   bool _useCustom = false;
   String? _generatedKey;
   DateTime? _expiryDate;
   bool _copied = false;
+  String? _deviceIdError;
 
   static const _presets = [
     {'label': '7 Hari', 'days': 7},
@@ -41,6 +43,7 @@ class _LicenseGeneratorViewState extends State<LicenseGeneratorView> {
   void dispose() {
     _pinCtrl.dispose();
     _customDaysCtrl.dispose();
+    _deviceIdCtrl.dispose();
     super.dispose();
   }
 
@@ -56,12 +59,20 @@ class _LicenseGeneratorViewState extends State<LicenseGeneratorView> {
   }
 
   void _generate() {
+    // Validasi device ID
+    final rawId = _deviceIdCtrl.text.trim().toUpperCase().replaceAll('-', '');
+    if (rawId.length != 16 || RegExp(r'[^0-9A-F]').hasMatch(rawId)) {
+      setState(() => _deviceIdError = 'ID Perangkat tidak valid (format: XXXX-XXXX-XXXX-XXXX)');
+      return;
+    }
+    setState(() => _deviceIdError = null);
+
     int days = _useCustom
         ? (int.tryParse(_customDaysCtrl.text) ?? 30)
         : _selectedDays;
     if (days <= 0) days = 1;
 
-    final key = LicenseService.generateKey(days);
+    final key = LicenseService.generateKey(days, rawId);
     final expiry = LicenseService.expiryFromKey(key);
     setState(() {
       _generatedKey = key;
@@ -323,6 +334,83 @@ class _LicenseGeneratorViewState extends State<LicenseGeneratorView> {
                     ],
                   ),
                 ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Device ID input
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A2E),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.fingerprint_rounded,
+                        color: AppColors.primary, size: 18),
+                    const SizedBox(width: 8),
+                    const Text('ID Perangkat Pelanggan',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Minta pelanggan salin ID Perangkat dari halaman kunci aplikasi mereka.',
+                  style: TextStyle(color: Colors.white38, fontSize: 11, height: 1.4),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _deviceIdCtrl,
+                  textCapitalization: TextCapitalization.characters,
+                  onChanged: (_) => setState(() => _deviceIdError = null),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                    fontSize: 15,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'XXXX-XXXX-XXXX-XXXX',
+                    hintStyle: TextStyle(
+                        color: Colors.grey.shade700, letterSpacing: 2, fontSize: 13),
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.07),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(color: AppColors.primary, width: 1.5),
+                    ),
+                    errorText: _deviceIdError,
+                    errorStyle: const TextStyle(color: Colors.redAccent),
+                    suffixIcon: IconButton(
+                      tooltip: 'Tempel dari clipboard',
+                      icon: const Icon(Icons.paste_rounded,
+                          color: Colors.white38, size: 18),
+                      onPressed: () async {
+                        final data = await Clipboard.getData('text/plain');
+                        if (data?.text != null) {
+                          setState(() {
+                            _deviceIdCtrl.text = data!.text!.trim().toUpperCase();
+                            _deviceIdError = null;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

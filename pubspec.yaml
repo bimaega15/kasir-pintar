@@ -31,6 +31,8 @@ dependencies:
   local_notifier: ^0.1.6
   package_info_plus: ^8.1.1
   crypto: ^3.0.6
+  url_launcher: ^6.3.0
+  device_info_plus: ^11.0.0
   open_filex: ^4.5.0
   file_picker: ^8.1.2
   excel: ^4.0.6
