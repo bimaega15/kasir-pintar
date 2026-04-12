@@ -174,7 +174,7 @@ class HomeView extends GetView<HomeController> {
     final shiftCtrl = Get.find<ShiftController>();
     final topPadding = MediaQuery.of(context).padding.top;
     return SliverAppBar(
-      expandedHeight: 180,
+      expandedHeight: 140,
       pinned: true,
       backgroundColor: AppColors.primary,
       elevation: 0,
@@ -256,7 +256,7 @@ class HomeView extends GetView<HomeController> {
               ),
               // Content - hanya tampil saat expanded
               Padding(
-                padding: EdgeInsets.fromLTRB(20, topPadding + kToolbarHeight, 20, 16),
+                padding: EdgeInsets.fromLTRB(20, topPadding + 24, 20, 16),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,

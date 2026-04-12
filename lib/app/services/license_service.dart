@@ -68,11 +68,6 @@ class LicenseService extends GetxService {
 
   // ─── Refresh status ───────────────────────────────────────────────────────
   Future<void> refresh() async {
-    // DEBUG ONLY — hapus setelah testing
-    await _db.setSetting('licensed_until', '');
-    await _db.setSetting('used_license_keys', '');
-    await _db.setSetting('install_date', DateTime.now().subtract(const Duration(days: 8)).toIso8601String());
-
     // Record install date on first run
     String? installStr = await _db.getSetting('install_date');
     if (installStr == null) {

@@ -533,27 +533,6 @@ class OrderController extends GetxController {
                       ),
                     ),
                   const SizedBox(height: 16),
-                  Obx(() => Row(
-                        children: [
-                          const Text('Jumlah Pax:',
-                              style: TextStyle(fontWeight: FontWeight.w600)),
-                          const SizedBox(width: 12),
-                          IconButton(
-                            icon: const Icon(Icons.remove_circle_outline),
-                            onPressed: () {
-                              if (guestCount.value > 1) guestCount.value--;
-                            },
-                          ),
-                          Text('${guestCount.value}',
-                              style: const TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold)),
-                          IconButton(
-                            icon: const Icon(Icons.add_circle_outline),
-                            onPressed: () => guestCount.value++,
-                          ),
-                        ],
-                      )),
-                  const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
